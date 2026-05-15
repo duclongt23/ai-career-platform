@@ -1,0 +1,54 @@
+import { Routes, Route, Link, Navigate, useNavigate } from "react-router-dom";
+import Register from "./pages/Register";
+import Login from "./pages/Login";
+import Profile from "./pages/Profile";
+import Careers from "./pages/Careers";
+import CareerDetail from "./pages/CareerDetail";
+
+function App() {
+  const navigate = useNavigate();
+  const token = localStorage.getItem("token");
+
+  const handleLogout = () => {
+    localStorage.removeItem("token");
+    localStorage.removeItem("user");
+    navigate("/login");
+  };
+
+  return (
+    <div>
+      <nav className="navbar">
+        <h2>AI Career Platform</h2>
+
+        <div className="nav-links">
+          <Link to="/careers">Ngành nghề</Link>
+
+          {token ? (
+            <>
+              <Link to="/profile">Hồ sơ</Link>
+              <button onClick={handleLogout}>Đăng xuất</button>
+            </>
+          ) : (
+            <>
+              <Link to="/login">Đăng nhập</Link>
+              <Link to="/register">Đăng ký</Link>
+            </>
+          )}
+        </div>
+      </nav>
+
+      <main className="container">
+        <Routes>
+          <Route path="/" element={<Navigate to="/careers" />} />
+          <Route path="/register" element={<Register />} />
+          <Route path="/login" element={<Login />} />
+          <Route path="/profile" element={<Profile />} />
+          <Route path="/careers" element={<Careers />} />
+          <Route path="/careers/:id" element={<CareerDetail />} />
+        </Routes>
+      </main>
+    </div>
+  );
+}
+
+export default App;
