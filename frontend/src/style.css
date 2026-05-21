@@ -418,6 +418,117 @@ button.danger {
   margin: 0 auto;
 }
 
+.riasec-intro-hero {
+  align-items: flex-end;
+  background: linear-gradient(135deg, #f8fafc, #eef6f3);
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  display: grid;
+  gap: 24px;
+  grid-template-columns: 1fr auto;
+  margin-bottom: 20px;
+  padding: 32px;
+  text-align: left;
+}
+
+.riasec-intro-hero h1 {
+  color: #111827;
+  font-size: 40px;
+  line-height: 1.12;
+  margin: 10px 0 12px;
+  max-width: 760px;
+}
+
+.riasec-intro-hero p {
+  color: #4b5563;
+  line-height: 1.65;
+  max-width: 760px;
+}
+
+.riasec-intro-hero button {
+  background: #0f766e;
+  min-width: 160px;
+  white-space: nowrap;
+}
+
+.riasec-intro-panel {
+  border-radius: 8px;
+  margin-bottom: 18px;
+  padding: 24px 26px;
+  text-align: left;
+}
+
+.riasec-intro-panel h2 {
+  color: #111827;
+  font-size: 22px;
+  margin: 0 0 12px;
+}
+
+.riasec-intro-panel p {
+  color: #111827;
+  line-height: 1.65;
+  margin: 0;
+}
+
+.riasec-intro-panel p + p {
+  margin-top: 10px;
+}
+
+.riasec-intro-panel.background {
+  background: #f2dfb5;
+}
+
+.riasec-intro-panel.instructions {
+  background: #dfe2ff;
+}
+
+.riasec-intro-panel.notice {
+  background: #d5f2bd;
+}
+
+.riasec-type-grid {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  margin-bottom: 18px;
+}
+
+.riasec-type-card {
+  background: white;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  padding: 18px;
+  text-align: left;
+}
+
+.riasec-type-card span {
+  align-items: center;
+  background: #0f766e;
+  border-radius: 50%;
+  color: white;
+  display: inline-flex;
+  font-size: 14px;
+  font-weight: 700;
+  height: 34px;
+  justify-content: center;
+  margin-bottom: 12px;
+  width: 34px;
+}
+
+.riasec-type-card h3 {
+  color: #111827;
+  font-size: 16px;
+  line-height: 1.35;
+  margin: 0 0 8px;
+}
+
+.riasec-type-card p {
+  color: #4b5563;
+  font-size: 14px;
+  line-height: 1.55;
+  margin: 0;
+}
+
 .riasec-header {
   margin-bottom: 20px;
   text-align: left;
@@ -611,6 +722,24 @@ button.danger {
 @media (max-width: 768px) {
   .riasec-header h1 {
     font-size: 28px;
+  }
+
+  .riasec-intro-hero {
+    align-items: stretch;
+    grid-template-columns: 1fr;
+    padding: 24px;
+  }
+
+  .riasec-intro-hero h1 {
+    font-size: 30px;
+  }
+
+  .riasec-intro-hero button {
+    width: 100%;
+  }
+
+  .riasec-type-grid {
+    grid-template-columns: 1fr;
   }
 
   .riasec-question h2 {

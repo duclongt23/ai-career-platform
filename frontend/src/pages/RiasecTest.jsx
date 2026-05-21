@@ -59,9 +59,42 @@ const TYPE_INFO = {
 const ANSWER_OPTIONS = [
   { label: "Hoàn toàn không thích", value: 0 },
   { label: "Không thích", value: 1 },
-{ label: "Trung lập", value: 2 },
+  { label: "Trung lập", value: 2 },
   { label: "Thích", value: 3 },
   { label: "Rất thích", value: 4 },
+];
+
+const HOLLAND_TYPES = [
+  {
+    code: "R",
+    title: "Realistic - Kỹ thuật",
+    text: "Thích thao tác với công cụ, máy móc, vật thể, cây cối, động vật hoặc các hoạt động thực tế ngoài trời.",
+  },
+  {
+    code: "I",
+    title: "Investigative - Nghiên cứu",
+    text: "Thích quan sát, phân tích, tìm hiểu nguyên nhân và giải quyết vấn đề bằng dữ liệu hoặc lập luận.",
+  },
+  {
+    code: "A",
+    title: "Artistic - Nghệ thuật",
+    text: "Thích sáng tạo, diễn đạt ý tưởng, thiết kế, viết, biểu diễn hoặc làm việc trong môi trường linh hoạt.",
+  },
+  {
+    code: "S",
+    title: "Social - Xã hội",
+    text: "Thích hỗ trợ, hướng dẫn, đào tạo, chăm sóc hoặc làm việc trực tiếp với con người.",
+  },
+  {
+    code: "E",
+    title: "Enterprising - Quản lý",
+    text: "Thích thuyết phục, lãnh đạo, kinh doanh, tổ chức nguồn lực và tạo ảnh hưởng đến người khác.",
+  },
+  {
+    code: "C",
+    title: "Conventional - Nghiệp vụ",
+    text: "Thích làm việc có quy trình, dữ liệu, con số, hồ sơ và các nhiệm vụ cần sự chính xác, trật tự.",
+  },
 ];
 
 const createEmptyScores = () =>
@@ -96,7 +129,8 @@ function RiasecTest() {
   const [questions, setQuestions] = useState([]);
   const [answers, setAnswers] = useState({});
   const [currentIndex, setCurrentIndex] = useState(0);
-  const [isLoading, setIsLoading] = useState(true);
+  const [hasStarted, setHasStarted] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
   const [saveStatus, setSaveStatus] = useState("idle");
   const token = localStorage.getItem("token");
@@ -112,27 +146,7 @@ function RiasecTest() {
       return undefined;
     }
 
-    let isMounted = true;
-
-    api
-      .get("/riasec/questions")
-      .then((res) => {
-        if (!isMounted) return;
-        setError("");
-        setQuestions(res.data);
-      })
-      .catch(() => {
-        if (!isMounted) return;
-        setError("Không tải được bộ câu hỏi RIASEC. Vui lòng thử lại sau.");
-      })
-      .finally(() => {
-        if (!isMounted) return;
-        setIsLoading(false);
-      });
-
-    return () => {
-      isMounted = false;
-    };
+    return undefined;
   }, [navigate, token]);
 
   const fetchQuestions = () => {
@@ -150,6 +164,14 @@ function RiasecTest() {
       .finally(() => {
         setIsLoading(false);
       });
+  };
+
+  const startAssessment = () => {
+    setHasStarted(true);
+    setAnswers({});
+    setCurrentIndex(0);
+    setSaveStatus("idle");
+    fetchQuestions();
   };
 
   const answeredCount = Object.keys(answers).length;
@@ -217,6 +239,73 @@ function RiasecTest() {
     setCurrentIndex(0);
     setSaveStatus("idle");
   };
+
+  if (!hasStarted) {
+    return (
+      <div className="riasec-page">
+        <section className="riasec-intro-hero">
+          <div>
+            <p className="riasec-eyebrow">Holland Code (RIASEC)</p>
+            <h1>Hiểu sở thích nghề nghiệp trước khi chọn hướng đi</h1>
+            <p>
+              Holland Code là mô hình phân loại sở thích nghề nghiệp thành 6
+              nhóm tính cách. Bài test này giúp bạn nhận diện các nhóm nổi bật
+              nhất để tham khảo khi khám phá ngành học và nghề nghiệp phù hợp.
+            </p>
+          </div>
+          <button type="button" onClick={startAssessment}>
+            Bắt đầu làm bài
+          </button>
+        </section>
+
+        <section className="riasec-intro-panel background">
+          <h2>Nền tảng lý thuyết</h2>
+          <p>
+            Lý thuyết Holland Occupational Themes do nhà tâm lý học John L.
+            Holland phát triển từ thập niên 1950. Mô hình cho rằng con người và
+            môi trường nghề nghiệp có thể được mô tả qua sáu nhóm: Realistic,
+            Investigative, Artistic, Social, Enterprising và Conventional, gọi
+            tắt là RIASEC.
+          </p>
+          <p>
+            Khi sở thích, năng lực và môi trường làm việc có mức độ phù hợp cao,
+            người học hoặc người đi làm thường dễ duy trì động lực, phát triển
+            kỹ năng và cảm thấy rõ ràng hơn trong lựa chọn nghề nghiệp.
+          </p>
+        </section>
+
+        <section className="riasec-type-grid" aria-label="Sáu nhóm RIASEC">
+          {HOLLAND_TYPES.map((item) => (
+            <article key={item.code} className="riasec-type-card">
+              <span>{item.code}</span>
+              <h3>{item.title}</h3>
+              <p>{item.text}</p>
+            </article>
+          ))}
+        </section>
+
+        <section className="riasec-intro-panel instructions">
+          <h2>Hướng dẫn làm bài</h2>
+          <p>
+            Bài test gồm {questions.length || 30} hoạt động. Với mỗi hoạt động,
+            hãy chọn mức độ bạn muốn thực hiện: hoàn toàn không thích, không
+            thích, trung lập, thích hoặc rất thích. Không có đáp án đúng sai;
+            hãy trả lời theo cảm nhận tự nhiên của bạn.
+          </p>
+        </section>
+
+        <section className="riasec-intro-panel notice">
+          <h2>Lưu ý sử dụng</h2>
+          <p>
+            Kết quả chỉ dùng cho mục đích định hướng học tập và tham khảo nghề
+            nghiệp, không phải chẩn đoán tâm lý hay quyết định bắt buộc. Kết quả
+            của bạn sẽ được lưu vào hồ sơ để hệ thống có thể gợi ý ngành nghề
+            phù hợp hơn.
+          </p>
+        </section>
+      </div>
+    );
+  }
 
   if (isLoading) {
     return (
@@ -358,4 +447,3 @@ function RiasecTest() {
 }
 
 export default RiasecTest;
-
