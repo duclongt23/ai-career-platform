@@ -103,6 +103,14 @@ button:disabled {
   border-radius: 8px;
 }
 
+.auth-notice {
+  background: #e0ecff;
+  color: #1d4ed8;
+  padding: 10px;
+  border-radius: 8px;
+  margin-bottom: 12px;
+}
+
 .field-error {
   color: #b91c1c;
   font-size: 13px;
@@ -270,6 +278,10 @@ button:disabled {
   line-height: 1.6;
 }
 
+.profile-riasec-button {
+  margin-top: 12px;
+}
+
 .profile-tags {
   display: flex;
   flex-wrap: wrap;
@@ -398,5 +410,228 @@ button.danger {
 @media (max-width: 768px) {
   .admin-table {
     min-width: 800px;
+  }
+}
+
+.riasec-page {
+  max-width: 920px;
+  margin: 0 auto;
+}
+
+.riasec-header {
+  margin-bottom: 20px;
+  text-align: left;
+}
+
+.riasec-header h1 {
+  margin: 8px 0 10px;
+  color: #111827;
+  font-size: 36px;
+  line-height: 1.15;
+}
+
+.riasec-header p {
+  color: #4b5563;
+  line-height: 1.6;
+}
+
+.riasec-eyebrow {
+  color: #2563eb;
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  margin: 0;
+  text-transform: uppercase;
+}
+
+.riasec-card {
+  text-align: left;
+}
+
+.riasec-progress-meta {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  color: #4b5563;
+  font-size: 14px;
+  margin-bottom: 10px;
+}
+
+.riasec-progress-meta strong {
+  color: #111827;
+}
+
+.riasec-progress,
+.riasec-bar {
+  background: #e5e7eb;
+  border-radius: 999px;
+  height: 10px;
+  overflow: hidden;
+}
+
+.riasec-progress div,
+.riasec-bar div {
+  background: linear-gradient(90deg, #2563eb, #14b8a6);
+  height: 100%;
+  transition: width 0.25s ease;
+}
+
+.riasec-question {
+  margin: 28px 0;
+}
+
+.riasec-question h2 {
+  color: #111827;
+  font-size: 28px;
+  line-height: 1.35;
+  margin: 0;
+}
+
+.riasec-options {
+  display: grid;
+  gap: 10px;
+}
+
+.riasec-options button {
+  align-items: center;
+  background: #f9fafb;
+  border: 1px solid #e5e7eb;
+  color: #111827;
+  display: flex;
+  justify-content: flex-start;
+  min-height: 54px;
+  padding: 12px 14px;
+  text-align: left;
+}
+
+.riasec-options button:hover,
+.riasec-options button.selected {
+  background: #e0ecff;
+  border-color: #2563eb;
+  color: #1d4ed8;
+}
+
+.riasec-actions,
+.riasec-result-heading {
+  align-items: center;
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 18px;
+}
+
+.riasec-actions span {
+  color: #6b7280;
+  font-size: 14px;
+}
+
+.riasec-result-heading {
+  margin-top: 0;
+  margin-bottom: 24px;
+}
+
+.riasec-result-heading h2 {
+  color: #111827;
+  margin: 4px 0 0;
+}
+
+.riasec-save-status {
+  color: #6b7280;
+  font-size: 14px;
+  margin-top: 6px;
+}
+
+.riasec-save-status.saved {
+  color: #166534;
+}
+
+.riasec-save-status.error-text {
+  color: #b91c1c;
+}
+
+.riasec-bars {
+  display: grid;
+  gap: 16px;
+}
+
+.riasec-bar-row {
+  align-items: center;
+  display: grid;
+  gap: 10px;
+  grid-template-columns: 190px 1fr 48px;
+}
+
+.riasec-bar-label {
+  display: grid;
+  gap: 2px;
+}
+
+.riasec-bar-label strong {
+  color: #111827;
+  font-size: 14px;
+}
+
+.riasec-bar-label span,
+.riasec-percent {
+  color: #6b7280;
+  font-size: 13px;
+}
+
+.riasec-top-grid {
+  display: grid;
+  gap: 14px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  margin-top: 28px;
+}
+
+.riasec-top-card {
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  padding: 16px;
+}
+
+.riasec-top-card span {
+  color: #2563eb;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.riasec-top-card h3 {
+  color: #111827;
+  font-size: 17px;
+  margin: 8px 0;
+}
+
+.riasec-top-card p {
+  color: #4b5563;
+  line-height: 1.55;
+  margin: 0;
+}
+
+@media (max-width: 768px) {
+  .riasec-header h1 {
+    font-size: 28px;
+  }
+
+  .riasec-question h2 {
+    font-size: 22px;
+  }
+
+  .riasec-result-heading,
+  .riasec-actions {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .riasec-bar-row {
+    grid-template-columns: 1fr 46px;
+  }
+
+  .riasec-bar-label {
+    grid-column: 1 / -1;
+  }
+
+  .riasec-top-grid {
+    grid-template-columns: 1fr;
   }
 }

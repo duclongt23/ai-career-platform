@@ -1,9 +1,12 @@
 import { useState } from "react";
-import { useNavigate, Link } from "react-router-dom";
+import { useNavigate, Link, useLocation } from "react-router-dom";
 import api from "../api/axios";
 
 function Login() {
   const navigate = useNavigate();
+  const location = useLocation();
+  const notice = location.state?.message;
+  const redirectTo = location.state?.from || "/profile";
 
   const [form, setForm] = useState({
     email: "",
@@ -31,7 +34,7 @@ function Login() {
       localStorage.setItem("token", res.data.token);
       localStorage.setItem("user", JSON.stringify(res.data.user));
 
-      navigate("/profile");
+      navigate(redirectTo, { replace: true });
     } catch (err) {
       setError(err.response?.data?.message || "Đăng nhập thất bại");
     } finally {
@@ -43,6 +46,7 @@ function Login() {
     <div className="card form-card">
       <h1>Đăng nhập</h1>
 
+      {notice && <p className="auth-notice">{notice}</p>}
       {error && <p className="error">{error}</p>}
 
       <form onSubmit={handleLogin}>

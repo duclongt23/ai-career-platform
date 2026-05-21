@@ -1,0 +1,152 @@
+[
+  {
+    "id": 1,
+    "text": "Đóng tủ bếp",
+    "type": "REALISTIC"
+  },
+  {
+    "id": 2,
+    "text": "Phát triển một loại thuốc mới",
+    "type": "INVESTIGATIVE"
+  },
+  {
+    "id": 3,
+    "text": "Viết sách hoặc kịch bản sân khấu",
+    "type": "ARTISTIC"
+  },
+  {
+    "id": 4,
+    "text": "Giúp đỡ những người gặp vấn đề cá nhân hoặc cảm xúc",
+    "type": "SOCIAL"
+  },
+  {
+    "id": 5,
+    "text": "Quản lý một phòng ban trong một công ty lớn",
+    "type": "ENTERPRISING"
+  },
+  {
+    "id": 6,
+    "text": "Cài đặt phần mềm trên mạng lưới máy tính lớn",
+    "type": "CONVENTIONAL"
+  },
+  {
+    "id": 7,
+    "text": "Sửa chữa các thiết bị gia dụng",
+    "type": "REALISTIC"
+  },
+  {
+    "id": 8,
+    "text": "Nghiên cứu các phương pháp giảm ô nhiễm nguồn nước",
+    "type": "INVESTIGATIVE"
+  },
+  {
+    "id": 9,
+    "text": "Sáng tác hoặc phối khí âm nhạc",
+    "type": "ARTISTIC"
+  },
+  {
+    "id": 10,
+    "text": "Hướng nghiệp cho mọi người",
+    "type": "SOCIAL"
+  },
+  {
+    "id": 11,
+    "text": "Khởi nghiệp / Tự kinh doanh",
+    "type": "ENTERPRISING"
+  },
+  {
+    "id": 12,
+    "text": "Sử dụng máy tính bỏ túi để tính toán sổ sách",
+    "type": "CONVENTIONAL"
+  },
+  {
+    "id": 13,
+    "text": "Lắp ráp các linh kiện điện tử",
+    "type": "REALISTIC"
+  },
+  {
+    "id": 14,
+    "text": "Tiến hành các thí nghiệm hóa học",
+    "type": "INVESTIGATIVE"
+  },
+  {
+    "id": 15,
+    "text": "Tạo kỹ xảo điện ảnh cho phim",
+    "type": "ARTISTIC"
+  },
+  {
+    "id": 16,
+    "text": "Thực hiện trị liệu phục hồi chức năng",
+    "type": "SOCIAL"
+  },
+  {
+    "id": 17,
+    "text": "Đàm phán hợp đồng kinh doanh",
+    "type": "ENTERPRISING"
+  },
+  {
+    "id": 18,
+    "text": "Ghi chép sổ sách xuất nhập kho",
+    "type": "CONVENTIONAL"
+  },
+  {
+    "id": 19,
+    "text": "Lái xe tải giao hàng đến các văn phòng và nhà dân",
+    "type": "REALISTIC"
+  },
+  {
+    "id": 20,
+    "text": "Xét nghiệm mẫu máu bằng kính hiển vi",
+    "type": "INVESTIGATIVE"
+  },
+  {
+    "id": 21,
+    "text": "Vẽ bối cảnh hoặc đạo cụ cho các vở kịch",
+    "type": "ARTISTIC"
+  },
+  {
+    "id": 22,
+    "text": "Làm công việc tình nguyện tại tổ chức phi lợi nhuận",
+    "type": "SOCIAL"
+  },
+  {
+    "id": 23,
+    "text": "Tiếp thị một dòng quần áo mới",
+    "type": "ENTERPRISING"
+  },
+  {
+    "id": 24,
+    "text": "Kiểm kê hàng hóa bằng thiết bị máy tính cầm tay",
+    "type": "CONVENTIONAL"
+  },
+  {
+    "id": 25,
+    "text": "Kiểm tra chất lượng linh kiện trước khi giao hàng",
+    "type": "REALISTIC"
+  },
+  {
+    "id": 26,
+    "text": "Phát triển phương pháp dự báo thời tiết tốt hơn",
+    "type": "INVESTIGATIVE"
+  },
+  {
+    "id": 27,
+    "text": "Viết kịch bản phim điện ảnh hoặc truyền hình",
+    "type": "ARTISTIC"
+  },
+  {
+    "id": 28,
+    "text": "Giảng dạy một lớp học trung học phổ thông",
+    "type": "SOCIAL"
+  },
+  {
+    "id": 29,
+    "text": "Bán hàng hóa tại cửa hàng bách hóa",
+    "type": "ENTERPRISING"
+  },
+  {
+    "id": 30,
+    "text": "Đóng dấu, phân loại và phân phát thư từ cho cơ quan",
+    "type": "CONVENTIONAL"
+  }
+]

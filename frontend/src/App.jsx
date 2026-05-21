@@ -5,6 +5,7 @@ import Profile from "./pages/Profile";
 import Careers from "./pages/Careers";
 import CareerDetail from "./pages/CareerDetail";
 import AdminCareers from "./pages/AdminCareers";
+import RiasecTest from "./pages/RiasecTest";
 
 function App() {
   const navigate = useNavigate();
@@ -25,6 +26,7 @@ function App() {
 
         <div className="nav-links">
           <Link to="/careers">Ngành nghề</Link>
+          <Link to="/riasec-test">RIASEC</Link>
 
           {token ? (
             <>
@@ -48,6 +50,7 @@ function App() {
           <Route path="/login" element={<Login />} />
           <Route path="/profile" element={<Profile />} />
           <Route path="/careers" element={<Careers />} />
+          <Route path="/riasec-test" element={<RiasecTest />} />
           <Route path="/careers/:id" element={<CareerDetail />} />
           <Route path="/admin/careers" element={<AdminCareers />} />
         </Routes>

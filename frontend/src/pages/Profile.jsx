@@ -12,6 +12,8 @@ function Profile() {
     interests: "",
     skills: "",
     goal: "",
+    riasecCode: "",
+    riasecCompletedAt: "",
   });
 
   const [message, setMessage] = useState("");
@@ -20,15 +22,6 @@ function Profile() {
 
   const token = localStorage.getItem("token");
   const user = JSON.parse(localStorage.getItem("user") || "{}");
-
-  useEffect(() => {
-    if (!token) {
-      navigate("/login");
-      return;
-    }
-
-    fetchProfile();
-  }, []);
 
   const fetchProfile = async () => {
     try {
@@ -41,12 +34,50 @@ function Profile() {
         interests: res.data.interests.join(", "),
         skills: res.data.skills.join(", "),
         goal: res.data.goal,
+        riasecCode: res.data.riasecCode || "",
+        riasecCompletedAt: res.data.riasecCompletedAt || "",
       });
-    } catch (err) {
+    } catch {
       console.log("Chưa có profile, người dùng cần tạo mới");
       setIsEditing(true);
     }
   };
+
+  useEffect(() => {
+    if (!token) {
+      navigate("/login");
+      return;
+    }
+
+    let isMounted = true;
+
+    api
+      .get("/profile")
+      .then((res) => {
+        if (!isMounted) return;
+
+        setForm({
+          grade: res.data.grade,
+          favoriteSubjects: res.data.favoriteSubjects.join(", "),
+          strongSubjects: res.data.strongSubjects.join(", "),
+          interests: res.data.interests.join(", "),
+          skills: res.data.skills.join(", "),
+          goal: res.data.goal,
+          riasecCode: res.data.riasecCode || "",
+          riasecCompletedAt: res.data.riasecCompletedAt || "",
+        });
+      })
+      .catch(() => {
+        if (!isMounted) return;
+
+        console.log("Chưa có profile, người dùng cần tạo mới");
+        setIsEditing(true);
+      });
+
+    return () => {
+      isMounted = false;
+    };
+  }, [navigate, token]);
 
   const toArray = (text) => {
     return text
@@ -78,6 +109,7 @@ function Profile() {
       };
 
       await api.put("/profile", payload);
+      await fetchProfile();
 
       setMessage("Lưu hồ sơ thành công");
       setIsEditing(false);
@@ -101,6 +133,10 @@ function Profile() {
       </div>
     );
   };
+
+  const riasecDate = form.riasecCompletedAt
+    ? new Date(form.riasecCompletedAt).toLocaleDateString("vi-VN")
+    : "";
 
   return (
     <div className="profile-page">
@@ -137,6 +173,22 @@ function Profile() {
             <div className="profile-stat">
               <span>Mục tiêu</span>
               <p>{form.goal || "Chưa cập nhật mục tiêu học tập."}</p>
+            </div>
+            <div className="profile-stat">
+              <span>Mã RIASEC</span>
+              <strong>{form.riasecCode || "Chưa làm test"}</strong>
+              {riasecDate ? (
+                <p>Cập nhật ngày {riasecDate}</p>
+              ) : (
+                <p>Làm bài test RIASEC để nhận gợi ý nghề nghiệp phù hợp.</p>
+              )}
+              <button
+                type="button"
+                className="profile-riasec-button"
+                onClick={() => navigate("/riasec-test")}
+              >
+                {form.riasecCode ? "Làm lại RIASEC" : "Làm test RIASEC"}
+              </button>
             </div>
           </section>
 
@@ -212,7 +264,7 @@ function Profile() {
               name="goal"
               value={form.goal}
               onChange={handleChange}
-              placeholder="Ví dụ: Em muốn học đại học ngành công nghệ"
+              placeholder="Ví dụ: học đại học, học nghề, du học, đi làm sớm"
               rows="4"
             />
 
