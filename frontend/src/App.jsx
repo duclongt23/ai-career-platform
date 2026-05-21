@@ -4,10 +4,13 @@ import Login from "./pages/Login";
 import Profile from "./pages/Profile";
 import Careers from "./pages/Careers";
 import CareerDetail from "./pages/CareerDetail";
+import AdminCareers from "./pages/AdminCareers";
 
 function App() {
   const navigate = useNavigate();
   const token = localStorage.getItem("token");
+  const user = JSON.parse(localStorage.getItem("user"));
+  const isAdmin = user?.role === "admin";
 
   const handleLogout = () => {
     localStorage.removeItem("token");
@@ -25,6 +28,7 @@ function App() {
 
           {token ? (
             <>
+              {isAdmin && <Link to="/admin/careers">Admin</Link>}
               <Link to="/profile">Hồ sơ</Link>
               <button onClick={handleLogout}>Đăng xuất</button>
             </>
@@ -45,6 +49,7 @@ function App() {
           <Route path="/profile" element={<Profile />} />
           <Route path="/careers" element={<Careers />} />
           <Route path="/careers/:id" element={<CareerDetail />} />
+          <Route path="/admin/careers" element={<AdminCareers />} />
         </Routes>
       </main>
     </div>

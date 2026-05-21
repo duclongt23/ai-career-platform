@@ -216,6 +216,7 @@ button:disabled {
 .profile-title {
   flex: 1;
   min-width: 0;
+  padding-top: 48px;
 }
 
 .profile-title h1 {
@@ -340,5 +341,62 @@ button:disabled {
 
   .profile-actions {
     flex-direction: column;
+  }
+}
+
+.admin-form {
+  margin-bottom: 24px;
+}
+
+.json-textarea {
+  font-family: Consolas, "Courier New", monospace;
+  line-height: 1.5;
+  min-height: 260px;
+}
+
+.form-actions {
+  display: flex;
+  gap: 12px;
+  margin-top: 12px;
+}
+
+button.secondary {
+  background: #6b7280;
+}
+
+button.danger {
+  background: #dc2626;
+}
+
+.admin-table-wrapper {
+  overflow-x: auto;
+}
+
+.admin-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 16px;
+}
+
+.admin-table th,
+.admin-table td {
+  border-bottom: 1px solid #e5e7eb;
+  padding: 12px;
+  text-align: left;
+  vertical-align: top;
+}
+
+.admin-table th {
+  background: #f9fafb;
+}
+
+.table-actions {
+  display: flex;
+  gap: 8px;
+}
+
+@media (max-width: 768px) {
+  .admin-table {
+    min-width: 800px;
   }
 }
