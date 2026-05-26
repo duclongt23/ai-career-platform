@@ -1,5 +1,5 @@
 ﻿import { useEffect, useMemo, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import api from "../api/axios";
 
 const RIASEC_TYPES = [
@@ -124,16 +124,52 @@ const calculateResults = (questions, answers) => {
   }).sort((a, b) => b.score - a.score);
 };
 
+const buildSavedResults = (riasecScores = {}, riasecCode = "", questions = []) => {
+  const counts = createEmptyScores();
+  const codeOrder = String(riasecCode || "")
+    .toUpperCase()
+    .split("")
+    .reduce((order, code, index) => ({ ...order, [code]: index }), {});
+
+  questions.forEach((question) => {
+    if (counts[question.type] !== undefined) {
+      counts[question.type] += 1;
+    }
+  });
+
+  return RIASEC_TYPES.map((type) => {
+    const score = Number(riasecScores?.[type] || 0);
+    const maxScore = counts[type] * 4 || 20;
+    const percent = Math.round((score / maxScore) * 100);
+
+    return {
+      type,
+      score,
+      percent,
+      maxScore,
+      ...TYPE_INFO[type],
+    };
+  }).sort((a, b) => {
+    if (b.score !== a.score) return b.score - a.score;
+
+    const aOrder = codeOrder[a.code] ?? RIASEC_TYPES.length;
+    const bOrder = codeOrder[b.code] ?? RIASEC_TYPES.length;
+    return aOrder - bOrder;
+  });
+};
+
 function RiasecTest() {
   const navigate = useNavigate();
+  const token = localStorage.getItem("token");
   const [questions, setQuestions] = useState([]);
   const [answers, setAnswers] = useState({});
   const [currentIndex, setCurrentIndex] = useState(0);
   const [hasStarted, setHasStarted] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [isProfileLoading, setIsProfileLoading] = useState(Boolean(token));
   const [error, setError] = useState("");
   const [saveStatus, setSaveStatus] = useState("idle");
-  const token = localStorage.getItem("token");
+  const [savedResult, setSavedResult] = useState(null);
 
   useEffect(() => {
     if (!token) {
@@ -148,6 +184,36 @@ function RiasecTest() {
 
     return undefined;
   }, [navigate, token]);
+
+  useEffect(() => {
+    if (!token) return undefined;
+
+    let isMounted = true;
+
+    api
+      .get("/profile")
+      .then((res) => {
+        if (!isMounted) return;
+
+        if (res.data?.riasecCode && res.data?.riasecScores) {
+          setSavedResult({
+            code: res.data.riasecCode,
+            scores: res.data.riasecScores,
+          });
+          setSaveStatus("saved");
+        }
+      })
+      .catch(() => {})
+      .finally(() => {
+        if (isMounted) {
+          setIsProfileLoading(false);
+        }
+      });
+
+    return () => {
+      isMounted = false;
+    };
+  }, [token]);
 
   const fetchQuestions = () => {
     setIsLoading(true);
@@ -167,6 +233,7 @@ function RiasecTest() {
   };
 
   const startAssessment = () => {
+    setSavedResult(null);
     setHasStarted(true);
     setAnswers({});
     setCurrentIndex(0);
@@ -186,7 +253,16 @@ function RiasecTest() {
     [answers, questions]
   );
 
-  const topResults = results.slice(0, 3);
+  const savedResults = useMemo(
+    () =>
+      savedResult
+        ? buildSavedResults(savedResult.scores, savedResult.code, questions)
+        : [],
+    [questions, savedResult]
+  );
+
+  const displayedResults = savedResult && !isCompleted ? savedResults : results;
+  const topResults = displayedResults.slice(0, 3);
 
   const saveRiasecResult = async (nextAnswers) => {
     const token = localStorage.getItem("token");
@@ -208,6 +284,10 @@ function RiasecTest() {
       await api.put("/profile/riasec", {
         riasecCode,
         riasecScores,
+      });
+      setSavedResult({
+        code: riasecCode,
+        scores: riasecScores,
       });
       setSaveStatus("saved");
     } catch {
@@ -235,12 +315,26 @@ function RiasecTest() {
   };
 
   const restartTest = () => {
+    setSavedResult(null);
+    setHasStarted(true);
     setAnswers({});
     setCurrentIndex(0);
     setSaveStatus("idle");
+
+    if (questions.length === 0) {
+      fetchQuestions();
+    }
   };
 
-  if (!hasStarted) {
+  if (isProfileLoading) {
+    return (
+      <section className="card riasec-card">
+        <p className="muted">Đang tải kết quả RIASEC...</p>
+      </section>
+    );
+  }
+
+  if (!hasStarted && !savedResult) {
     return (
       <div className="riasec-page">
         <section className="riasec-intro-hero">
@@ -252,6 +346,9 @@ function RiasecTest() {
               nhóm tính cách. Bài test này giúp bạn nhận diện các nhóm nổi bật
               nhất để tham khảo khi khám phá ngành học và nghề nghiệp phù hợp.
             </p>
+            <Link className="riasec-info-link" to="/riasec-info">
+              RIASEC là gì?
+            </Link>
           </div>
           <button type="button" onClick={startAssessment}>
             Bắt đầu làm bài
@@ -335,9 +432,12 @@ function RiasecTest() {
           Chọn mức độ yêu thích với từng hoạt động. Kết quả sẽ gợi ý 3 nhóm
           nổi bật nhất sau khi hoàn thành 30 câu.
         </p>
+        <Link className="riasec-info-link" to="/riasec-info">
+          RIASEC là gì?
+        </Link>
       </section>
 
-      {!isCompleted ? (
+      {!isCompleted && !savedResult ? (
         <section className="card riasec-card">
           <div className="riasec-progress-meta">
             <span>
@@ -406,20 +506,17 @@ function RiasecTest() {
               )}
             </div>
             <button type="button" onClick={restartTest}>
-              Làm lại
+              Làm lại bài test
             </button>
           </div>
 
           <div className="riasec-bars">
-            {results.map((item) => (
+            {displayedResults.map((item) => (
               <div className="riasec-bar-row" key={item.type}>
                 <div className="riasec-bar-label">
                   <strong>
                     {item.code} - {item.viName}
                   </strong>
-                  <span>
-                    {item.score}/{item.maxScore}
-                  </span>
                 </div>
                 <div className="riasec-bar">
                   <div style={{ width: `${item.percent}%` }} />

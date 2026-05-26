@@ -6,6 +6,7 @@ import Careers from "./pages/Careers";
 import CareerDetail from "./pages/CareerDetail";
 import AdminCareers from "./pages/AdminCareers";
 import RiasecTest from "./pages/RiasecTest";
+import RiasecInfo from "./pages/RiasecInfo";
 
 function App() {
   const navigate = useNavigate();
@@ -50,6 +51,7 @@ function App() {
           <Route path="/login" element={<Login />} />
           <Route path="/profile" element={<Profile />} />
           <Route path="/careers" element={<Careers />} />
+          <Route path="/riasec-info" element={<RiasecInfo />} />
           <Route path="/riasec-test" element={<RiasecTest />} />
           <Route path="/careers/:id" element={<CareerDetail />} />
           <Route path="/admin/careers" element={<AdminCareers />} />
