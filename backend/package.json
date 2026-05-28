@@ -3,7 +3,9 @@
   "version": "1.0.0",
   "main": "index.js",
  "scripts": {
-  "dev": "nodemon src/server.js"
+  "dev": "nodemon src/server.js",
+  "seed:elements": "node src/scripts/seedElements.js",
+  "seed:profiling": "node src/scripts/seedProfilingQuestions.js"
   },
   "keywords": [],
   "author": "",
