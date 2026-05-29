@@ -5,6 +5,7 @@ import Profile from "./pages/Profile";
 import Careers from "./pages/Careers";
 import CareerDetail from "./pages/CareerDetail";
 import AdminCareers from "./pages/AdminCareers";
+import AdminCoreQuiz from "./pages/AdminCoreQuiz";
 import RiasecTest from "./pages/RiasecTest";
 import RiasecInfo from "./pages/RiasecInfo";
 import CoreQuizPage from "./pages/CoreQuizPage";
@@ -33,7 +34,8 @@ function App() {
 
           {token ? (
             <>
-              {isAdmin && <Link to="/admin/careers">Admin</Link>}
+              {isAdmin && <Link to="/admin/careers">Admin Careers</Link>}
+              {isAdmin && <Link to="/admin/core-quiz">Admin Quiz</Link>}
               <Link to="/profile">Hồ sơ</Link>
               <button onClick={handleLogout}>Đăng xuất</button>
             </>
@@ -58,6 +60,7 @@ function App() {
           <Route path="/core-quiz" element={<CoreQuizPage />} />
           <Route path="/careers/:id" element={<CareerDetail />} />
           <Route path="/admin/careers" element={<AdminCareers />} />
+          <Route path="/admin/core-quiz" element={<AdminCoreQuiz />} />
         </Routes>
       </main>
     </div>

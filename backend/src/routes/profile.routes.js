@@ -15,7 +15,9 @@ const RIASEC_TYPES = [
 ];
 
 router.get("/core-quiz/questions", protect, coreQuizController.getQuestions);
+router.get("/core-quiz/result", protect, coreQuizController.getSavedResult);
 router.post("/core-quiz/submit", protect, coreQuizController.submitQuiz);
+router.delete("/core-quiz/result", protect, coreQuizController.resetQuiz);
 
 router.get("/", protect, async (req, res) => {
   try {

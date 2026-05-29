@@ -12,15 +12,34 @@ const TYPE_LABELS = {
 
 const getElementDisplayName = (score) => score.name_vi || score.code;
 
+const formatPercent = (value) => {
+  if (value === null || value === undefined) {
+    return "-";
+  }
+
+  return `${Math.round(Number(value || 0) * 100)}%`;
+};
+
+const formatScoreNumber = (value) => {
+  if (value === null || value === undefined) {
+    return "-";
+  }
+
+  return Number(value).toFixed(4).replace(/\.?0+$/, "");
+};
+
 function CoreQuizPage() {
   const navigate = useNavigate();
   const token = localStorage.getItem("token");
+  const user = JSON.parse(localStorage.getItem("user"));
+  const isAdmin = user?.role === "admin";
   const [questions, setQuestions] = useState([]);
   const [answers, setAnswers] = useState({});
   const [currentIndex, setCurrentIndex] = useState(0);
   const [result, setResult] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isResetting, setIsResetting] = useState(false);
   const [error, setError] = useState("");
   const [validationError, setValidationError] = useState("");
 
@@ -38,15 +57,33 @@ function CoreQuizPage() {
     let isMounted = true;
 
     api
-      .get("/profile/core-quiz/questions")
+      .get("/profile/core-quiz/result")
       .then((res) => {
         if (!isMounted) return;
 
-        setQuestions(res.data || []);
+        setResult(res.data);
+        setQuestions([]);
         setError("");
       })
-      .catch(() => {
+      .catch(async (err) => {
         if (!isMounted) return;
+
+        if (err.response?.status === 404) {
+          try {
+            const questionsResponse = await api.get("/profile/core-quiz/questions");
+
+            if (!isMounted) return;
+
+            setQuestions(questionsResponse.data || []);
+            setError("");
+          } catch {
+            if (!isMounted) return;
+
+            setError("Khong tai duoc bo cau hoi. Vui long thu lai sau.");
+          }
+
+          return;
+        }
 
         setError("Không tải được bộ câu hỏi. Vui lòng thử lại sau.");
       })
@@ -174,12 +211,27 @@ function CoreQuizPage() {
     }
   };
 
-  const restartQuiz = () => {
-    setAnswers({});
-    setCurrentIndex(0);
-    setResult(null);
+  const restartQuiz = async () => {
+    setIsResetting(true);
     setValidationError("");
     setError("");
+
+    try {
+      await api.delete("/profile/core-quiz/result");
+      const res = await api.get("/profile/core-quiz/questions");
+
+      setQuestions(res.data || []);
+      setAnswers({});
+      setCurrentIndex(0);
+      setResult(null);
+    } catch (err) {
+      setError(
+        err.response?.data?.message ||
+          "Chua the bat dau lam lai quiz. Vui long thu lai sau."
+      );
+    } finally {
+      setIsResetting(false);
+    }
   };
 
   if (isLoading) {
@@ -190,7 +242,7 @@ function CoreQuizPage() {
     );
   }
 
-  if (error && questions.length === 0) {
+  if (error && questions.length === 0 && !result) {
     return (
       <section className="card core-quiz-card">
         <p className="error">{error}</p>
@@ -220,10 +272,12 @@ function CoreQuizPage() {
                   : "Chưa có dữ liệu"}
               </h2>
             </div>
-            <button type="button" onClick={restartQuiz}>
+            <button type="button" onClick={restartQuiz} disabled={isResetting}>
               Làm lại
             </button>
           </div>
+
+          {error && <p className="error">{error}</p>}
 
           <div className="core-top-list">
             {topScores.map((score, index) => (
@@ -254,6 +308,49 @@ function CoreQuizPage() {
               </section>
             ))}
           </div>
+
+          {isAdmin && (
+            <section className="core-admin-score-panel">
+              <div className="core-admin-score-heading">
+                <h3>Admin score details</h3>
+                <span>{result.elementScores?.length || 0} elements</span>
+              </div>
+
+              <div className="core-admin-score-table-wrapper">
+                <table className="core-admin-score-table">
+                  <thead>
+                    <tr>
+                      <th>Element</th>
+                      <th>Code</th>
+                      <th>Type</th>
+                      <th>Final</th>
+                      <th>Raw</th>
+                      <th>Max</th>
+                      <th>Normalized</th>
+                    </tr>
+                  </thead>
+
+                  <tbody>
+                    {(result.elementScores || []).map((score) => {
+                      const coreQuizScore = score.scoreBreakdown?.coreQuiz || {};
+
+                      return (
+                        <tr key={score.code}>
+                          <td>{getElementDisplayName(score)}</td>
+                          <td>{score.code}</td>
+                          <td>{TYPE_LABELS[score.type] || score.type}</td>
+                          <td>{formatPercent(score.finalScore)}</td>
+                          <td>{formatScoreNumber(coreQuizScore.raw)}</td>
+                          <td>{formatScoreNumber(coreQuizScore.maxPossible)}</td>
+                          <td>{formatPercent(coreQuizScore.normalized)}</td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            </section>
+          )}
         </section>
       </div>
     );

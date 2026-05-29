@@ -1,7 +1,9 @@
 const fs = require("fs");
 const path = require("path");
+const ProfilingQuestion = require("../models/ProfilingQuestion");
 
 const questionsPath = path.resolve(__dirname, "../../../QAprofiling.json");
+const use_data_from_mongo = true;
 
 const QUESTION_COUNTS = {
   ability: 6,
@@ -18,7 +20,20 @@ const DIFFICULTY_ORDER = {
   hard: 2,
 };
 
-function loadQuestionBank() {
+function normalizeQuestionDocument(question) {
+  return {
+    ...question,
+    answers: (question.answers || []).map((answer) => ({
+      ...answer,
+      mapping:
+        answer.mapping instanceof Map
+          ? Object.fromEntries(answer.mapping)
+          : answer.mapping || {},
+    })),
+  };
+}
+
+function loadQuestionBankFromJson() {
   const raw = fs.readFileSync(questionsPath, "utf8");
   const questions = JSON.parse(raw);
 
@@ -26,7 +41,27 @@ function loadQuestionBank() {
     throw new Error("QAprofiling.json must contain a JSON array.");
   }
 
-  return questions;
+  return questions.map(normalizeQuestionDocument);
+}
+
+async function loadQuestionBankFromMongo() {
+  const questions = await ProfilingQuestion.find({ is_active: true })
+    .sort({ question_id: 1 })
+    .lean();
+
+  if (!Array.isArray(questions)) {
+    throw new Error("MongoDB profilingquestions query must return an array.");
+  }
+
+  return questions.map(normalizeQuestionDocument);
+}
+
+async function loadQuestionBank() {
+  if (use_data_from_mongo) {
+    return loadQuestionBankFromMongo();
+  }
+
+  return loadQuestionBankFromJson();
 }
 
 function shuffle(items) {
@@ -75,8 +110,8 @@ function sanitizeQuestion(question) {
   };
 }
 
-function getCoreQuizQuestions() {
-  const questions = loadQuestionBank();
+async function getCoreQuizQuestions() {
+  const questions = await loadQuestionBank();
   const selected = [];
   const selectedIds = new Set();
 
@@ -135,8 +170,8 @@ function getQuestionElementMaximums(question) {
   return maximums;
 }
 
-function calculateElementScores(submittedAnswers) {
-  const questions = loadQuestionBank();
+async function calculateElementScores(submittedAnswers) {
+  const questions = await loadQuestionBank();
   const questionMap = new Map(
     questions.map((question) => [question.question_id, question])
   );
@@ -244,8 +279,8 @@ function calculateElementScores(submittedAnswers) {
     .sort((a, b) => (b.finalScore ?? -1) - (a.finalScore ?? -1));
 }
 
-function getElementNameMapFromQuestionBank() {
-  const questions = loadQuestionBank();
+async function getElementNameMapFromQuestionBank() {
+  const questions = await loadQuestionBank();
   const nameMap = new Map();
 
   questions.forEach((question) => {

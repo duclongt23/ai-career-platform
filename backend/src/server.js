@@ -20,6 +20,7 @@ app.use("/api/auth", require("./routes/auth.routes"));
 app.use("/api/profile", require("./routes/profile.routes"));
 app.use("/api/careers", require("./routes/career.routes"));
 app.use("/api/riasec", require("./routes/riasec.routes"));
+app.use("/api/admin/core-quiz", require("./routes/adminCoreQuiz.routes"));
 
 const PORT = process.env.PORT || 5000;
 
