@@ -1,5 +1,6 @@
 const express = require("express");
 const StudentProfile = require("../models/StudentProfile");
+const coreQuizController = require("../controllers/coreQuiz.controller");
 const { protect } = require("../middleware/auth.middleware");
 
 const router = express.Router();
@@ -12,6 +13,9 @@ const RIASEC_TYPES = [
   "ENTERPRISING",
   "CONVENTIONAL",
 ];
+
+router.get("/core-quiz/questions", protect, coreQuizController.getQuestions);
+router.post("/core-quiz/submit", protect, coreQuizController.submitQuiz);
 
 router.get("/", protect, async (req, res) => {
   try {
@@ -51,8 +55,6 @@ router.post("/", protect, async (req, res) => {
       grade: req.body.grade,
       favoriteSubjects: req.body.favoriteSubjects || [],
       strongSubjects: req.body.strongSubjects || [],
-      interests: req.body.interests || [],
-      skills: req.body.skills || [],
       goal: req.body.goal || "",
       riasecCode: req.body.riasecCode || "",
       riasecScores: req.body.riasecScores || {},
@@ -100,8 +102,6 @@ router.put("/riasec", protect, async (req, res) => {
           grade: 10,
           favoriteSubjects: [],
           strongSubjects: [],
-          interests: [],
-          skills: [],
           goal: "",
         },
       },
@@ -132,8 +132,6 @@ router.put("/", protect, async (req, res) => {
         grade: req.body.grade,
         favoriteSubjects: req.body.favoriteSubjects || [],
         strongSubjects: req.body.strongSubjects || [],
-        interests: req.body.interests || [],
-        skills: req.body.skills || [],
         goal: req.body.goal || "",
       },
       {

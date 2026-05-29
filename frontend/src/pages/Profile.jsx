@@ -9,8 +9,6 @@ function Profile() {
     grade: 10,
     favoriteSubjects: "",
     strongSubjects: "",
-    interests: "",
-    skills: "",
     goal: "",
     riasecCode: "",
     riasecCompletedAt: "",
@@ -29,11 +27,9 @@ function Profile() {
 
       setForm({
         grade: res.data.grade,
-        favoriteSubjects: res.data.favoriteSubjects.join(", "),
-        strongSubjects: res.data.strongSubjects.join(", "),
-        interests: res.data.interests.join(", "),
-        skills: res.data.skills.join(", "),
-        goal: res.data.goal,
+        favoriteSubjects: (res.data.favoriteSubjects || []).join(", "),
+        strongSubjects: (res.data.strongSubjects || []).join(", "),
+        goal: res.data.goal || "",
         riasecCode: res.data.riasecCode || "",
         riasecCompletedAt: res.data.riasecCompletedAt || "",
       });
@@ -58,11 +54,9 @@ function Profile() {
 
         setForm({
           grade: res.data.grade,
-          favoriteSubjects: res.data.favoriteSubjects.join(", "),
-          strongSubjects: res.data.strongSubjects.join(", "),
-          interests: res.data.interests.join(", "),
-          skills: res.data.skills.join(", "),
-          goal: res.data.goal,
+          favoriteSubjects: (res.data.favoriteSubjects || []).join(", "),
+          strongSubjects: (res.data.strongSubjects || []).join(", "),
+          goal: res.data.goal || "",
           riasecCode: res.data.riasecCode || "",
           riasecCompletedAt: res.data.riasecCompletedAt || "",
         });
@@ -103,8 +97,6 @@ function Profile() {
         grade: Number(form.grade),
         favoriteSubjects: toArray(form.favoriteSubjects),
         strongSubjects: toArray(form.strongSubjects),
-        interests: toArray(form.interests),
-        skills: toArray(form.skills),
         goal: form.goal,
       };
 
@@ -202,15 +194,6 @@ function Profile() {
             {renderTags(form.strongSubjects, "Chưa có môn học nổi bật.")}
           </section>
 
-          <section className="card profile-card">
-            <h2>Sở thích</h2>
-            {renderTags(form.interests, "Chưa cập nhật sở thích.")}
-          </section>
-
-          <section className="card profile-card">
-            <h2>Kỹ năng hiện có</h2>
-            {renderTags(form.skills, "Chưa cập nhật kỹ năng.")}
-          </section>
         </div>
       ) : (
         <section className="card profile-edit-card">
@@ -241,22 +224,6 @@ function Profile() {
               value={form.strongSubjects}
               onChange={handleChange}
               placeholder="Ví dụ: Toán, Vật lý"
-            />
-
-            <label>Sở thích</label>
-            <input
-              name="interests"
-              value={form.interests}
-              onChange={handleChange}
-              placeholder="Ví dụ: Công nghệ, kinh doanh, thiết kế"
-            />
-
-            <label>Kỹ năng hiện có</label>
-            <input
-              name="skills"
-              value={form.skills}
-              onChange={handleChange}
-              placeholder="Ví dụ: Tư duy logic, giao tiếp, tự học"
             />
 
             <label>Mục tiêu</label>

@@ -7,6 +7,7 @@ import CareerDetail from "./pages/CareerDetail";
 import AdminCareers from "./pages/AdminCareers";
 import RiasecTest from "./pages/RiasecTest";
 import RiasecInfo from "./pages/RiasecInfo";
+import CoreQuizPage from "./pages/CoreQuizPage";
 
 function App() {
   const navigate = useNavigate();
@@ -28,6 +29,7 @@ function App() {
         <div className="nav-links">
           <Link to="/careers">Ngành nghề</Link>
           <Link to="/riasec-test">RIASEC</Link>
+          <Link to="/core-quiz">Khám phá bản thân</Link>
 
           {token ? (
             <>
@@ -53,6 +55,7 @@ function App() {
           <Route path="/careers" element={<Careers />} />
           <Route path="/riasec-info" element={<RiasecInfo />} />
           <Route path="/riasec-test" element={<RiasecTest />} />
+          <Route path="/core-quiz" element={<CoreQuizPage />} />
           <Route path="/careers/:id" element={<CareerDetail />} />
           <Route path="/admin/careers" element={<AdminCareers />} />
         </Routes>
