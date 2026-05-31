@@ -1,10 +1,20 @@
 const mongoose = require("mongoose");
+const { CONFIRM_LEVELS } = require("../constants/aiDiscovery");
+const { ELEMENT_TYPES } = require("../constants/elementTypes");
 
-const scorePartSchema = new mongoose.Schema(
+const scoreBreakdownSchema = new mongoose.Schema(
   {
-    raw: { type: Number, default: 0 },
-    maxPossible: { type: Number, default: 0 },
-    normalized: { type: Number, min: 0, max: 1, default: null },
+    // Keep source scores separate so the stored snapshot remains explainable
+    // and the weighting policy can evolve without reparsing source records.
+    quizScore: { type: Number, min: 0, max: 1, default: null },
+    quizEvidenceCount: { type: Number, min: 0, default: 0 },
+    quizReliability: { type: Number, min: 0, max: 1, default: null },
+    quizWeight: { type: Number, min: 0, max: 1, default: 0 },
+    aiDiscoveryScore: { type: Number, min: 0, max: 1, default: null },
+    aiDiscoveryLevel: { type: Number, min: 1, max: 3, default: null },
+    aiDiscoveryConfidence: { type: Number, min: 0, max: 1, default: null },
+    aiDiscoveryReliability: { type: Number, min: 0, max: 1, default: null },
+    aiDiscoveryWeight: { type: Number, min: 0, max: 1, default: 0 },
   },
   { _id: false }
 );
@@ -20,20 +30,11 @@ const elementScoreSchema = new mongoose.Schema(
 
     type: {
       type: String,
-      enum: [
-        "ability",
-        "workstyle",
-        "essential_skill",
-        "transferable_skill",
-        "knowledge",
-      ],
+      enum: ELEMENT_TYPES,
       required: true,
     },
 
-    scoreBreakdown: {
-      coreQuiz: { type: scorePartSchema, default: () => ({}) },
-      aiDiscovery: { type: scorePartSchema, default: () => ({}) },
-    },
+    scoreBreakdown: { type: scoreBreakdownSchema, default: () => ({}) },
 
     finalScore: {
       type: Number,
@@ -65,30 +66,47 @@ const coreQuizAnswerSchema = new mongoose.Schema(
   { _id: false }
 );
 
+const confirmedElementSchema = new mongoose.Schema(
+  {
+    code: {
+      type: String,
+      required: true,
+      lowercase: true,
+      trim: true,
+    },
+    type: {
+      type: String,
+      enum: ELEMENT_TYPES,
+      required: true,
+    },
+    level: {
+      type: Number,
+      enum: CONFIRM_LEVELS,
+      required: true,
+    },
+    contribution: {
+      // Confidence captured from the AI candidate at confirmation time.
+      type: Number,
+      required: true,
+      min: 0.1,
+      max: 1,
+    },
+  },
+  { _id: false }
+);
+
 const aiDiscoverySchema = new mongoose.Schema(
   {
-    question: { type: String, default: "" },
-    userAnswer: { type: String, default: "" },
+    sessionId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "AiDiscoverySession",
+      required: true,
+    },
 
-    suggestedElements: [
-      {
-        code: String,
-        type: String,
-        reason: String,
-      },
-    ],
-
-    confirmedElements: [
-      {
-        code: String,
-        type: String,
-        level: {
-          type: Number, // 0-3
-          min: 0,
-          max: 3,
-        },
-      },
-    ],
+    confirmedElements: {
+      type: [confirmedElementSchema],
+      default: [],
+    },
 
     createdAt: {
       type: Date,
@@ -159,6 +177,13 @@ const studentProfileSchema = new mongoose.Schema(
     elementScores: {
       type: [elementScoreSchema],
       default: [],
+    },
+
+    // Derived score snapshots can be rebuilt lazily when the algorithm evolves.
+    elementScoreVersion: {
+      type: Number,
+      min: 0,
+      default: 0,
     },
 
     aiDiscoveries: {

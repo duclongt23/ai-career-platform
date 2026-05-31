@@ -3,6 +3,10 @@ const path = require("path");
 const mongoose = require("mongoose");
 const dotenv = require("dotenv");
 const ProfilingQuestion = require("../models/ProfilingQuestion");
+const {
+  normalizeQuestionPayload,
+  validateQuestionElements,
+} = require("../services/profilingQuestionValidation.service");
 
 dotenv.config({ path: path.resolve(__dirname, "../../.env") });
 
@@ -37,24 +41,33 @@ async function seedProfilingQuestions() {
     throw new Error("QAprofiling.json must contain a JSON array.");
   }
 
-  const operations = questions.map((question) => {
+  const normalizedQuestions = questions.map((question) => {
     validateQuestion(question);
 
+    return {
+      ...normalizeQuestionPayload(question),
+      is_active: true,
+    };
+  });
+
+  await mongoose.connect(process.env.MONGO_URI);
+
+  for (const question of normalizedQuestions) {
+    await validateQuestionElements(question);
+    await new ProfilingQuestion(question).validate();
+  }
+
+  const operations = normalizedQuestions.map((question) => {
     return {
       updateOne: {
         filter: { question_id: question.question_id },
         update: {
-          $set: {
-            ...question,
-            is_active: true,
-          },
+          $set: question,
         },
         upsert: true,
       },
     };
   });
-
-  await mongoose.connect(process.env.MONGO_URI);
 
   const result = operations.length
     ? await ProfilingQuestion.bulkWrite(operations, { ordered: false })

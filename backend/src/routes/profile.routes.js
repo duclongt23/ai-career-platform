@@ -1,5 +1,6 @@
 const express = require("express");
 const StudentProfile = require("../models/StudentProfile");
+const aiDiscoveryController = require("../controllers/aiDiscovery.controller");
 const coreQuizController = require("../controllers/coreQuiz.controller");
 const { protect } = require("../middleware/auth.middleware");
 
@@ -18,6 +19,14 @@ router.get("/core-quiz/questions", protect, coreQuizController.getQuestions);
 router.get("/core-quiz/result", protect, coreQuizController.getSavedResult);
 router.post("/core-quiz/submit", protect, coreQuizController.submitQuiz);
 router.delete("/core-quiz/result", protect, coreQuizController.resetQuiz);
+router.post("/ai-discovery/start", protect, aiDiscoveryController.startSession);
+router.post("/ai-discovery/message", protect, aiDiscoveryController.sendMessage);
+router.post("/ai-discovery/reset", protect, aiDiscoveryController.resetSession);
+router.post(
+  "/ai-discovery/confirm",
+  protect,
+  aiDiscoveryController.confirmCandidates
+);
 
 router.get("/", protect, async (req, res) => {
   try {

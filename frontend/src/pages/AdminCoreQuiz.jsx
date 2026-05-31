@@ -41,6 +41,59 @@ const emptyMapping = {
   evidence_strength: "medium",
 };
 
+function elementSearchKey(questionId, elementIndex) {
+  return `${questionId}:${elementIndex}`;
+}
+
+function mappingSearchKey(questionId, answerIndex, mappingIndex) {
+  return `${questionId}:${answerIndex}:${mappingIndex}`;
+}
+
+function formatElementOption(element) {
+  if (!element?.code) {
+    return "";
+  }
+
+  return `${element.code} - ${element.name_vi || element.name_en || ""}`;
+}
+
+function getTargetCodes(question) {
+  return new Set(
+    (question.target_elements || [])
+      .map((element) => String(element.code || "").trim().toLowerCase())
+      .filter(Boolean)
+  );
+}
+
+function findTargetElementByCode(question, code) {
+  const normalizedCode = String(code || "").trim().toLowerCase();
+
+  return (question.target_elements || []).find(
+    (element) => element.code?.toLowerCase() === normalizedCode
+  );
+}
+
+function getMatchingTargetElements(question, query) {
+  const normalizedQuery = String(query || "").trim().toLowerCase();
+  const targetElements = (question.target_elements || []).filter(
+    (element) => element.code
+  );
+
+  if (!normalizedQuery) {
+    return targetElements;
+  }
+
+  return targetElements.filter((element) => {
+    const label = formatElementOption(element).toLowerCase();
+
+    return (
+      label.includes(normalizedQuery) ||
+      element.code.toLowerCase().includes(normalizedQuery) ||
+      String(element.name_vi || "").toLowerCase().includes(normalizedQuery)
+    );
+  });
+}
+
 function mappingObjectToRows(mapping) {
   return Object.entries(mapping || {}).map(([code, value]) => ({
     code,
@@ -66,10 +119,14 @@ function normalizeQuestion(question) {
 }
 
 function buildPayload(question) {
+  const targetCodes = getTargetCodes(question);
+
   return {
     question_id: question.question_id,
     target_type: question.target_type,
-    target_elements: question.target_elements,
+    target_elements: question.target_elements.map((element) => ({
+      code: String(element.code || "").trim().toLowerCase(),
+    })),
     question_style: question.question_style,
     difficulty_level: question.difficulty_level,
     selection_mode: question.selection_mode,
@@ -82,7 +139,7 @@ function buildPayload(question) {
       mapping: answer.mappings.reduce((mapping, row) => {
         const code = String(row.code || "").trim().toLowerCase();
 
-        if (!code) {
+        if (!code || !targetCodes.has(code)) {
           return mapping;
         }
 
@@ -99,7 +156,6 @@ function buildPayload(question) {
 
 function AdminCoreQuiz() {
   const navigate = useNavigate();
-  const user = JSON.parse(localStorage.getItem("user"));
 
   const [questions, setQuestions] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -108,6 +164,8 @@ function AdminCoreQuiz() {
   const [error, setError] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(5);
+  const [elementSearches, setElementSearches] = useState({});
+  const [mappingSearches, setMappingSearches] = useState({});
 
   const totalPages = Math.max(1, Math.ceil(questions.length / pageSize));
   const pageStart = (currentPage - 1) * pageSize;
@@ -115,19 +173,58 @@ function AdminCoreQuiz() {
   const visibleQuestions = questions.slice(pageStart, pageEnd);
 
   useEffect(() => {
-    if (!user || user.role !== "admin") {
+    const storedUser = JSON.parse(localStorage.getItem("user"));
+
+    if (!storedUser || storedUser.role !== "admin") {
       navigate("/careers");
       return;
     }
 
     fetchQuestions();
-  }, []);
+  }, [navigate]);
 
   useEffect(() => {
     if (currentPage > totalPages) {
       setCurrentPage(totalPages);
     }
   }, [currentPage, totalPages]);
+
+  useEffect(() => {
+    const handleOutsidePickerClick = (event) => {
+      const target = event.target;
+
+      if (
+        target &&
+        typeof target.closest === "function" &&
+        target.closest(".admin-element-picker")
+      ) {
+        return;
+      }
+
+      setElementSearches((current) =>
+        Object.fromEntries(
+          Object.entries(current).map(([key, value]) => [
+            key,
+            {
+              ...value,
+              results: [],
+              loading: false,
+              error: "",
+            },
+          ])
+        )
+      );
+      setMappingSearches({});
+    };
+
+    document.addEventListener("mousedown", handleOutsidePickerClick);
+    document.addEventListener("touchstart", handleOutsidePickerClick);
+
+    return () => {
+      document.removeEventListener("mousedown", handleOutsidePickerClick);
+      document.removeEventListener("touchstart", handleOutsidePickerClick);
+    };
+  }, []);
 
   const fetchQuestions = async () => {
     try {
@@ -159,19 +256,90 @@ function AdminCoreQuiz() {
     }));
   };
 
-  const updateTargetElement = (questionId, elementIndex, field, value) => {
+  const selectTargetElement = (questionId, elementIndex, element) => {
     updateQuestion(questionId, (question) => ({
       ...question,
-      target_elements: question.target_elements.map((element, index) =>
-        index === elementIndex ? { ...element, [field]: value } : element
+      target_elements: question.target_elements.map((currentElement, index) =>
+        index === elementIndex
+          ? {
+              code: element.code || "",
+              name_vi: element.name_vi || "",
+              name_en: element.name_en || "",
+            }
+          : currentElement
       ),
     }));
+
+    setElementSearches((current) => ({
+      ...current,
+      [elementSearchKey(questionId, elementIndex)]: {
+        query: "",
+        results: [],
+        loading: false,
+        error: "",
+      },
+    }));
+  };
+
+  const searchElements = async (questionId, elementIndex, targetType, query) => {
+    const key = elementSearchKey(questionId, elementIndex);
+
+    setElementSearches((current) => ({
+      ...current,
+      [key]: {
+        ...(current[key] || {}),
+        query,
+        loading: true,
+        error: "",
+      },
+    }));
+
+    try {
+      const res = await api.get("/admin/core-quiz/elements", {
+        params: {
+          target_type: targetType,
+          q: query,
+        },
+      });
+
+      setElementSearches((current) => ({
+        ...current,
+        [key]: {
+          ...(current[key] || {}),
+          query,
+          results: res.data.elements || [],
+          loading: false,
+          error: "",
+        },
+      }));
+    } catch (err) {
+      setElementSearches((current) => ({
+        ...current,
+        [key]: {
+          ...(current[key] || {}),
+          query,
+          results: [],
+          loading: false,
+          error:
+            err.response?.data?.message || "Khong tim duoc element phu hop.",
+        },
+      }));
+    }
+  };
+
+  const handleTargetElementSearch = (
+    questionId,
+    elementIndex,
+    targetType,
+    query
+  ) => {
+    searchElements(questionId, elementIndex, targetType, query);
   };
 
   const addTargetElement = (questionId) => {
     updateQuestion(questionId, (question) => ({
       ...question,
-      target_elements: [...question.target_elements, emptyTargetElement],
+      target_elements: [...question.target_elements, { ...emptyTargetElement }],
     }));
   };
 
@@ -196,7 +364,7 @@ function AdminCoreQuiz() {
   const addAnswer = (questionId) => {
     updateQuestion(questionId, (question) => ({
       ...question,
-      answers: [...question.answers, emptyAnswer],
+      answers: [...question.answers, { ...emptyAnswer, mappings: [] }],
     }));
   };
 
@@ -233,14 +401,65 @@ function AdminCoreQuiz() {
     }));
   };
 
+  const handleMappingSearch = (
+    questionId,
+    answerIndex,
+    mappingIndex,
+    value
+  ) => {
+    setMappingSearches((current) => ({
+      ...current,
+      [mappingSearchKey(questionId, answerIndex, mappingIndex)]: value,
+    }));
+
+    updateMapping(questionId, answerIndex, mappingIndex, "code", "");
+  };
+
+  const selectMappingElement = (
+    questionId,
+    answerIndex,
+    mappingIndex,
+    element
+  ) => {
+    updateMapping(questionId, answerIndex, mappingIndex, "code", element.code);
+
+    setMappingSearches((current) => {
+      const next = { ...current };
+      delete next[mappingSearchKey(questionId, answerIndex, mappingIndex)];
+      return next;
+    });
+  };
+
   const addMapping = (questionId, answerIndex) => {
     updateQuestion(questionId, (question) => ({
       ...question,
-      answers: question.answers.map((answer, index) =>
-        index === answerIndex
-          ? { ...answer, mappings: [...answer.mappings, emptyMapping] }
-          : answer
-      ),
+      answers: question.answers.map((answer, index) => {
+        if (index !== answerIndex) {
+          return answer;
+        }
+
+        const usedCodes = new Set(
+          answer.mappings
+            .map((mapping) => String(mapping.code || "").toLowerCase())
+            .filter(Boolean)
+        );
+        const nextElement =
+          question.target_elements.find(
+            (element) =>
+              element.code && !usedCodes.has(element.code.toLowerCase())
+          ) || question.target_elements[0];
+
+        return {
+          ...answer,
+          mappings: [
+            ...answer.mappings,
+            {
+              ...emptyMapping,
+              code: nextElement?.code || "",
+            },
+          ],
+        };
+      }),
     }));
   };
 
@@ -531,42 +750,86 @@ function AdminCoreQuiz() {
 
               {question.target_elements.map((element, elementIndex) => (
                 <div className="admin-target-row" key={elementIndex}>
-                  <input
-                    placeholder="code"
-                    value={element.code}
-                    onChange={(e) =>
-                      updateTargetElement(
-                        question._id,
-                        elementIndex,
-                        "code",
-                        e.target.value
-                      )
-                    }
-                  />
-                  <input
-                    placeholder="name_vi"
-                    value={element.name_vi}
-                    onChange={(e) =>
-                      updateTargetElement(
-                        question._id,
-                        elementIndex,
-                        "name_vi",
-                        e.target.value
-                      )
-                    }
-                  />
-                  <input
-                    placeholder="name_en"
-                    value={element.name_en}
-                    onChange={(e) =>
-                      updateTargetElement(
-                        question._id,
-                        elementIndex,
-                        "name_en",
-                        e.target.value
-                      )
-                    }
-                  />
+                  <div className="admin-element-picker">
+                    <input
+                      placeholder={
+                        element.code
+                          ? "Tim element khac theo code hoac name_vi"
+                          : "Tim theo code hoac name_vi"
+                      }
+                      value={
+                        elementSearches[
+                          elementSearchKey(question._id, elementIndex)
+                        ]?.query ?? ""
+                      }
+                      title={formatElementOption(element)}
+                      onFocus={(e) =>
+                        searchElements(
+                          question._id,
+                          elementIndex,
+                          question.target_type,
+                          element.code || e.target.value
+                        )
+                      }
+                      onChange={(e) =>
+                        handleTargetElementSearch(
+                          question._id,
+                          elementIndex,
+                          question.target_type,
+                          e.target.value
+                        )
+                      }
+                    />
+
+                    {elementSearches[
+                      elementSearchKey(question._id, elementIndex)
+                    ]?.loading && <p className="muted">Dang tim...</p>}
+
+                    {elementSearches[
+                      elementSearchKey(question._id, elementIndex)
+                    ]?.error && (
+                      <p className="error">
+                        {
+                          elementSearches[
+                            elementSearchKey(question._id, elementIndex)
+                          ].error
+                        }
+                      </p>
+                    )}
+
+                    {elementSearches[
+                      elementSearchKey(question._id, elementIndex)
+                    ]?.results?.length > 0 && (
+                      <div className="admin-element-results">
+                        {elementSearches[
+                          elementSearchKey(question._id, elementIndex)
+                        ].results.map((result) => (
+                          <button
+                            type="button"
+                            className="admin-element-result"
+                            key={result.code}
+                            onClick={() =>
+                              selectTargetElement(
+                                question._id,
+                                elementIndex,
+                                result
+                              )
+                            }
+                          >
+                            <strong>{result.code}</strong>
+                            <span>{result.name_vi}</span>
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="admin-selected-element">
+                    <span>{element.code || "Chua chon code"}</span>
+                    <strong>{element.name_vi || "Chua chon element"}</strong>
+                    {element.name_en && <small>{element.name_en}</small>}
+                  </div>
+
                   <button
                     type="button"
                     className="danger"
@@ -642,76 +905,146 @@ function AdminCoreQuiz() {
                     <button
                       type="button"
                       className="secondary"
+                      disabled={
+                        !question.target_elements.some(
+                          (element) => element.code
+                        )
+                      }
                       onClick={() => addMapping(question._id, answerIndex)}
                     >
                       Them mapping
                     </button>
                   </div>
 
-                  {answer.mappings.map((mapping, mappingIndex) => (
-                    <div className="admin-mapping-row" key={mappingIndex}>
-                      <input
-                        placeholder="element code"
-                        value={mapping.code}
-                        onChange={(e) =>
-                          updateMapping(
-                            question._id,
-                            answerIndex,
-                            mappingIndex,
-                            "code",
-                            e.target.value
-                          )
-                        }
-                      />
-                      <input
-                        type="number"
-                        min="0.1"
-                        max="1"
-                        step="0.1"
-                        value={mapping.score}
-                        onChange={(e) =>
-                          updateMapping(
-                            question._id,
-                            answerIndex,
-                            mappingIndex,
-                            "score",
-                            e.target.value
-                          )
-                        }
-                      />
-                      <select
-                        value={mapping.evidence_strength}
-                        onChange={(e) =>
-                          updateMapping(
-                            question._id,
-                            answerIndex,
-                            mappingIndex,
-                            "evidence_strength",
-                            e.target.value
-                          )
-                        }
-                      >
-                        {evidenceStrengths.map((strength) => (
-                          <option key={strength} value={strength}>
-                            {strength}
-                          </option>
-                        ))}
-                      </select>
-                      <button
-                        type="button"
-                        className="danger"
-                        onClick={() =>
-                          removeMapping(
-                            question._id,
-                            answerIndex,
-                            mappingIndex
-                          )
-                        }
-                      >
-                        Xoa
-                      </button>
-                    </div>
-                  ))}
+                  {answer.mappings.map((mapping, mappingIndex) => {
+                    const currentMappingElement = findTargetElementByCode(
+                      question,
+                      mapping.code
+                    );
+                    const mappingKey = mappingSearchKey(
+                      question._id,
+                      answerIndex,
+                      mappingIndex
+                    );
+                    const mappingQuery =
+                      mappingSearches[mappingKey] ?? "";
+                    const mappingResults = getMatchingTargetElements(
+                      question,
+                      mappingQuery
+                    );
+
+                    return (
+                      <div className="admin-mapping-row" key={mappingIndex}>
+                        <div className="admin-element-picker">
+                          <input
+                            placeholder={
+                              currentMappingElement
+                                ? "Tim target element khac"
+                                : "Tim target element"
+                            }
+                            value={mappingQuery}
+                            title={formatElementOption(currentMappingElement)}
+                            onFocus={() =>
+                              setMappingSearches((current) => ({
+                                ...current,
+                                [mappingKey]: mappingQuery,
+                              }))
+                            }
+                            onChange={(e) =>
+                              handleMappingSearch(
+                                question._id,
+                                answerIndex,
+                                mappingIndex,
+                                e.target.value
+                              )
+                            }
+                          />
+
+                          {mappingSearches[mappingKey] !== undefined &&
+                            mappingResults.length > 0 && (
+                              <div className="admin-element-results">
+                                {mappingResults.map((element) => (
+                                  <button
+                                    type="button"
+                                    className="admin-element-result"
+                                    key={element.code}
+                                    onClick={() =>
+                                      selectMappingElement(
+                                        question._id,
+                                        answerIndex,
+                                        mappingIndex,
+                                        element
+                                      )
+                                    }
+                                  >
+                                    <strong>{element.code}</strong>
+                                    <span>{element.name_vi}</span>
+                                  </button>
+                                ))}
+                              </div>
+                            )}
+
+                          <div className="admin-selected-element admin-selected-element-compact">
+                            <span>
+                              {currentMappingElement?.code || "Chua chon code"}
+                            </span>
+                            <strong>
+                              {currentMappingElement?.name_vi ||
+                                "Chua chon target element"}
+                            </strong>
+                          </div>
+                        </div>
+
+                        <input
+                          type="number"
+                          min="0.1"
+                          max="1"
+                          step="0.1"
+                          value={mapping.score}
+                          onChange={(e) =>
+                            updateMapping(
+                              question._id,
+                              answerIndex,
+                              mappingIndex,
+                              "score",
+                              e.target.value
+                            )
+                          }
+                        />
+                        <select
+                          value={mapping.evidence_strength}
+                          onChange={(e) =>
+                            updateMapping(
+                              question._id,
+                              answerIndex,
+                              mappingIndex,
+                              "evidence_strength",
+                              e.target.value
+                            )
+                          }
+                        >
+                          {evidenceStrengths.map((strength) => (
+                            <option key={strength} value={strength}>
+                              {strength}
+                            </option>
+                          ))}
+                        </select>
+                        <button
+                          type="button"
+                          className="danger"
+                          onClick={() =>
+                            removeMapping(
+                              question._id,
+                              answerIndex,
+                              mappingIndex
+                            )
+                          }
+                        >
+                          Xoa
+                        </button>
+                      </div>
+                    );
+                  })}
 
                   {answer.mappings.length === 0 && (
                     <p className="muted">Dap an nay chua co mapping diem.</p>

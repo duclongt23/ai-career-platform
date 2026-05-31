@@ -1,6 +1,11 @@
 const express = require("express");
+const Element = require("../models/Element");
 const ProfilingQuestion = require("../models/ProfilingQuestion");
 const { protect, adminOnly } = require("../middleware/auth.middleware");
+const {
+  normalizeQuestionPayload,
+  validateQuestionElements,
+} = require("../services/profilingQuestionValidation.service");
 
 const router = express.Router();
 
@@ -27,10 +32,41 @@ function pickEditableQuestionFields(body) {
   }, {});
 }
 
-function serializeQuestion(question) {
+function getElementCodes(questions) {
+  return [
+    ...new Set(
+      questions.flatMap((question) =>
+        (question.target_elements || []).map((element) => element.code)
+      )
+    ),
+  ].filter(Boolean);
+}
+
+async function getElementNameMap(questions) {
+  const codes = getElementCodes(questions);
+  const elements = await Element.find({ code: { $in: codes } })
+    .select("code name_vi name_en")
+    .lean();
+
+  return new Map(elements.map((element) => [element.code, element]));
+}
+
+function serializeQuestion(question, elementNameMap) {
+  const plainQuestion =
+    typeof question.toObject === "function" ? question.toObject() : question;
+
   return {
-    ...question,
-    answers: (question.answers || []).map((answer) => ({
+    ...plainQuestion,
+    target_elements: (plainQuestion.target_elements || []).map((element) => {
+      const canonicalElement = elementNameMap.get(element.code);
+
+      return {
+        code: element.code,
+        name_vi: canonicalElement?.name_vi || "",
+        name_en: canonicalElement?.name_en || "",
+      };
+    }),
+    answers: (plainQuestion.answers || []).map((answer) => ({
       ...answer,
       mapping:
         answer.mapping instanceof Map
@@ -40,13 +76,56 @@ function serializeQuestion(question) {
   };
 }
 
+function escapeRegex(value) {
+  return String(value).replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+router.get("/elements", protect, adminOnly, async (req, res) => {
+  try {
+    const targetType = String(req.query.target_type || "").trim();
+    const searchText = String(req.query.q || "").trim();
+
+    if (!targetType) {
+      return res.status(400).json({
+        message: "target_type is required",
+      });
+    }
+
+    const query = {
+      type: targetType,
+      is_active: true,
+    };
+
+    if (searchText) {
+      const searchRegex = new RegExp(escapeRegex(searchText), "i");
+      query.$or = [{ code: searchRegex }, { name_vi: searchRegex }];
+    }
+
+    const elements = await Element.find(query)
+      .select("code name_vi name_en type")
+      .sort({ code: 1 })
+      .limit(20)
+      .lean();
+
+    res.json({ elements });
+  } catch (error) {
+    res.status(500).json({
+      message: "Failed to search elements",
+      error: error.message,
+    });
+  }
+});
+
 router.get("/questions", protect, adminOnly, async (req, res) => {
   try {
     const questions = await ProfilingQuestion.find({})
       .sort({ target_type: 1, question_id: 1 })
       .lean();
+    const elementNameMap = await getElementNameMap(questions);
 
-    res.json(questions.map(serializeQuestion));
+    res.json(
+      questions.map((question) => serializeQuestion(question, elementNameMap))
+    );
   } catch (error) {
     res.status(500).json({
       message: "Failed to load profiling questions",
@@ -57,16 +136,8 @@ router.get("/questions", protect, adminOnly, async (req, res) => {
 
 router.put("/questions/:id", protect, adminOnly, async (req, res) => {
   try {
-    const payload = pickEditableQuestionFields(req.body);
-
-    const question = await ProfilingQuestion.findByIdAndUpdate(
-      req.params.id,
-      { $set: payload },
-      {
-        new: true,
-        runValidators: true,
-      }
-    ).lean();
+    const editablePayload = pickEditableQuestionFields(req.body);
+    const question = await ProfilingQuestion.findById(req.params.id);
 
     if (!question) {
       return res.status(404).json({
@@ -74,9 +145,17 @@ router.put("/questions/:id", protect, adminOnly, async (req, res) => {
       });
     }
 
+    const payload = normalizeQuestionPayload(editablePayload, {
+      targetType: editablePayload.target_type || question.target_type,
+    });
+    question.set(payload);
+    await validateQuestionElements(question);
+    await question.save();
+    const elementNameMap = await getElementNameMap([question]);
+
     res.json({
       message: "Profiling question updated successfully",
-      question: serializeQuestion(question),
+      question: serializeQuestion(question, elementNameMap),
     });
   } catch (error) {
     res.status(400).json({

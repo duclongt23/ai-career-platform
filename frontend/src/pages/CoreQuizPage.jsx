@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import api from "../api/axios";
+import AdminCoreQuizAnswerScores from "../components/AdminCoreQuizAnswerScores";
 
 const TYPE_LABELS = {
   ability: "Năng lực",
@@ -11,6 +12,26 @@ const TYPE_LABELS = {
 };
 
 const getElementDisplayName = (score) => score.name_vi || score.code;
+
+const shuffleArray = (items) => {
+  const shuffled = [...items];
+
+  for (let index = shuffled.length - 1; index > 0; index -= 1) {
+    const randomIndex = Math.floor(Math.random() * (index + 1));
+    [shuffled[index], shuffled[randomIndex]] = [
+      shuffled[randomIndex],
+      shuffled[index],
+    ];
+  }
+
+  return shuffled;
+};
+
+const shuffleQuestionAnswers = (questionList = []) =>
+  questionList.map((question) => ({
+    ...question,
+    answers: shuffleArray(question.answers || []),
+  }));
 
 const formatPercent = (value) => {
   if (value === null || value === undefined) {
@@ -74,7 +95,7 @@ function CoreQuizPage() {
 
             if (!isMounted) return;
 
-            setQuestions(questionsResponse.data || []);
+            setQuestions(shuffleQuestionAnswers(questionsResponse.data));
             setError("");
           } catch {
             if (!isMounted) return;
@@ -109,20 +130,17 @@ function CoreQuizPage() {
     ? Math.round(((currentIndex + 1) / questions.length) * 100)
     : 0;
 
-  const groupedScores = useMemo(() => {
-    const scores = result?.elementScores || [];
+  const visibleScores = useMemo(() => result?.elementScores || [], [result]);
 
-    return scores.reduce((groups, score) => {
+  const groupedScores = useMemo(() => {
+    return visibleScores.reduce((groups, score) => {
       groups[score.type] = groups[score.type] || [];
       groups[score.type].push(score);
       return groups;
     }, {});
-  }, [result]);
+  }, [visibleScores]);
 
-  const topScores = useMemo(
-    () => (result?.elementScores || []).slice(0, 5),
-    [result]
-  );
+  const topScores = useMemo(() => visibleScores.slice(0, 5), [visibleScores]);
 
   const isMultiQuestion = (question) =>
     question?.selection_mode === "multi" ||
@@ -185,7 +203,9 @@ function CoreQuizPage() {
 
     if (unansweredQuestion) {
       setCurrentIndex(questions.indexOf(unansweredQuestion));
-      setValidationError("Bạn cần trả lời đủ 20 câu trước khi hoàn thành.");
+      setValidationError(
+        `Bạn cần trả lời đủ ${questions.length} câu trước khi hoàn thành.`
+      );
       return;
     }
 
@@ -220,7 +240,7 @@ function CoreQuizPage() {
       await api.delete("/profile/core-quiz/result");
       const res = await api.get("/profile/core-quiz/questions");
 
-      setQuestions(res.data || []);
+      setQuestions(shuffleQuestionAnswers(res.data));
       setAnswers({});
       setCurrentIndex(0);
       setResult(null);
@@ -324,15 +344,21 @@ function CoreQuizPage() {
                       <th>Code</th>
                       <th>Type</th>
                       <th>Final</th>
-                      <th>Raw</th>
-                      <th>Max</th>
-                      <th>Normalized</th>
+                      <th>Quiz Score</th>
+                      <th>Quiz Evidence</th>
+                      <th>Quiz Reliability</th>
+                      <th>Quiz Weight</th>
+                      <th>AI Score</th>
+                      <th>AI Level</th>
+                      <th>AI Confidence</th>
+                      <th>AI Reliability</th>
+                      <th>AI Weight</th>
                     </tr>
                   </thead>
 
                   <tbody>
                     {(result.elementScores || []).map((score) => {
-                      const coreQuizScore = score.scoreBreakdown?.coreQuiz || {};
+                      const scoreBreakdown = score.scoreBreakdown || {};
 
                       return (
                         <tr key={score.code}>
@@ -340,9 +366,33 @@ function CoreQuizPage() {
                           <td>{score.code}</td>
                           <td>{TYPE_LABELS[score.type] || score.type}</td>
                           <td>{formatPercent(score.finalScore)}</td>
-                          <td>{formatScoreNumber(coreQuizScore.raw)}</td>
-                          <td>{formatScoreNumber(coreQuizScore.maxPossible)}</td>
-                          <td>{formatPercent(coreQuizScore.normalized)}</td>
+                          <td>{formatPercent(scoreBreakdown.quizScore)}</td>
+                          <td>
+                            {formatScoreNumber(
+                              scoreBreakdown.quizEvidenceCount
+                            )}
+                          </td>
+                          <td>
+                            {formatPercent(scoreBreakdown.quizReliability)}
+                          </td>
+                          <td>{formatPercent(scoreBreakdown.quizWeight)}</td>
+                          <td>
+                            {formatPercent(scoreBreakdown.aiDiscoveryScore)}
+                          </td>
+                          <td>{scoreBreakdown.aiDiscoveryLevel ?? "-"}</td>
+                          <td>
+                            {formatPercent(
+                              scoreBreakdown.aiDiscoveryConfidence
+                            )}
+                          </td>
+                          <td>
+                            {formatPercent(
+                              scoreBreakdown.aiDiscoveryReliability
+                            )}
+                          </td>
+                          <td>
+                            {formatPercent(scoreBreakdown.aiDiscoveryWeight)}
+                          </td>
                         </tr>
                       );
                     })}
@@ -414,7 +464,12 @@ function CoreQuizPage() {
                   checked={selected}
                   onChange={() => handleSelectAnswer(answer.index)}
                 />
-                <span>{answer.text}</span>
+                <span className="core-option-content">
+                  <span>{answer.text}</span>
+                  {isAdmin && (
+                    <AdminCoreQuizAnswerScores scores={answer.elementScores} />
+                  )}
+                </span>
               </label>
             );
           })}

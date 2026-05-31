@@ -1,6 +1,6 @@
 const mongoose = require("mongoose");
+const { ELEMENT_TYPES } = require("../constants/elementTypes");
 
-const TARGET_TYPES = ["ability", "workstyle", "essential_skill", "transferable_skill", "knowledge"];
 const QUESTION_STYLES = ["behavioral", "preference", "scenario", "reflection", "activity_based"];
 const DIFFICULTY_LEVELS = ["easy", "medium", "hard"];
 const SELECTION_MODES = ["single", "multiple"];
@@ -15,20 +15,28 @@ const targetElementSchema = new mongoose.Schema(
       trim: true,
     },
 
-    name_vi: {
-      type: String,
-      required: true,
-      trim: true,
-    },
-
-    name_en: {
-      type: String,
-      required: true,
-      trim: true,
-    },
   },
   { _id: false }
 );
+
+function getMappingKeys(mapping) {
+  return mapping instanceof Map ? [...mapping.keys()] : Object.keys(mapping || {});
+}
+
+function hasUniqueTargetElements(elements) {
+  const codes = elements.map((element) => element.code);
+  return codes.length === new Set(codes).size;
+}
+
+function hasOnlyTargetElementMappings(answers) {
+  const targetCodes = new Set(
+    (this.target_elements || []).map((element) => element.code)
+  );
+
+  return answers.every((answer) =>
+    getMappingKeys(answer.mapping).every((code) => targetCodes.has(code))
+  );
+}
 
 const answerMappingSchema = new mongoose.Schema(
   {
@@ -83,18 +91,24 @@ const profilingQuestionSchema = new mongoose.Schema(
 
     target_type: {
       type: String,
-      enum: TARGET_TYPES,
+      enum: ELEMENT_TYPES,
       required: true,
     },
 
     target_elements: {
       type: [targetElementSchema],
-      validate: {
-        validator(elements) {
-          return elements.length >= 1 && elements.length <= 4;
+      validate: [
+        {
+          validator(elements) {
+            return elements.length >= 1 && elements.length <= 4;
+          },
+          message: "target_elements must contain 1 to 4 elements.",
         },
-        message: "target_elements must contain 1 to 4 elements.",
-      },
+        {
+          validator: hasUniqueTargetElements,
+          message: "target_elements must not contain duplicate codes.",
+        },
+      ],
       required: true,
     },
 
@@ -130,12 +144,18 @@ const profilingQuestionSchema = new mongoose.Schema(
 
     answers: {
       type: [answerSchema],
-      validate: {
-        validator(answers) {
-          return answers.length >= 4 && answers.length <= 6;
+      validate: [
+        {
+          validator(answers) {
+            return answers.length >= 4 && answers.length <= 6;
+          },
+          message: "answers must contain 4 to 6 options.",
         },
-        message: "answers must contain 4 to 6 options.",
-      },
+        {
+          validator: hasOnlyTargetElementMappings,
+          message: "answer mappings must reference target_elements only.",
+        },
+      ],
       required: true,
     },
 
@@ -148,6 +168,5 @@ const profilingQuestionSchema = new mongoose.Schema(
 );
 
 profilingQuestionSchema.index({ target_type: 1, is_active: 1 });
-profilingQuestionSchema.index({ "target_elements.code": 1 });
 
 module.exports = mongoose.model("ProfilingQuestion", profilingQuestionSchema);

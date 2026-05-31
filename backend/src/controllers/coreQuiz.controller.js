@@ -1,15 +1,21 @@
 const StudentProfile = require("../models/StudentProfile");
 const Element = require("../models/Element");
 const {
-  calculateElementScores,
-  getElementNameMapFromQuestionBank,
   getCoreQuizQuestions,
   normalizeSelectedIndexes,
 } = require("../services/coreQuiz.service");
+const {
+  calculateProfileElementScores,
+  ELEMENT_SCORE_ALGORITHM_VERSION,
+} = require("../services/profileElementScore.service");
 
 const getQuestions = async (req, res) => {
   try {
-    res.json(await getCoreQuizQuestions());
+    res.json(
+      await getCoreQuizQuestions({
+        includeAnswerScores: req.user.role === "admin",
+      })
+    );
   } catch (error) {
     res.status(500).json({
       message: "Failed to load core quiz questions",
@@ -21,21 +27,41 @@ const getQuestions = async (req, res) => {
 const getSavedResult = async (req, res) => {
   try {
     const profile = await StudentProfile.findOne({ userId: req.user._id })
-      .select("elementScores coreQuizCompletedAt")
+      .select(
+        "elementScores elementScoreVersion coreQuizAnswers aiDiscoveries coreQuizCompletedAt"
+      )
       .lean();
 
-    if (
-      !profile?.coreQuizCompletedAt ||
-      !Array.isArray(profile.elementScores) ||
-      profile.elementScores.length === 0
-    ) {
+    if (!profile?.coreQuizCompletedAt) {
       return res.status(404).json({
         message: "Core quiz result not found",
       });
     }
 
+    let elementScores = profile.elementScores;
+
+    if (profile.elementScoreVersion !== ELEMENT_SCORE_ALGORITHM_VERSION) {
+      // Lazily migrate stored snapshots when scoring rules evolve. Source
+      // records are canonical; elementScores is only a derived cache.
+      elementScores = await calculateProfileElementScores({
+        coreQuizAnswers: profile.coreQuizAnswers,
+        aiDiscoveries: profile.aiDiscoveries,
+      });
+      await StudentProfile.updateOne(
+        { userId: req.user._id },
+        {
+          $set: {
+            elementScores,
+            elementScoreVersion: ELEMENT_SCORE_ALGORITHM_VERSION,
+          },
+        },
+        {
+          runValidators: true,
+        }
+      );
+    }
     const responseElementScores = await enrichElementScoresWithNames(
-      profile.elementScores
+      elementScores
     );
 
     res.json({
@@ -52,7 +78,6 @@ const getSavedResult = async (req, res) => {
 };
 
 const enrichElementScoresWithNames = async (elementScores) => {
-  const fallbackNameMap = await getElementNameMapFromQuestionBank();
   const codes = elementScores.map((score) => score.code);
   const elements = await Element.find({ code: { $in: codes } })
     .select("code name_vi name_en")
@@ -68,7 +93,7 @@ const enrichElementScoresWithNames = async (elementScores) => {
   );
 
   return elementScores.map((score) => {
-    const names = elementNameMap.get(score.code) || fallbackNameMap.get(score.code);
+    const names = elementNameMap.get(score.code);
 
     return {
       ...score,
@@ -106,7 +131,17 @@ const submitQuiz = async (req, res) => {
       });
     }
 
-    const elementScores = await calculateElementScores(answers);
+    // elementScores is a profile-wide snapshot. Rebuild it from the submitted
+    // quiz answers and previous AI confirmations so neither source is lost.
+    const existingProfile = await StudentProfile.findOne({
+      userId: req.user._id,
+    })
+      .select("aiDiscoveries")
+      .lean();
+    const elementScores = await calculateProfileElementScores({
+      coreQuizAnswers,
+      aiDiscoveries: existingProfile?.aiDiscoveries || [],
+    });
     const responseElementScores = await enrichElementScoresWithNames(elementScores);
     const profileGrade = [10, 11, 12].includes(Number(grade))
       ? Number(grade)
@@ -118,6 +153,7 @@ const submitQuiz = async (req, res) => {
         $set: {
           coreQuizAnswers,
           elementScores,
+          elementScoreVersion: ELEMENT_SCORE_ALGORITHM_VERSION,
           coreQuizCompletedAt: new Date(),
         },
         $setOnInsert: {
@@ -147,12 +183,25 @@ const submitQuiz = async (req, res) => {
 
 const resetQuiz = async (req, res) => {
   try {
+    const existingProfile = await StudentProfile.findOne({
+      userId: req.user._id,
+    })
+      .select("aiDiscoveries")
+      .lean();
+
+    // Reset removes only Core Quiz evidence. Confirmed AI Discovery evidence
+    // remains part of the profile because it came from a separate workflow.
+    const elementScores = await calculateProfileElementScores({
+      aiDiscoveries: existingProfile?.aiDiscoveries || [],
+    });
+
     await StudentProfile.findOneAndUpdate(
       { userId: req.user._id },
       {
         $set: {
           coreQuizAnswers: [],
-          elementScores: [],
+          elementScores,
+          elementScoreVersion: ELEMENT_SCORE_ALGORITHM_VERSION,
           coreQuizCompletedAt: null,
         },
       },

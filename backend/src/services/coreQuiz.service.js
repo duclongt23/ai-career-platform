@@ -6,19 +6,16 @@ const questionsPath = path.resolve(__dirname, "../../../QAprofiling.json");
 const use_data_from_mongo = true;
 
 const QUESTION_COUNTS = {
-  ability: 6,
-  workstyle: 5,
-  transferable_skill: 4,
-  knowledge: 3,
-  essential_skill: 2,
+  ability: 9,
+  workstyle: 7,
+  transferable_skill: 6,
+  knowledge: 5,
+  essential_skill: 3,
 };
-
-const DIFFICULTY_ORDER = {
-  easy: 0,
-  medium: 1,
-  deep: 2,
-  hard: 2,
-};
+const TOTAL_QUIZ_QUESTIONS = Object.values(QUESTION_COUNTS).reduce(
+  (total, count) => total + count,
+  0
+);
 
 function normalizeQuestionDocument(question) {
   return {
@@ -78,23 +75,7 @@ function shuffle(items) {
   return shuffled;
 }
 
-function orderByDifficultyWithLightShuffle(questions) {
-  const grouped = questions.reduce((groups, question) => {
-    const difficulty = question.difficulty_level || "medium";
-    groups[difficulty] = groups[difficulty] || [];
-    groups[difficulty].push(question);
-    return groups;
-  }, {});
-
-  return Object.keys(grouped)
-    .sort(
-      (a, b) =>
-        (DIFFICULTY_ORDER[a] ?? 99) - (DIFFICULTY_ORDER[b] ?? 99)
-    )
-    .flatMap((difficulty) => shuffle(grouped[difficulty]));
-}
-
-function sanitizeQuestion(question) {
+function sanitizeQuestion(question, { includeAnswerScores = false } = {}) {
   return {
     question_id: question.question_id,
     target_type: question.target_type,
@@ -103,20 +84,33 @@ function sanitizeQuestion(question) {
     difficulty_level: question.difficulty_level,
     selection_mode:
       question.selection_mode === "multiple" ? "multi" : question.selection_mode,
-    answers: (question.answers || []).map((answer, index) => ({
-      index,
-      text: answer.text,
-    })),
+    answers: (question.answers || []).map((answer, index) => {
+      const sanitizedAnswer = {
+        index,
+        text: answer.text,
+      };
+
+      if (includeAnswerScores) {
+        sanitizedAnswer.elementScores = Object.entries(answer.mapping || {}).map(
+          ([code, mapping]) => ({
+            code,
+            score: Number(mapping?.score || 0),
+          })
+        );
+      }
+
+      return sanitizedAnswer;
+    }),
   };
 }
 
-async function getCoreQuizQuestions() {
+async function getCoreQuizQuestions(options = {}) {
   const questions = await loadQuestionBank();
   const selected = [];
   const selectedIds = new Set();
 
   Object.entries(QUESTION_COUNTS).forEach(([type, count]) => {
-    const candidates = orderByDifficultyWithLightShuffle(
+    const candidates = shuffle(
       questions.filter((question) => question.target_type === type)
     );
 
@@ -130,18 +124,22 @@ async function getCoreQuizQuestions() {
     });
   });
 
-  if (selected.length < 20) {
-    const fallbackCandidates = orderByDifficultyWithLightShuffle(
+  if (selected.length < TOTAL_QUIZ_QUESTIONS) {
+    const fallbackCandidates = shuffle(
       questions.filter((question) => !selectedIds.has(question.question_id))
     );
 
-    fallbackCandidates.slice(0, 20 - selected.length).forEach((question) => {
-      selected.push(question);
-      selectedIds.add(question.question_id);
-    });
+    fallbackCandidates
+      .slice(0, TOTAL_QUIZ_QUESTIONS - selected.length)
+      .forEach((question) => {
+        selected.push(question);
+        selectedIds.add(question.question_id);
+      });
   }
 
-  return shuffle(selected).slice(0, 20).map(sanitizeQuestion);
+  return shuffle(selected)
+    .slice(0, TOTAL_QUIZ_QUESTIONS)
+    .map((question) => sanitizeQuestion(question, options));
 }
 
 function normalizeSelectedIndexes(selectedAnswerIndexes) {
@@ -152,22 +150,6 @@ function normalizeSelectedIndexes(selectedAnswerIndexes) {
   return [...new Set(selectedAnswerIndexes)]
     .map((index) => Number(index))
     .filter((index) => Number.isInteger(index) && index >= 0);
-}
-
-function getQuestionElementMaximums(question) {
-  const maximums = {};
-
-  (question.answers || []).forEach((answer) => {
-    Object.entries(answer.mapping || {}).forEach(([code, mapping]) => {
-      const score = Number(mapping?.score || 0);
-
-      if (!maximums[code] || score > maximums[code]) {
-        maximums[code] = score;
-      }
-    });
-  });
-
-  return maximums;
 }
 
 async function calculateElementScores(submittedAnswers) {
@@ -226,8 +208,8 @@ async function calculateElementScores(submittedAnswers) {
       scoreMap.set(code, {
         code,
         type,
-        raw: 0,
-        maxPossible: 0,
+        rawSum: 0,
+        evidenceCount: 0,
       });
     }
 
@@ -238,12 +220,6 @@ async function calculateElementScores(submittedAnswers) {
     const question = questionMap.get(questionId);
     const type = question.target_type;
 
-    Object.entries(getQuestionElementMaximums(question)).forEach(
-      ([code, maxScore]) => {
-        ensureElementScore(code, type).maxPossible += Number(maxScore || 0);
-      }
-    );
-
     selectedIndexes.forEach((answerIndex) => {
       const answer = question.answers?.[answerIndex];
 
@@ -252,56 +228,36 @@ async function calculateElementScores(submittedAnswers) {
       }
 
       Object.entries(answer.mapping || {}).forEach(([code, mapping]) => {
-        ensureElementScore(code, type).raw += Number(mapping?.score || 0);
+        const elementScore = ensureElementScore(code, type);
+        elementScore.rawSum += Number(mapping?.score || 0);
+        elementScore.evidenceCount += 1;
       });
     });
   });
 
   return [...scoreMap.values()]
     .map((score) => {
-      const normalized =
-        score.maxPossible > 0 ? Math.min(score.raw / score.maxPossible, 1) : null;
+      const averageScore = score.rawSum / score.evidenceCount;
+      const confidence = Math.min(score.evidenceCount / 10 + 0.5, 1);
+      const finalScore = averageScore * confidence;
 
       return {
         code: score.code,
         type: score.type,
-        finalScore: normalized,
+        finalScore: Number(finalScore.toFixed(4)),
         scoreBreakdown: {
-          coreQuiz: {
-            raw: Number(score.raw.toFixed(4)),
-            maxPossible: Number(score.maxPossible.toFixed(4)),
-            normalized:
-              normalized === null ? null : Number(normalized.toFixed(4)),
-          },
+          averageScore: Number(averageScore.toFixed(4)),
+          confidence: Number(confidence.toFixed(4)),
+          evidenceCount: score.evidenceCount,
+          rawSum: Number(score.rawSum.toFixed(4)),
         },
       };
     })
-    .sort((a, b) => (b.finalScore ?? -1) - (a.finalScore ?? -1));
-}
-
-async function getElementNameMapFromQuestionBank() {
-  const questions = await loadQuestionBank();
-  const nameMap = new Map();
-
-  questions.forEach((question) => {
-    (question.target_elements || []).forEach((element) => {
-      if (!element.code) {
-        return;
-      }
-
-      nameMap.set(element.code, {
-        name_vi: element.name_vi || element.code,
-        name_en: element.name_en || element.code,
-      });
-    });
-  });
-
-  return nameMap;
+    .sort((a, b) => b.finalScore - a.finalScore);
 }
 
 module.exports = {
   calculateElementScores,
-  getElementNameMapFromQuestionBank,
   getCoreQuizQuestions,
   normalizeSelectedIndexes,
 };
