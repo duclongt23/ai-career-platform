@@ -1,94 +1,166 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import api from "../api/axios";
+
+const PAGE_SIZE = 12;
 
 function Careers() {
   const [careers, setCareers] = useState([]);
   const [search, setSearch] = useState("");
   const [field, setField] = useState("");
+  const [filters, setFilters] = useState({ search: "", field: "" });
+  const [pagination, setPagination] = useState({
+    page: 1,
+    total: 0,
+    totalPages: 0,
+  });
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
 
-  useEffect(() => {
-    fetchCareers();
-  }, []);
-
-  const fetchCareers = async () => {
+  const fetchCareers = useCallback(async (page, currentFilters) => {
     setLoading(true);
+    setError("");
 
     try {
-      const res = await api.get("/careers", {
+      const response = await api.get("/careers", {
         params: {
-          search,
-          field,
+          ...currentFilters,
+          page,
+          limit: PAGE_SIZE,
         },
       });
 
-      setCareers(res.data);
-    } catch (err) {
-      console.error("Lỗi tải ngành nghề", err);
+      setCareers(response.data.careers || []);
+      setPagination(response.data.pagination);
+    } catch (requestError) {
+      console.error("Lỗi tải ngành nghề", requestError);
+      setError("Không thể tải danh sách nghề nghiệp. Vui lòng thử lại.");
     } finally {
       setLoading(false);
     }
+  }, []);
+
+  useEffect(() => {
+    let ignore = false;
+
+    api
+      .get("/careers", {
+        params: {
+          page: 1,
+          limit: PAGE_SIZE,
+        },
+      })
+      .then((response) => {
+        if (!ignore) {
+          setCareers(response.data.careers || []);
+          setPagination(response.data.pagination);
+        }
+      })
+      .catch((requestError) => {
+        console.error("Lỗi tải ngành nghề", requestError);
+
+        if (!ignore) {
+          setError("Không thể tải danh sách nghề nghiệp. Vui lòng thử lại.");
+        }
+      })
+      .finally(() => {
+        if (!ignore) {
+          setLoading(false);
+        }
+      });
+
+    return () => {
+      ignore = true;
+    };
+  }, []);
+
+  const handleSearch = (event) => {
+    event.preventDefault();
+    const nextFilters = {
+      search: search.trim(),
+      field: field.trim(),
+    };
+
+    setFilters(nextFilters);
+    fetchCareers(1, nextFilters);
   };
 
-  const handleSearch = (e) => {
-    e.preventDefault();
-    fetchCareers();
+  const handlePageChange = (page) => {
+    fetchCareers(page, filters);
+    window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
   return (
     <div>
       <div className="page-header">
         <h1>Danh sách ngành nghề</h1>
-        <p>Khám phá các ngành học và nghề nghiệp phù hợp với học sinh cấp 3.</p>
+        <p>Khám phá thông tin cơ bản về các nghề nghiệp phù hợp với học sinh cấp 3.</p>
       </div>
 
       <form className="filter-box" onSubmit={handleSearch}>
         <input
           value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          placeholder="Tìm ngành nghề..."
+          onChange={(event) => setSearch(event.target.value)}
+          placeholder="Tìm theo tên hoặc mô tả nghề..."
         />
 
         <input
           value={field}
-          onChange={(e) => setField(e.target.value)}
+          onChange={(event) => setField(event.target.value)}
           placeholder="Lĩnh vực, ví dụ: Công nghệ"
         />
 
         <button>Tìm kiếm</button>
       </form>
 
+      {error && <p className="error">{error}</p>}
+
       {loading ? (
         <p>Đang tải dữ liệu...</p>
       ) : careers.length === 0 ? (
-        <p>Chưa có ngành nghề nào. Hãy thêm dữ liệu từ backend/Postman.</p>
+        <p>Không tìm thấy nghề nghiệp phù hợp với bộ lọc.</p>
       ) : (
-        <div className="career-grid">
-          {careers.map((career) => (
-            <div className="card career-card" key={career._id}>
-              <span className="tag">{career.field}</span>
+        <>
+          <p className="career-count">{pagination.total} nghề nghiệp</p>
 
-              <h2>{career.name}</h2>
+          <div className="career-grid">
+            {careers.map((career) => (
+              <article className="card career-card" key={career._id}>
+                <h2>{career.title_vi || career.title_en}</h2>
 
-              <p>{career.description}</p>
+                <p className="career-description">
+                  {career.description_vi || "Đang cập nhật mô tả nghề nghiệp."}
+                </p>
 
-              <div>
-                <strong>Môn liên quan:</strong>
-                <p>{career.requiredSubjects?.join(", ")}</p>
-              </div>
+                <Link className="detail-link" to={`/careers/${career._id}`}>
+                  Xem chi tiết
+                </Link>
+              </article>
+            ))}
+          </div>
 
-              <div>
-                <strong>Kỹ năng cần có:</strong>
-                <p>{career.requiredSkills?.join(", ")}</p>
-              </div>
-
-              <Link className="detail-link" to={`/careers/${career._id}`}>
-                Xem chi tiết
-              </Link>
-            </div>
-          ))}
-        </div>
+          {pagination.totalPages > 1 && (
+            <nav className="career-pagination" aria-label="Phân trang nghề nghiệp">
+              <button
+                className="secondary-button"
+                disabled={pagination.page <= 1 || loading}
+                onClick={() => handlePageChange(pagination.page - 1)}
+              >
+                Trang trước
+              </button>
+              <span>
+                Trang {pagination.page} / {pagination.totalPages}
+              </span>
+              <button
+                className="secondary-button"
+                disabled={pagination.page >= pagination.totalPages || loading}
+                onClick={() => handlePageChange(pagination.page + 1)}
+              >
+                Trang sau
+              </button>
+            </nav>
+          )}
+        </>
       )}
     </div>
   );

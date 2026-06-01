@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import api from "../api/axios";
 
@@ -35,24 +35,42 @@ function AdminCareers() {
   const [error, setError] = useState("");
 
   const user = JSON.parse(localStorage.getItem("user"));
+  const isAdmin = user?.role === "admin";
+
+  const fetchCareers = useCallback(async () => {
+    try {
+      const res = await api.get("/careers");
+      setCareers(res.data.careers || res.data);
+    } catch {
+      setError("Không tải được danh sách ngành nghề");
+    }
+  }, []);
 
   useEffect(() => {
-    if (!user || user.role !== "admin") {
+    if (!isAdmin) {
       navigate("/careers");
       return;
     }
 
-    fetchCareers();
-  }, []);
+    let ignore = false;
 
-  const fetchCareers = async () => {
-    try {
-      const res = await api.get("/careers");
-      setCareers(res.data);
-    } catch (err) {
-      setError("Không tải được danh sách ngành nghề");
-    }
-  };
+    api
+      .get("/careers")
+      .then((response) => {
+        if (!ignore) {
+          setCareers(response.data.careers || response.data);
+        }
+      })
+      .catch(() => {
+        if (!ignore) {
+          setError("Không tải được danh sách ngành nghề");
+        }
+      });
+
+    return () => {
+      ignore = true;
+    };
+  }, [isAdmin, navigate]);
 
   const toArray = (text) => {
     return text

@@ -1,41 +1,101 @@
 const mongoose = require("mongoose");
 
+const careerElementSchema = new mongoose.Schema(
+  {
+    code: {
+      type: String,
+      required: true,
+      lowercase: true,
+      trim: true,
+    },
+
+    type: {
+      type: String,
+      enum: [
+        "ability",
+        "workstyle",
+        "essential_skill",
+        "transferable_skill",
+        "knowledge",
+      ],
+      required: true,
+    },
+
+    importance: {
+      type: Number,
+      min: 0,
+      max: 1,
+      required: true,
+    },
+  },
+  { _id: false }
+);
+
 const careerSchema = new mongoose.Schema(
   {
-    name: {
+    onetCode: {
+      type: String,
+      required: true,
+      unique: true,
+      index: true,
+    },
+
+    title_en: {
       type: String,
       required: true,
       trim: true,
     },
 
-    field: {
+    title_vi: {
       type: String,
-      required: true,
+      default: "",
       trim: true,
     },
 
-    description: {
+    aliases: {
+      type: [String],
+      default: [],
+    },
+
+
+    description_vi: {
       type: String,
-      required: true,
+      default: "",
     },
 
-    requiredSubjects: {
-      type: [String],
-      default: [],
+    careerCluster: {
+      type: String,
+      default: "",
     },
 
-    requiredSkills: {
-      type: [String],
-      default: [],
+    riasecCode: {
+      type: String,
+      uppercase: true,
+      trim: true,
+      default: "",
+      maxlength: 6,
+      match: /^$|^[RIASEC]{1,6}$/,
     },
 
-    suitableInterests: {
-      type: [String],
-      default: [],
+    vietnam_relevance: {
+      type: Number,
+      min: 0,
+      max: 1,
+      default: 0.5,
     },
 
-    roadmap: {
-      type: [String],
+    is_active: {
+      type: Boolean,
+      default: true,
+    },
+
+    student_suitable: {
+      type: Boolean,
+      default: true,
+    },
+
+    elements: {
+      type: [careerElementSchema],
       default: [],
     },
   },

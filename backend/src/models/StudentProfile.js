@@ -116,6 +116,90 @@ const aiDiscoverySchema = new mongoose.Schema(
   { _id: false }
 );
 
+const careerRecommendationSnapshotSchema = new mongoose.Schema(
+  {
+    algorithmVersion: {
+      type: Number,
+      required: true,
+      min: 1,
+    },
+    elementScoresFingerprint: {
+      type: String,
+      required: true,
+    },
+    careerDataFingerprint: {
+      type: String,
+      required: true,
+    },
+    recommendations: {
+      type: [mongoose.Schema.Types.Mixed],
+      default: [],
+    },
+    generatedAt: {
+      type: Date,
+      default: Date.now,
+    },
+  },
+  { _id: false }
+);
+
+const careerFitExplanationSchema = new mongoose.Schema(
+  {
+    careerId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Career",
+      required: true,
+    },
+    strengthCode: {
+      type: String,
+      required: true,
+      lowercase: true,
+      trim: true,
+    },
+    elementScoresFingerprint: {
+      type: String,
+      required: true,
+    },
+    careerUpdatedAt: {
+      type: Date,
+      required: true,
+    },
+    explanation: {
+      type: String,
+      required: true,
+      trim: true,
+    },
+    generatedAt: {
+      type: Date,
+      default: Date.now,
+    },
+  },
+  { _id: false }
+);
+
+const careerDayInLifeSchema = new mongoose.Schema(
+  {
+    careerId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Career",
+      required: true,
+    },
+    careerUpdatedAt: {
+      type: Date,
+      required: true,
+    },
+    activities: {
+      type: [String],
+      required: true,
+    },
+    generatedAt: {
+      type: Date,
+      default: Date.now,
+    },
+  },
+  { _id: false }
+);
+
 const studentProfileSchema = new mongoose.Schema(
   {
     userId: {
@@ -199,6 +283,23 @@ const studentProfileSchema = new mongoose.Schema(
     profileCompletedAt: {
       type: Date,
       default: null,
+    },
+
+    // Recommendations are derived from elementScores and can be reused until
+    // either the student's scores or the career dataset changes.
+    careerRecommendationSnapshot: {
+      type: careerRecommendationSnapshotSchema,
+      default: null,
+    },
+
+    careerFitExplanations: {
+      type: [careerFitExplanationSchema],
+      default: [],
+    },
+
+    careerDayInLifeEntries: {
+      type: [careerDayInLifeSchema],
+      default: [],
     },
   },
   { timestamps: true }
