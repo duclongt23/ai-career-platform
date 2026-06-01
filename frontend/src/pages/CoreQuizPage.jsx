@@ -1,7 +1,8 @@
 import { useEffect, useMemo, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import api from "../api/axios";
 import AdminCoreQuizAnswerScores from "../components/AdminCoreQuizAnswerScores";
+import { DISCOVERY_PROGRESS_UPDATED } from "../components/DiscoveryWorkflowLayout";
 
 const TYPE_LABELS = {
   ability: "Năng lực",
@@ -69,7 +70,7 @@ function CoreQuizPage() {
       navigate("/login", {
         state: {
           message: "Yêu cầu đăng nhập để làm bài khám phá bản thân",
-          from: "/core-quiz",
+          from: "/discovery/core-quiz",
         },
       });
       return undefined;
@@ -221,6 +222,7 @@ function CoreQuizPage() {
       };
       const res = await api.post("/profile/core-quiz/submit", payload);
       setResult(res.data);
+      window.dispatchEvent(new Event(DISCOVERY_PROGRESS_UPDATED));
     } catch (err) {
       setError(
         err.response?.data?.message ||
@@ -244,6 +246,7 @@ function CoreQuizPage() {
       setAnswers({});
       setCurrentIndex(0);
       setResult(null);
+      window.dispatchEvent(new Event(DISCOVERY_PROGRESS_UPDATED));
     } catch (err) {
       setError(
         err.response?.data?.message ||
@@ -401,6 +404,16 @@ function CoreQuizPage() {
               </div>
             </section>
           )}
+
+          <div className="workflow-result-actions">
+            <p>
+              Tiếp tục trò chuyện để bổ sung những trải nghiệm mà bài trắc
+              nghiệm chưa thể hiện hết.
+            </p>
+            <Link className="workflow-next-action" to="/discovery/ai-discovery">
+              Tiếp tục với AI Discovery
+            </Link>
+          </div>
         </section>
       </div>
     );

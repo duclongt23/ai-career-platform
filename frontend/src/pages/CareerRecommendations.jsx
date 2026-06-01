@@ -63,7 +63,7 @@ function CareerRecommendations() {
         <Link
           className="recommendation-action"
           to="/login"
-          state={{ from: "/career-recommendations" }}
+          state={{ from: "/discovery/recommendations" }}
         >
           Đăng nhập để tiếp tục
         </Link>
@@ -95,10 +95,10 @@ function CareerRecommendations() {
             rõ hơn về bạn.
           </p>
           <div className="recommendation-actions">
-            <Link className="recommendation-action" to="/core-quiz">
+            <Link className="recommendation-action" to="/discovery/core-quiz">
               Làm bài khám phá bản thân
             </Link>
-            <Link className="recommendation-action secondary" to="/ai-discovery">
+            <Link className="recommendation-action secondary" to="/discovery/ai-discovery">
               Trò chuyện với AI
             </Link>
           </div>

@@ -1,6 +1,7 @@
 ﻿import { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import api from "../api/axios";
+import { DISCOVERY_PROGRESS_UPDATED } from "../components/DiscoveryWorkflowLayout";
 
 const RIASEC_TYPES = [
   "REALISTIC",
@@ -176,7 +177,7 @@ function RiasecTest() {
       navigate("/login", {
         state: {
           message: "Yêu cầu đăng nhập để thực hiện bài test",
-          from: "/riasec-test",
+          from: "/discovery/riasec",
         },
       });
       return undefined;
@@ -290,6 +291,7 @@ function RiasecTest() {
         scores: riasecScores,
       });
       setSaveStatus("saved");
+      window.dispatchEvent(new Event(DISCOVERY_PROGRESS_UPDATED));
     } catch {
       setSaveStatus("error");
     }
@@ -537,6 +539,18 @@ function RiasecTest() {
               </article>
             ))}
           </div>
+
+          {saveStatus === "saved" && (
+            <div className="workflow-result-actions">
+              <p>
+                Bước tiếp theo giúp hệ thống hiểu rõ hơn về năng lực và cách học
+                của bạn.
+              </p>
+              <Link className="workflow-next-action" to="/discovery/core-quiz">
+                Tiếp tục với Core Quiz
+              </Link>
+            </div>
+          )}
         </section>
       )}
     </div>

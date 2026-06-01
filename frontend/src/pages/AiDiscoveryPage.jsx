@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import api from "../api/axios";
+import { DISCOVERY_PROGRESS_UPDATED } from "../components/DiscoveryWorkflowLayout";
 
 const TYPE_LABELS = {
   ability: "Năng lực",
@@ -68,7 +69,7 @@ function AiDiscoveryPage() {
       navigate("/login", {
         state: {
           message: "Yêu cầu đăng nhập để bắt đầu AI Discovery",
-          from: "/ai-discovery",
+          from: "/discovery/ai-discovery",
         },
       });
       return undefined;
@@ -265,6 +266,7 @@ function AiDiscoveryPage() {
       setSelectedCandidates(
         getSelectedCandidateLevels(res.data.confirmedElements)
       );
+      window.dispatchEvent(new Event(DISCOVERY_PROGRESS_UPDATED));
     } catch (err) {
       setError(
         getApiErrorMessage(
@@ -292,7 +294,7 @@ function AiDiscoveryPage() {
         <p className="muted">
           Nếu chưa có kết quả RIASEC, hãy hoàn thành bài test trước.
         </p>
-        <Link className="ai-discovery-link" to="/riasec-test">
+        <Link className="ai-discovery-link" to="/discovery/riasec">
           Đi tới bài test RIASEC
         </Link>
       </section>
@@ -454,7 +456,15 @@ function AiDiscoveryPage() {
               {candidates.length} yếu tố
             </span>
             {status === "confirmed" ? (
-              <strong>Đã lưu vào hồ sơ</strong>
+              <div className="ai-discovery-confirmed-actions">
+                <strong>Đã lưu vào hồ sơ</strong>
+                <Link
+                  className="workflow-next-action"
+                  to="/discovery/recommendations"
+                >
+                  Xem gợi ý nghề nghiệp
+                </Link>
+              </div>
             ) : (
               <button
                 type="button"

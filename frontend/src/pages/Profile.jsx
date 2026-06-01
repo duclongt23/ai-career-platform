@@ -177,7 +177,7 @@ function Profile() {
               <button
                 type="button"
                 className="profile-riasec-button"
-                onClick={() => navigate("/riasec-test")}
+                onClick={() => navigate("/discovery/riasec")}
               >
                 {form.riasecCode ? "Làm lại RIASEC" : "Làm test RIASEC"}
               </button>

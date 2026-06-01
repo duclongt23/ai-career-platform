@@ -11,6 +11,8 @@ import RiasecInfo from "./pages/RiasecInfo";
 import CoreQuizPage from "./pages/CoreQuizPage";
 import AiDiscoveryPage from "./pages/AiDiscoveryPage";
 import CareerRecommendations from "./pages/CareerRecommendations";
+import CareerExploreChat from "./pages/CareerExploreChat";
+import DiscoveryWorkflowLayout from "./components/DiscoveryWorkflowLayout";
 
 function App() {
   const navigate = useNavigate();
@@ -31,10 +33,7 @@ function App() {
 
         <div className="nav-links">
           <Link to="/careers">Ngành nghề</Link>
-          {token && <Link to="/career-recommendations">Gợi ý nghề</Link>}
-          <Link to="/riasec-test">RIASEC</Link>
-          <Link to="/core-quiz">Khám phá bản thân</Link>
-          <Link to="/ai-discovery">AI Discovery</Link>
+          {token && <Link to="/discovery">Hành trình khám phá</Link>}
 
           {token ? (
             <>
@@ -59,12 +58,20 @@ function App() {
           <Route path="/login" element={<Login />} />
           <Route path="/profile" element={<Profile />} />
           <Route path="/careers" element={<Careers />} />
-          <Route path="/career-recommendations" element={<CareerRecommendations />} />
+          <Route path="/career-recommendations" element={<Navigate to="/discovery/recommendations" replace />} />
           <Route path="/riasec-info" element={<RiasecInfo />} />
-          <Route path="/riasec-test" element={<RiasecTest />} />
-          <Route path="/core-quiz" element={<CoreQuizPage />} />
-          <Route path="/ai-discovery" element={<AiDiscoveryPage />} />
+          <Route path="/riasec-test" element={<Navigate to="/discovery/riasec" replace />} />
+          <Route path="/core-quiz" element={<Navigate to="/discovery/core-quiz" replace />} />
+          <Route path="/ai-discovery" element={<Navigate to="/discovery/ai-discovery" replace />} />
+          <Route path="/discovery" element={<DiscoveryWorkflowLayout />}>
+            <Route index element={<Navigate to="riasec" replace />} />
+            <Route path="riasec" element={<RiasecTest />} />
+            <Route path="core-quiz" element={<CoreQuizPage />} />
+            <Route path="ai-discovery" element={<AiDiscoveryPage />} />
+            <Route path="recommendations" element={<CareerRecommendations />} />
+          </Route>
           <Route path="/careers/:id" element={<CareerDetail />} />
+          <Route path="/careers/:id/explore-chat" element={<CareerExploreChat />} />
           <Route path="/admin/careers" element={<AdminCareers />} />
           <Route path="/admin/core-quiz" element={<AdminCoreQuiz />} />
         </Routes>

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useParams, Link } from "react-router-dom";
 import api from "../api/axios";
 
@@ -240,6 +240,185 @@ function CareerDayInLifeSection({ careerId, title }) {
   );
 }
 
+export function CareerExploreChatSection({ careerId, title }) {
+  const [messages, setMessages] = useState([]);
+  const [suggestedQuestions, setSuggestedQuestions] = useState([]);
+  const [question, setQuestion] = useState("");
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+  const messagesEndRef = useRef(null);
+
+  const addAssistantResponse = useCallback((response) => {
+    setMessages((currentMessages) => [
+      ...currentMessages,
+      {
+        role: "assistant",
+        content: response.answer,
+        sources: response.sources || [],
+        webSearchStatus: response.webSearchStatus,
+      },
+    ]);
+    setSuggestedQuestions(response.suggestedQuestions || []);
+  }, []);
+
+  useEffect(() => {
+    let ignore = false;
+
+    api
+      .post(`/careers/${careerId}/explore-chat`, { messages: [] })
+      .then((response) => {
+        if (!ignore) {
+          addAssistantResponse(response.data);
+        }
+      })
+      .catch((requestError) => {
+        if (!ignore) {
+          setError(
+            requestError.response?.data?.message ||
+              "Không thể mở cuộc trò chuyện lúc này. Vui lòng thử lại."
+          );
+        }
+      })
+      .finally(() => {
+        if (!ignore) {
+          setLoading(false);
+        }
+      });
+
+    return () => {
+      ignore = true;
+    };
+  }, [addAssistantResponse, careerId]);
+
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [loading, messages]);
+
+  const sendQuestion = useCallback(
+    async (nextQuestion) => {
+      const trimmedQuestion = String(nextQuestion || "").trim();
+
+      if (!trimmedQuestion || loading) {
+        return;
+      }
+
+      const nextMessages = [
+        ...messages.map(({ role, content }) => ({ role, content })),
+        { role: "user", content: trimmedQuestion },
+      ];
+
+      setMessages((currentMessages) => [
+        ...currentMessages,
+        { role: "user", content: trimmedQuestion },
+      ]);
+      setSuggestedQuestions([]);
+      setQuestion("");
+      setError("");
+      setLoading(true);
+
+      try {
+        const response = await api.post(`/careers/${careerId}/explore-chat`, {
+          messages: nextMessages,
+        });
+        addAssistantResponse(response.data);
+      } catch (requestError) {
+        setError(
+          requestError.response?.data?.message ||
+            "Không thể trả lời câu hỏi lúc này. Vui lòng thử lại."
+        );
+      } finally {
+        setLoading(false);
+      }
+    },
+    [addAssistantResponse, careerId, loading, messages]
+  );
+
+  const handleSubmit = (event) => {
+    event.preventDefault();
+    sendQuestion(question);
+  };
+
+  return (
+    <section className="career-explore-chat">
+      <div className="career-explore-chat-heading">
+        <div>
+          <span className="career-explore-chat-eyebrow">Career Explore Chat</span>
+          <h3>Hỏi thêm về nghề {title}</h3>
+          <p>Trao đổi sâu hơn về công việc, kỹ năng và thị trường Việt Nam.</p>
+        </div>
+        <span className="career-explore-chat-status">AI cố vấn</span>
+      </div>
+
+      <div className="career-explore-chat-messages">
+        {messages.map((message, index) => (
+          <div
+            className={`career-explore-chat-message ${message.role}`}
+            key={`${message.role}-${index}`}
+          >
+            <strong>{message.role === "assistant" ? "AI cố vấn" : "Bạn"}</strong>
+            <p>{message.content}</p>
+            {message.sources?.length > 0 && (
+              <div className="career-explore-chat-sources">
+                <span>Nguồn tham khảo:</span>
+                {message.sources.map((source) => (
+                  <a href={source.url} key={source.url} rel="noreferrer" target="_blank">
+                    {source.title}
+                  </a>
+                ))}
+              </div>
+            )}
+            {message.webSearchStatus === "not_configured" && (
+              <small>
+                Chưa cấu hình nguồn tìm kiếm web nên câu trả lời không dùng dữ liệu thị
+                trường cập nhật.
+              </small>
+            )}
+          </div>
+        ))}
+
+        {loading && (
+          <div className="career-explore-chat-message assistant pending">
+            <strong>AI cố vấn</strong>
+            <p>Đang chuẩn bị câu trả lời...</p>
+          </div>
+        )}
+        <div ref={messagesEndRef} />
+      </div>
+
+      {error && <p className="career-explore-chat-error">{error}</p>}
+
+      {suggestedQuestions.length > 0 && (
+        <div className="career-explore-chat-suggestions">
+          {suggestedQuestions.map((suggestion) => (
+            <button
+              disabled={loading}
+              key={suggestion}
+              onClick={() => sendQuestion(suggestion)}
+              type="button"
+            >
+              {suggestion}
+            </button>
+          ))}
+        </div>
+      )}
+
+      <form className="career-explore-chat-composer" onSubmit={handleSubmit}>
+        <textarea
+          disabled={loading}
+          maxLength={1200}
+          onChange={(event) => setQuestion(event.target.value)}
+          placeholder="Nhập câu hỏi của bạn về nghề này..."
+          rows={3}
+          value={question}
+        />
+        <button disabled={loading || !question.trim()} type="submit">
+          Gửi câu hỏi
+        </button>
+      </form>
+    </section>
+  );
+}
+
 function CareerDetail() {
   const { id } = useParams();
   const token = localStorage.getItem("token");
@@ -285,7 +464,7 @@ function CareerDetail() {
 
   return (
     <div className="card detail-card">
-      <Link to="/career-recommendations">← Quay lại danh sách gợi ý</Link>
+      <Link to="/discovery/recommendations">← Quay lại danh sách gợi ý</Link>
 
       <h1>{title}</h1>
 
@@ -305,6 +484,20 @@ function CareerDetail() {
 
       {token && <CareerFitSection careerId={id} title={title} />}
       {token && <CareerDayInLifeSection careerId={id} title={title} />}
+      {token && (
+        <section className="career-explore-chat-cta">
+          <div>
+            <h3>Bạn vẫn còn câu hỏi về nghề này?</h3>
+            <p>
+              Trao đổi thêm với AI cố vấn về công việc, kỹ năng và thị trường
+              Việt Nam.
+            </p>
+          </div>
+          <Link className="career-explore-chat-link" to={`/careers/${id}/explore-chat`}>
+            Tìm hiểu thêm với Career Explore Chat
+          </Link>
+        </section>
+      )}
 
       {elements.length > 0 && (
         <section>

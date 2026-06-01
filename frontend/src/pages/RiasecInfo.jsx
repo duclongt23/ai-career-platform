@@ -47,7 +47,7 @@ function RiasecInfo() {
             nhất, ví dụ như SAE, RIS hoặc AEC.
           </p>
         </div>
-        <Link className="riasec-primary-link" to="/riasec-test">
+        <Link className="riasec-primary-link" to="/discovery/riasec">
           Làm bài test
         </Link>
       </section>

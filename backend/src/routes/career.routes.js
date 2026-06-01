@@ -31,6 +31,9 @@ const {
   calculateProfileElementScores,
   ELEMENT_SCORE_ALGORITHM_VERSION,
 } = require("../services/profileElementScore.service");
+const {
+  exploreCareerChat,
+} = require("../controllers/careerExploreChat.controller");
 const { protect, adminOnly } = require("../middleware/auth.middleware");
 
 const router = express.Router();
@@ -404,6 +407,8 @@ router.post("/:id/day-in-life", protect, async (req, res) => {
     });
   }
 });
+
+router.post("/:id/explore-chat", protect, exploreCareerChat);
 
 router.get("/", async (req, res) => {
   try {
