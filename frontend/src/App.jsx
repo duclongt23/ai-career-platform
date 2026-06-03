@@ -12,6 +12,7 @@ import CoreQuizPage from "./pages/CoreQuizPage";
 import AiDiscoveryPage from "./pages/AiDiscoveryPage";
 import CareerRecommendations from "./pages/CareerRecommendations";
 import CareerExploreChat from "./pages/CareerExploreChat";
+import DiscoverySummaryDashboard from "./pages/DiscoverySummaryDashboard";
 import DiscoveryWorkflowLayout from "./components/DiscoveryWorkflowLayout";
 
 function App() {
@@ -68,6 +69,7 @@ function App() {
             <Route path="riasec" element={<RiasecTest />} />
             <Route path="core-quiz" element={<CoreQuizPage />} />
             <Route path="ai-discovery" element={<AiDiscoveryPage />} />
+            <Route path="dashboard" element={<DiscoverySummaryDashboard />} />
             <Route path="recommendations" element={<CareerRecommendations />} />
           </Route>
           <Route path="/careers/:id" element={<CareerDetail />} />

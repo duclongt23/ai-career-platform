@@ -1,6 +1,16 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useParams, Link } from "react-router-dom";
+import {
+  Background,
+  Controls,
+  Handle,
+  MarkerType,
+  Position,
+  ReactFlow,
+} from "@xyflow/react";
+import "@xyflow/react/dist/style.css";
 import api from "../api/axios";
+import JobMatchCompareChart from "../components/analytics/JobMatchCompareChart";
 
 const DEFAULT_VISIBLE_ELEMENT_COUNT = 10;
 const ELEMENT_GROUPS = [
@@ -10,6 +20,67 @@ const ELEMENT_GROUPS = [
   { type: "ability", label: "Năng lực" },
   { type: "workstyle", label: "Phong cách làm việc" },
 ];
+const CAREER_DAY_NODE_TYPES = {
+  careerDayActivity: CareerDayActivityNode,
+};
+const CAREER_EXPLORE_CHAT_STORAGE_PREFIX = "careerExploreChat:v1:";
+
+function getCareerExploreChatStorageKey(careerId) {
+  return `${CAREER_EXPLORE_CHAT_STORAGE_PREFIX}${careerId}`;
+}
+
+function readCareerExploreChatSession(storageKey) {
+  try {
+    const parsedSession = JSON.parse(localStorage.getItem(storageKey) || "{}");
+
+    return {
+      messages: Array.isArray(parsedSession.messages)
+        ? parsedSession.messages
+        : [],
+      suggestedQuestions: Array.isArray(parsedSession.suggestedQuestions)
+        ? parsedSession.suggestedQuestions
+        : [],
+    };
+  } catch {
+    return {
+      messages: [],
+      suggestedQuestions: [],
+    };
+  }
+}
+
+function writeCareerExploreChatSession(
+  storageKey,
+  { messages, suggestedQuestions }
+) {
+  try {
+    localStorage.setItem(
+      storageKey,
+      JSON.stringify({
+        messages: messages.slice(-80),
+        suggestedQuestions,
+        updatedAt: new Date().toISOString(),
+      })
+    );
+  } catch {
+    // Ignore storage quota/private mode failures; chat can continue in memory.
+  }
+}
+
+function CareerDayActivityNode({ data }) {
+  return (
+    <article className="career-day-node">
+      <Handle className="career-day-handle" type="target" position={Position.Top} />
+      <span>{String(data.step).padStart(2, "0")}</span>
+      <p>{data.activity}</p>
+      <Handle
+        className="career-day-handle"
+        type="source"
+        position={Position.Bottom}
+      />
+    </article>
+  );
+}
 
 function formatElementCode(code) {
   return String(code || "")
@@ -149,6 +220,39 @@ function CareerDayInLifeSection({ careerId, title }) {
   const [dayInLife, setDayInLife] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const dayInLifeDiagram = useMemo(() => {
+    const activities = dayInLife?.activities || [];
+
+    return {
+      nodes: activities.map((activity, index) => ({
+        id: `activity-${index}`,
+        type: "careerDayActivity",
+        position: {
+          x: index % 2 === 0 ? 36 : 440,
+          y: index * 132,
+        },
+        data: {
+          activity,
+          step: index + 1,
+        },
+      })),
+      edges: activities.slice(0, -1).map((_, index) => ({
+        id: `activity-edge-${index}`,
+        source: `activity-${index}`,
+        target: `activity-${index + 1}`,
+        type: "smoothstep",
+        animated: true,
+        markerEnd: {
+          type: MarkerType.ArrowClosed,
+          color: "#0f766e",
+        },
+        style: {
+          stroke: "#0f766e",
+          strokeWidth: 2.5,
+        },
+      })),
+    };
+  }, [dayInLife]);
 
   useEffect(() => {
     let ignore = false;
@@ -229,11 +333,25 @@ function CareerDayInLifeSection({ careerId, title }) {
             ✦ {loading ? "Đang tạo..." : "Tạo lại"}
           </button>
 
-          <ol className="career-day-activities">
-            {dayInLife.activities.map((activity, index) => (
-              <li key={`${index}-${activity}`}>{activity}</li>
-            ))}
-          </ol>
+          <div className="career-day-diagram">
+            <ReactFlow
+              nodes={dayInLifeDiagram.nodes}
+              edges={dayInLifeDiagram.edges}
+              nodeTypes={CAREER_DAY_NODE_TYPES}
+              fitView
+              fitViewOptions={{ padding: 0.12 }}
+              minZoom={0.55}
+              maxZoom={1.35}
+              nodesDraggable={false}
+              nodesConnectable={false}
+              elementsSelectable={false}
+              panOnScroll
+              preventScrolling={false}
+            >
+              <Background color="#cbd5e1" gap={22} size={1} />
+              <Controls showInteractive={false} />
+            </ReactFlow>
+          </div>
         </>
       )}
     </section>
@@ -241,11 +359,20 @@ function CareerDayInLifeSection({ careerId, title }) {
 }
 
 export function CareerExploreChatSection({ careerId, title }) {
-  const [messages, setMessages] = useState([]);
-  const [suggestedQuestions, setSuggestedQuestions] = useState([]);
+  const storageKey = useMemo(
+    () => getCareerExploreChatStorageKey(careerId),
+    [careerId]
+  );
+  const [messages, setMessages] = useState(() =>
+    readCareerExploreChatSession(storageKey).messages
+  );
+  const [suggestedQuestions, setSuggestedQuestions] = useState(
+    () => readCareerExploreChatSession(storageKey).suggestedQuestions
+  );
   const [question, setQuestion] = useState("");
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(() => messages.length === 0);
   const [error, setError] = useState("");
+  const [conversationVersion, setConversationVersion] = useState(0);
   const messagesEndRef = useRef(null);
 
   const addAssistantResponse = useCallback((response) => {
@@ -263,6 +390,19 @@ export function CareerExploreChatSection({ careerId, title }) {
 
   useEffect(() => {
     let ignore = false;
+    const savedSession = readCareerExploreChatSession(storageKey);
+
+    if (savedSession.messages.length > 0) {
+      setMessages(savedSession.messages);
+      setSuggestedQuestions(savedSession.suggestedQuestions);
+      setQuestion("");
+      setError("");
+      setLoading(false);
+
+      return () => {
+        ignore = true;
+      };
+    }
 
     api
       .post(`/careers/${careerId}/explore-chat`, { messages: [] })
@@ -288,7 +428,18 @@ export function CareerExploreChatSection({ careerId, title }) {
     return () => {
       ignore = true;
     };
-  }, [addAssistantResponse, careerId]);
+  }, [addAssistantResponse, careerId, conversationVersion, storageKey]);
+
+  useEffect(() => {
+    if (messages.length === 0 && suggestedQuestions.length === 0) {
+      return;
+    }
+
+    writeCareerExploreChatSession(storageKey, {
+      messages,
+      suggestedQuestions,
+    });
+  }, [messages, storageKey, suggestedQuestions]);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -338,6 +489,16 @@ export function CareerExploreChatSection({ careerId, title }) {
     sendQuestion(question);
   };
 
+  const handleNewConversation = () => {
+    localStorage.removeItem(storageKey);
+    setMessages([]);
+    setSuggestedQuestions([]);
+    setQuestion("");
+    setError("");
+    setLoading(true);
+    setConversationVersion((currentVersion) => currentVersion + 1);
+  };
+
   return (
     <section className="career-explore-chat">
       <div className="career-explore-chat-heading">
@@ -346,7 +507,16 @@ export function CareerExploreChatSection({ careerId, title }) {
           <h3>Hỏi thêm về nghề {title}</h3>
           <p>Trao đổi sâu hơn về công việc, kỹ năng và thị trường Việt Nam.</p>
         </div>
-        <span className="career-explore-chat-status">AI cố vấn</span>
+        <div className="career-explore-chat-actions">
+          <span className="career-explore-chat-status">AI cố vấn</span>
+          <button
+            disabled={loading && messages.length === 0}
+            onClick={handleNewConversation}
+            type="button"
+          >
+            Tạo trò chuyện mới
+          </button>
+        </div>
       </div>
 
       <div className="career-explore-chat-messages">
@@ -423,6 +593,7 @@ function CareerDetail() {
   const { id } = useParams();
   const token = localStorage.getItem("token");
   const [career, setCareer] = useState(null);
+  const [profileElementScores, setProfileElementScores] = useState([]);
   const [loading, setLoading] = useState(true);
   const [expandedGroups, setExpandedGroups] = useState({});
 
@@ -436,6 +607,29 @@ function CareerDetail() {
       })
       .finally(() => setLoading(false));
   }, [id]);
+
+  useEffect(() => {
+    if (!token) return undefined;
+
+    let ignore = false;
+
+    api
+      .get("/profile")
+      .then((response) => {
+        if (!ignore) {
+          setProfileElementScores(response.data?.elementScores || []);
+        }
+      })
+      .catch(() => {
+        if (!ignore) {
+          setProfileElementScores([]);
+        }
+      });
+
+    return () => {
+      ignore = true;
+    };
+  }, [token]);
 
   if (loading) {
     return <p>Đang tải chi tiết...</p>;
@@ -483,6 +677,12 @@ function CareerDetail() {
       )}
 
       {token && <CareerFitSection careerId={id} title={title} />}
+      {token && elements.length > 0 && (
+        <JobMatchCompareChart
+          careerElements={elements}
+          profileElementScores={profileElementScores}
+        />
+      )}
       {token && <CareerDayInLifeSection careerId={id} title={title} />}
       {token && (
         <section className="career-explore-chat-cta">

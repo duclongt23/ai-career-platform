@@ -155,6 +155,13 @@ Sau khi hồ sơ có đủ bằng chứng, hệ thống:
 - Hiển thị phần trăm phù hợp, số yếu tố trùng khớp và các yếu tố nổi bật.
 - Cache kết quả để tránh tính lại khi hồ sơ và dữ liệu nghề không thay đổi.
 
+Bo sung truc quan hoa Match Analytics:
+
+- Dashboard tong ket truoc khi xem nghe gom radar RIASEC va Top 10 element co `finalScore` cao nhat.
+- Trang danh sach goi y co donut chart thong ke 15 nghe theo `careerCluster`, giup hoc sinh nhin ra xu huong nhom nganh phu hop.
+- Trang chi tiet nghe co grouped bar chart so sanh vector ho so hoc sinh (`StudentProfile.elementScores.finalScore`) voi yeu cau nghe (`Career.elements.importance`).
+- Cot doi gom "Muc do ban co" va "Muc do nghe can", giup giai thich ro vi sao thuat toan xep hang nghe do va dau la khoang cach can cai thien.
+
 ### 3.8. Giải thích nghề nghiệp bằng AI
 
 Trong trang chi tiết nghề, hệ thống dùng AI để:
@@ -257,6 +264,16 @@ ai-career-platform/
 ├── data/                   # Dữ liệu nguồn nghề nghiệp và file xử lý
 ├── QAprofiling.json        # Ngân hàng Core Quiz gốc
 └── BAO_CAO_DU_AN.md
+```
+
+Bo sung cau truc chart frontend:
+
+```text
+frontend/src/components/analytics/
+├── ProfileRadarChart.jsx     # Bieu do mang nhen RIASEC
+├── TopElementsBarChart.jsx   # Top nang luc cot loi cua hoc sinh
+├── JobMatchCompareChart.jsx  # Bieu do cot doi so khop Ho so vs Nghe
+└── IndustryDonutChart.jsx    # Phan bo 15 nghe theo nhom nganh
 ```
 
 ---

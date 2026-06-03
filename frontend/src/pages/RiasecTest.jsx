@@ -159,6 +159,141 @@ const buildSavedResults = (riasecScores = {}, riasecCode = "", questions = []) =
   });
 };
 
+const toRadians = (degrees) => (Math.PI / 180) * degrees;
+
+const getRadarPoint = (index, total, radius, center) => {
+  const angle = toRadians(-90 + (360 / total) * index);
+
+  return {
+    x: center + Math.cos(angle) * radius,
+    y: center + Math.sin(angle) * radius,
+  };
+};
+
+const getInterestProfileSummary = (topResults) => {
+  if (topResults.length < 2) return "Chưa đủ dữ liệu để đọc xu hướng nổi bật.";
+
+  return `${topResults[0].viName.replace("Nhóm người ", "")} - ${topResults[1].viName.replace("Nhóm người ", "")}`;
+};
+
+function RiasecRadarChart({ results, topResults }) {
+  const center = 150;
+  const radius = 92;
+  const levels = [0.25, 0.5, 0.75, 1];
+  const chartResults = RIASEC_TYPES.map((type) => {
+    const result = results.find((item) => item.type === type);
+    return result || { type, percent: 0, ...TYPE_INFO[type] };
+  });
+  const topCodes = new Set(topResults.map((item) => item.code));
+  const polygonPoints = chartResults
+    .map((item, index) => {
+      const point = getRadarPoint(
+        index,
+        chartResults.length,
+        radius * Math.max(0, Math.min(item.percent, 100)) * 0.01,
+        center
+      );
+
+      return `${point.x},${point.y}`;
+    })
+    .join(" ");
+  const profileSummary = getInterestProfileSummary(topResults);
+
+  return (
+    <div className="riasec-radar-panel">
+      <div className="riasec-radar-copy">
+        <p className="riasec-eyebrow">Mạng nhện sở thích</p>
+        <h3>Hình khối RIASEC đang nghiêng về {profileSummary}</h3>
+        <p>
+          Radar hiển thị đủ 6 nhóm R-I-A-S-E-C. Các đỉnh vươn xa hơn cho thấy
+          nhóm sở thích nổi bật hơn so với phần còn lại.
+        </p>
+      </div>
+
+      <div className="riasec-radar-visual" aria-label="Biểu đồ mạng nhện RIASEC">
+        <svg viewBox="0 0 300 300" role="img">
+          <title>Biểu đồ radar điểm RIASEC</title>
+          <desc>Hiển thị phần trăm điểm của sáu nhóm Realistic, Investigative, Artistic, Social, Enterprising và Conventional.</desc>
+          {levels.map((level) => (
+            <polygon
+              key={level}
+              className="riasec-radar-grid"
+              points={chartResults
+                .map((_, index) => {
+                  const point = getRadarPoint(
+                    index,
+                    chartResults.length,
+                    radius * level,
+                    center
+                  );
+                  return `${point.x},${point.y}`;
+                })
+                .join(" ")}
+            />
+          ))}
+
+          {chartResults.map((_, index) => {
+            const point = getRadarPoint(index, chartResults.length, radius, center);
+            return (
+              <line
+                key={index}
+                className="riasec-radar-axis"
+                x1={center}
+                y1={center}
+                x2={point.x}
+                y2={point.y}
+              />
+            );
+          })}
+
+          <polygon className="riasec-radar-area" points={polygonPoints} />
+          <polyline className="riasec-radar-line" points={`${polygonPoints} ${polygonPoints.split(" ")[0]}`} />
+
+          {chartResults.map((item, index) => {
+            const valuePoint = getRadarPoint(
+              index,
+              chartResults.length,
+              radius * Math.max(0, Math.min(item.percent, 100)) * 0.01,
+              center
+            );
+            const labelPoint = getRadarPoint(index, chartResults.length, radius + 30, center);
+            const isTop = topCodes.has(item.code);
+
+            return (
+              <g key={item.type}>
+                <circle
+                  className={isTop ? "riasec-radar-dot top" : "riasec-radar-dot"}
+                  cx={valuePoint.x}
+                  cy={valuePoint.y}
+                  r={isTop ? 5 : 4}
+                />
+                <text
+                  className={isTop ? "riasec-radar-label top" : "riasec-radar-label"}
+                  x={labelPoint.x}
+                  y={labelPoint.y}
+                  textAnchor="middle"
+                  dominantBaseline="middle"
+                >
+                  {item.code}
+                </text>
+                <text
+                  className="riasec-radar-value"
+                  x={labelPoint.x}
+                  y={labelPoint.y + 15}
+                  textAnchor="middle"
+                  dominantBaseline="middle"
+                >
+                  {item.percent}%
+                </text>
+              </g>
+            );
+          })}
+        </svg>
+      </div>
+    </div>
+  );
+}
+
 function RiasecTest() {
   const navigate = useNavigate();
   const token = localStorage.getItem("token");
@@ -511,6 +646,11 @@ function RiasecTest() {
               Làm lại bài test
             </button>
           </div>
+
+          <RiasecRadarChart
+            results={displayedResults}
+            topResults={topResults}
+          />
 
           <div className="riasec-bars">
             {displayedResults.map((item) => (

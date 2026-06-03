@@ -23,6 +23,11 @@ router.post("/ai-discovery/start", protect, aiDiscoveryController.startSession);
 router.post("/ai-discovery/message", protect, aiDiscoveryController.sendMessage);
 router.post("/ai-discovery/reset", protect, aiDiscoveryController.resetSession);
 router.post(
+  "/ai-discovery/more-candidates",
+  protect,
+  aiDiscoveryController.findMoreCandidates
+);
+router.post(
   "/ai-discovery/confirm",
   protect,
   aiDiscoveryController.confirmCandidates

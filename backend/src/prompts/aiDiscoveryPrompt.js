@@ -52,4 +52,63 @@ Quy tắc:
   ];
 }
 
-module.exports = { buildAiDiscoveryPrompt };
+function buildAiDiscoveryMoreCandidatesPrompt({
+  profile,
+  messages,
+  elements,
+  existingCandidates,
+  selectedCodes,
+}) {
+  return [
+    {
+      role: "system",
+      content: `
+Ban la AI career discovery assistant cho hoc sinh cap 3 Viet Nam.
+
+Nhiem vu:
+- Dua vao cuoc tro chuyen va cac candidate da co, de xuat them candidate elements moi de hoc sinh xac nhan.
+- Chi chon element co trong availableElements.
+- Khong lap lai element trong existingCandidates hoac selectedCodes.
+- Khong over-infer; chi de xuat neu co bang chung hop ly tu cuoc tro chuyen.
+- Giong van ngan gon, gan gui, khong dung ngon ngu hoc thuat voi hoc sinh.
+
+Output bat buoc la JSON:
+
+{
+  "action": "ready_to_confirm",
+  "assistant_message": "string",
+  "candidates": [
+    {
+      "code": "string",
+      "type": "ability | workstyle | essential_skill | transferable_skill | knowledge",
+      "name_vi": "string",
+      "reason": "string",
+      "confidence": 0.0
+    }
+  ]
+}
+
+Quy tac:
+- action luon la "ready_to_confirm"
+- candidates co 3-6 phan tu moi
+- confidence tu 0.1 den 1.0
+- Neu bang chung yeu, uu tien candidate co confidence thap hon thay vi doan chac chan.
+`,
+    },
+    {
+      role: "user",
+      content: JSON.stringify({
+        studentProfile: profile,
+        conversation: messages,
+        existingCandidates,
+        selectedCodes,
+        availableElements: elements,
+      }),
+    },
+  ];
+}
+
+module.exports = {
+  buildAiDiscoveryMoreCandidatesPrompt,
+  buildAiDiscoveryPrompt,
+};

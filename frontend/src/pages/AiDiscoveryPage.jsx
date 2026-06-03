@@ -46,6 +46,7 @@ function AiDiscoveryPage() {
   const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(true);
   const [isConfirming, setIsConfirming] = useState(false);
+  const [isFindingMore, setIsFindingMore] = useState(false);
   const [isResetting, setIsResetting] = useState(false);
   const [isSending, setIsSending] = useState(false);
 
@@ -193,7 +194,13 @@ function AiDiscoveryPage() {
       "Bắt đầu lại sẽ tạo cuộc trò chuyện mới. Bạn có muốn tiếp tục không?"
     );
 
-    if (!shouldReset || isSending || isResetting || isConfirming) {
+    if (
+      !shouldReset ||
+      isSending ||
+      isResetting ||
+      isConfirming ||
+      isFindingMore
+    ) {
       return;
     }
 
@@ -243,13 +250,55 @@ function AiDiscoveryPage() {
     }));
   };
 
+  const findMoreCandidates = async () => {
+    if (status !== "ready_to_confirm" || isFindingMore || isConfirming) {
+      return;
+    }
+
+    setIsFindingMore(true);
+    setError("");
+
+    try {
+      const res = await api.post("/profile/ai-discovery/more-candidates", {
+        sessionId,
+        selectedCodes: Object.keys(selectedCandidates),
+      });
+
+      setSessionId(res.data.sessionId);
+      setStatus(res.data.status || "ready_to_confirm");
+      setCandidates(res.data.candidates || []);
+
+      if (res.data.assistantMessage) {
+        setMessages((currentMessages) =>
+          keepLatestMessages([
+            ...currentMessages,
+            {
+              role: "assistant",
+              content: res.data.assistantMessage,
+              createdAt: new Date().toISOString(),
+            },
+          ])
+        );
+      }
+    } catch (err) {
+      setError(
+        getApiErrorMessage(
+          err,
+          "Chưa thể tìm thêm yếu tố mới. Vui lòng thử lại sau."
+        )
+      );
+    } finally {
+      setIsFindingMore(false);
+    }
+  };
+
   const confirmCandidates = async () => {
     const elements = Object.entries(selectedCandidates).map(([code, level]) => ({
       code,
       level,
     }));
 
-    if (elements.length === 0 || isConfirming) {
+    if (elements.length === 0 || isConfirming || isFindingMore) {
       return;
     }
 
@@ -330,7 +379,7 @@ function AiDiscoveryPage() {
               className="ai-discovery-reset-button"
               type="button"
               onClick={resetSession}
-              disabled={isSending || isResetting || isConfirming}
+              disabled={isSending || isResetting || isConfirming || isFindingMore}
             >
               {isResetting ? "Đang bắt đầu lại..." : "Bắt đầu lại"}
             </button>
@@ -460,21 +509,37 @@ function AiDiscoveryPage() {
                 <strong>Đã lưu vào hồ sơ</strong>
                 <Link
                   className="workflow-next-action"
-                  to="/discovery/recommendations"
+                  to="/discovery/dashboard"
                 >
                   Xem gợi ý nghề nghiệp
                 </Link>
               </div>
             ) : (
-              <button
-                type="button"
-                onClick={confirmCandidates}
-                disabled={
-                  Object.keys(selectedCandidates).length === 0 || isConfirming
-                }
-              >
-                {isConfirming ? "Đang lưu..." : "Xác nhận lựa chọn"}
-              </button>
+              <div className="ai-discovery-confirm-actions">
+                <button
+                  className="secondary"
+                  type="button"
+                  onClick={findMoreCandidates}
+                  disabled={
+                    status !== "ready_to_confirm" ||
+                    isFindingMore ||
+                    isConfirming
+                  }
+                >
+                  {isFindingMore ? "Đang tìm thêm..." : "Tìm thêm yếu tố"}
+                </button>
+                <button
+                  type="button"
+                  onClick={confirmCandidates}
+                  disabled={
+                    Object.keys(selectedCandidates).length === 0 ||
+                    isConfirming ||
+                    isFindingMore
+                  }
+                >
+                  {isConfirming ? "Đang lưu..." : "Xác nhận lựa chọn"}
+                </button>
+              </div>
             )}
           </div>
         </section>

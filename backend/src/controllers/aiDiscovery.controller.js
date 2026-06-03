@@ -1,7 +1,10 @@
 const mongoose = require("mongoose");
 const AiDiscoverySession = require("../models/AiDiscovery");
 const StudentProfile = require("../models/StudentProfile");
-const { buildAiDiscoveryPrompt } = require("../prompts/aiDiscoveryPrompt");
+const {
+  buildAiDiscoveryMoreCandidatesPrompt,
+  buildAiDiscoveryPrompt,
+} = require("../prompts/aiDiscoveryPrompt");
 const {
   buildAiDiscoveryOpeningMessage,
 } = require("../services/aiDiscoveryOpeningService");
@@ -294,6 +297,48 @@ function getPromptElements(elements) {
   }));
 }
 
+function getCandidatePromptSummary(candidates = []) {
+  return candidates.map((candidate) => ({
+    code: candidate.code,
+    type: candidate.type,
+    name_vi: candidate.name_vi,
+    reason: candidate.reason,
+    confidence: candidate.confidence,
+  }));
+}
+
+function getNormalizedCodeSet(codes = []) {
+  return new Set(
+    (Array.isArray(codes) ? codes : [])
+      .map((code) =>
+        String(typeof code === "object" ? code?.code : code || "")
+          .trim()
+          .toLowerCase()
+      )
+      .filter(Boolean)
+  );
+}
+
+function mergeCandidates(existingCandidates = [], newCandidates = []) {
+  const seenCodes = new Set();
+  const merged = [];
+
+  [...existingCandidates, ...newCandidates].forEach((candidate) => {
+    const code = String(candidate?.code || "")
+      .trim()
+      .toLowerCase();
+
+    if (!code || seenCodes.has(code)) {
+      return;
+    }
+
+    seenCodes.add(code);
+    merged.push(candidate);
+  });
+
+  return merged;
+}
+
 async function sendMessage(req, res) {
   try {
     const message = normalizeMessage(req.body?.message);
@@ -483,6 +528,92 @@ async function resetSession(req, res) {
       message: error.statusCode
         ? error.message
         : "Failed to reset AI discovery session",
+      error: error.message,
+    });
+  }
+}
+
+async function findMoreCandidates(req, res) {
+  try {
+    const { sessionId } = req.body || {};
+
+    if (!mongoose.isValidObjectId(sessionId)) {
+      throw createHttpError(400, "Invalid sessionId");
+    }
+
+    const profile = await getProfileWithRiasec(req.user._id);
+    const session = await AiDiscoverySession.findOne({
+      _id: sessionId,
+      userId: req.user._id,
+    });
+
+    if (!session) {
+      throw createHttpError(404, "AI discovery session not found");
+    }
+
+    if (session.status !== "ready_to_confirm") {
+      throw createHttpError(409, "AI discovery session is not ready to expand");
+    }
+
+    const existingCodes = getNormalizedCodeSet(session.extractedCandidates);
+    const selectedCodes = getNormalizedCodeSet(req.body?.selectedCodes);
+    const elements = (await getElementsForAiDiscovery(profile)).filter(
+      (element) => !existingCodes.has(String(element.code).toLowerCase())
+    );
+
+    if (elements.length < 3) {
+      throw createHttpError(422, "Not enough new elements to suggest");
+    }
+
+    const prompt = buildAiDiscoveryMoreCandidatesPrompt({
+      profile: {
+        grade: profile.grade,
+        favoriteSubjects: profile.favoriteSubjects,
+        strongSubjects: profile.strongSubjects,
+        goal: profile.goal,
+        riasecCode: profile.riasecCode,
+        riasecScores: profile.riasecScores,
+      },
+      messages: session.messages.slice(-MAX_CONTEXT_MESSAGES),
+      existingCandidates: getCandidatePromptSummary(session.extractedCandidates),
+      selectedCodes: [...selectedCodes],
+      elements: getPromptElements(elements),
+    });
+    const aiResponse = await getParsedAiResponse(prompt, elements);
+
+    if (aiResponse.action !== "ready_to_confirm") {
+      throw new Error("DeepSeek did not return additional candidates");
+    }
+
+    const mergedCandidates = mergeCandidates(
+      session.extractedCandidates,
+      aiResponse.candidates
+    );
+
+    session.messages.push({
+      role: "assistant",
+      content: aiResponse.assistantMessage,
+    });
+    trimStoredMessages(session);
+    session.status = "ready_to_confirm";
+    session.extractedCandidates = mergedCandidates;
+    await session.save();
+
+    return res.json({
+      message: "Additional AI discovery candidates generated successfully",
+      sessionId: session._id,
+      status: session.status,
+      action: "ready_to_confirm",
+      assistantMessage: aiResponse.assistantMessage,
+      candidates: session.extractedCandidates,
+      addedCandidates: aiResponse.candidates,
+      followUpCount: session.followUpCount,
+    });
+  } catch (error) {
+    return res.status(error.statusCode || 500).json({
+      message: error.statusCode
+        ? error.message
+        : "Failed to find more AI discovery candidates",
       error: error.message,
     });
   }
@@ -724,6 +855,7 @@ async function confirmCandidates(req, res) {
 
 module.exports = {
   confirmCandidates,
+  findMoreCandidates,
   parseAiResponse,
   resetSession,
   sendMessage,

@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import api from "../api/axios";
+import IndustryDonutChart from "../components/analytics/IndustryDonutChart";
 
 function formatElementCode(code) {
   return String(code || "")
@@ -114,6 +115,8 @@ function CareerRecommendations() {
 
       {recommendations.length > 0 && (
         <>
+          <IndustryDonutChart recommendations={recommendations} />
+
           <div className="recommendation-summary">
             <strong>{recommendations.length} nghề được đề xuất</strong>
           </div>

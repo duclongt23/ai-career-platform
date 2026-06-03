@@ -27,8 +27,15 @@ const STEPS = [
     to: "/discovery/ai-discovery",
   },
   {
-    key: "recommendations",
+    key: "dashboard",
     number: "04",
+    label: "Tong ket",
+    description: "Ho so ban than",
+    to: "/discovery/dashboard",
+  },
+  {
+    key: "recommendations",
+    number: "05",
     label: "Gợi ý nghề",
     description: "Khám phá hướng đi",
     to: "/discovery/recommendations",
@@ -39,6 +46,7 @@ const EMPTY_PROGRESS = {
   riasec: false,
   coreQuiz: false,
   aiDiscovery: false,
+  dashboard: false,
   recommendations: false,
 };
 
@@ -51,6 +59,7 @@ function getProgress(profile, recommendationsViewed = false) {
     riasec: Boolean(profile?.riasecCompletedAt || profile?.riasecCode),
     coreQuiz: Boolean(profile?.coreQuizCompletedAt),
     aiDiscovery: Boolean(profile?.aiDiscoveries?.length),
+    dashboard: Boolean(hasElementScores && profile?.riasecCode),
     recommendations: Boolean(hasElementScores && recommendationsViewed),
   };
 }
@@ -134,7 +143,7 @@ function DiscoveryWorkflowLayout() {
           <p>Hành trình khám phá nghề nghiệp</p>
           <h1>Từng bước hiểu bản thân, chọn hướng đi phù hợp</h1>
         </div>
-        <span>{completedCount}/4 bước đã hoàn thành</span>
+        <span>{completedCount}/{STEPS.length} bước đã hoàn thành</span>
       </header>
 
       <nav className="discovery-stepper" aria-label="Các bước khám phá nghề nghiệp">
