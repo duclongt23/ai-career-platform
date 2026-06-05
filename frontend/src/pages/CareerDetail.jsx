@@ -393,11 +393,15 @@ export function CareerExploreChatSection({ careerId, title }) {
     const savedSession = readCareerExploreChatSession(storageKey);
 
     if (savedSession.messages.length > 0) {
-      setMessages(savedSession.messages);
-      setSuggestedQuestions(savedSession.suggestedQuestions);
-      setQuestion("");
-      setError("");
-      setLoading(false);
+      queueMicrotask(() => {
+        if (!ignore) {
+          setMessages(savedSession.messages);
+          setSuggestedQuestions(savedSession.suggestedQuestions);
+          setQuestion("");
+          setError("");
+          setLoading(false);
+        }
+      });
 
       return () => {
         ignore = true;
