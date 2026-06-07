@@ -200,6 +200,77 @@ const careerDayInLifeSchema = new mongoose.Schema(
   { _id: false }
 );
 
+const careerExploreChatSourceSchema = new mongoose.Schema(
+  {
+    title: {
+      type: String,
+      required: true,
+      trim: true,
+      maxlength: 300,
+    },
+    url: {
+      type: String,
+      required: true,
+      trim: true,
+      maxlength: 1000,
+    },
+  },
+  { _id: false }
+);
+
+const careerExploreChatMessageSchema = new mongoose.Schema(
+  {
+    role: {
+      type: String,
+      enum: ["assistant", "user"],
+      required: true,
+    },
+    content: {
+      type: String,
+      required: true,
+      trim: true,
+      maxlength: 2000,
+    },
+    sources: {
+      type: [careerExploreChatSourceSchema],
+      default: [],
+    },
+    webSearchStatus: {
+      type: String,
+      default: "",
+      trim: true,
+    },
+    createdAt: {
+      type: Date,
+      default: Date.now,
+    },
+  },
+  { _id: false }
+);
+
+const careerExploreChatSessionSchema = new mongoose.Schema(
+  {
+    careerId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Career",
+      required: true,
+    },
+    messages: {
+      type: [careerExploreChatMessageSchema],
+      default: [],
+    },
+    suggestedQuestions: {
+      type: [String],
+      default: [],
+    },
+    updatedAt: {
+      type: Date,
+      default: Date.now,
+    },
+  },
+  { _id: false }
+);
+
 const studentProfileSchema = new mongoose.Schema(
   {
     userId: {
@@ -299,6 +370,11 @@ const studentProfileSchema = new mongoose.Schema(
 
     careerDayInLifeEntries: {
       type: [careerDayInLifeSchema],
+      default: [],
+    },
+
+    careerExploreChatSessions: {
+      type: [careerExploreChatSessionSchema],
       default: [],
     },
   },

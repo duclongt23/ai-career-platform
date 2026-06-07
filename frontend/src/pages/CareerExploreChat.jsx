@@ -31,6 +31,9 @@ function CareerExploreChat() {
       <Link className="career-explore-chat-back" to={`/careers/${id}`}>
         ← Quay lại chi tiết nghề
       </Link>
+      <Link className="career-explore-chat-back" to={`/career-explore-chats/${id}`}>
+        Xem trong danh sách hội thoại
+      </Link>
       <CareerExploreChatSection careerId={id} key={id} title={title} />
     </div>
   );

@@ -12,8 +12,10 @@ import CoreQuizPage from "./pages/CoreQuizPage";
 import AiDiscoveryPage from "./pages/AiDiscoveryPage";
 import CareerRecommendations from "./pages/CareerRecommendations";
 import CareerExploreChat from "./pages/CareerExploreChat";
+import CareerExploreChats from "./pages/CareerExploreChats";
 import DiscoverySummaryDashboard from "./pages/DiscoverySummaryDashboard";
 import DiscoveryWorkflowLayout from "./components/DiscoveryWorkflowLayout";
+import api from "./api/axios";
 
 function App() {
   const navigate = useNavigate();
@@ -21,8 +23,19 @@ function App() {
   const user = JSON.parse(localStorage.getItem("user"));
   const isAdmin = user?.role === "admin";
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
+    const refreshToken = localStorage.getItem("refreshToken");
+
+    if (refreshToken) {
+      try {
+        await api.post("/auth/logout", { refreshToken });
+      } catch {
+        // Local logout should still complete if the refresh token is already invalid.
+      }
+    }
+
     localStorage.removeItem("token");
+    localStorage.removeItem("refreshToken");
     localStorage.removeItem("user");
     navigate("/login");
   };
@@ -35,6 +48,7 @@ function App() {
         <div className="nav-links">
           <Link to="/careers">Ngành nghề</Link>
           {token && <Link to="/discovery">Hành trình khám phá</Link>}
+          {token && <Link to="/career-explore-chats">Hội thoại nghề</Link>}
 
           {token ? (
             <>
@@ -74,6 +88,8 @@ function App() {
           </Route>
           <Route path="/careers/:id" element={<CareerDetail />} />
           <Route path="/careers/:id/explore-chat" element={<CareerExploreChat />} />
+          <Route path="/career-explore-chats" element={<CareerExploreChats />} />
+          <Route path="/career-explore-chats/:id" element={<CareerExploreChats />} />
           <Route path="/admin/careers" element={<AdminCareers />} />
           <Route path="/admin/core-quiz" element={<AdminCoreQuiz />} />
         </Routes>

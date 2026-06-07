@@ -49,6 +49,7 @@ function Register() {
       const res = await api.post("/auth/register", form);
 
       localStorage.setItem("token", res.data.token);
+      localStorage.setItem("refreshToken", res.data.refreshToken);
       localStorage.setItem("user", JSON.stringify(res.data.user));
 
       navigate("/profile");

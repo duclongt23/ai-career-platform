@@ -19,6 +19,8 @@ const {
 } = require("../services/webSearch.service");
 
 const MAX_PROFILE_ELEMENTS = 8;
+const MAX_STORED_CHAT_MESSAGES = 80;
+const MAX_STORED_CHAT_SESSIONS = 20;
 const JSON_RETRY_MESSAGE = `Phản hồi trước không phải JSON hợp lệ.
 Hãy trả lại đúng một JSON object theo schema đã yêu cầu.
 Không dùng markdown code fence, không thêm giải thích trước hoặc sau JSON.`;
@@ -130,6 +132,167 @@ async function getParsedChatResponse(messages) {
   }
 }
 
+function findCareerExploreChatSession(profile, careerId) {
+  return (profile.careerExploreChatSessions || []).find(
+    (session) => String(session.careerId) === String(careerId)
+  );
+}
+
+function toClientMessage(message) {
+  return {
+    role: message.role,
+    content: message.content,
+    sources: message.sources || [],
+    webSearchStatus: message.webSearchStatus || "",
+  };
+}
+
+function buildStoredMessages({
+  conversation,
+  chatResponse,
+  searchResults,
+  webSearchStatus,
+}) {
+  const sources = searchResults.map(({ title, url }) => ({ title, url }));
+  const now = new Date();
+
+  return [
+    ...conversation.map((message) => ({
+      role: message.role,
+      content: message.content,
+      sources: message.sources || [],
+      webSearchStatus: message.webSearchStatus || "",
+      createdAt: message.createdAt || now,
+    })),
+    {
+      role: "assistant",
+      content: chatResponse.answer,
+      sources,
+      webSearchStatus,
+      createdAt: now,
+    },
+  ].slice(-MAX_STORED_CHAT_MESSAGES);
+}
+
+function hydrateConversationMetadata(conversation, savedSession) {
+  const savedMessages = savedSession?.messages || [];
+
+  return conversation.map((message, index) => {
+    const savedMessage = savedMessages[index];
+
+    if (
+      savedMessage?.role === message.role &&
+      savedMessage?.content === message.content
+    ) {
+      return {
+        ...message,
+        sources: savedMessage.sources || [],
+        webSearchStatus: savedMessage.webSearchStatus || "",
+        createdAt: savedMessage.createdAt,
+      };
+    }
+
+    return message;
+  });
+}
+
+async function saveCareerExploreChatSession({
+  profile,
+  careerId,
+  messages,
+  suggestedQuestions,
+}) {
+  const existingSessions = (profile.careerExploreChatSessions || []).filter(
+    (session) => String(session.careerId) !== String(careerId)
+  );
+  const updatedSession = {
+    careerId,
+    messages,
+    suggestedQuestions,
+    updatedAt: new Date(),
+  };
+  const nextSessions = [...existingSessions, updatedSession].slice(
+    -MAX_STORED_CHAT_SESSIONS
+  );
+
+  await StudentProfile.updateOne(
+    { _id: profile._id },
+    {
+      $set: {
+        careerExploreChatSessions: nextSessions,
+      },
+    },
+    { runValidators: true }
+  );
+
+  return updatedSession;
+}
+
+async function resetCareerExploreChatSession(profile, careerId) {
+  await StudentProfile.updateOne(
+    { _id: profile._id },
+    {
+      $pull: {
+        careerExploreChatSessions: { careerId },
+      },
+    },
+    { runValidators: true }
+  );
+}
+
+async function listCareerExploreChats(req, res) {
+  try {
+    const profile = await StudentProfile.findOne({ userId: req.user._id })
+      .select("careerExploreChatSessions")
+      .lean();
+
+    if (!profile) {
+      return res.status(404).json({ message: "Profile not found" });
+    }
+
+    const sessions = [...(profile.careerExploreChatSessions || [])].sort(
+      (left, right) =>
+        new Date(right.updatedAt || 0).getTime() -
+        new Date(left.updatedAt || 0).getTime()
+    );
+    const careerIds = sessions.map((session) => session.careerId).filter(Boolean);
+    const careers = await Career.find({ _id: { $in: careerIds } })
+      .select("title_en title_vi careerCluster")
+      .lean();
+    const careerMap = new Map(
+      careers.map((career) => [String(career._id), career])
+    );
+
+    return res.json({
+      chats: sessions.map((session) => {
+        const career = careerMap.get(String(session.careerId));
+        const careerTitle =
+          career?.title_vi || career?.title_en || "nghề đã lưu";
+        const lastMessage = [...(session.messages || [])]
+          .reverse()
+          .find((message) => message.content);
+
+        return {
+          careerId: String(session.careerId),
+          title: `Tìm hiểu về ngành ${careerTitle}`,
+          careerTitle,
+          careerCluster: career?.careerCluster || "",
+          lastMessage: lastMessage?.content || "",
+          messageCount: session.messages?.length || 0,
+          updatedAt: session.updatedAt,
+          suggestedQuestions: session.suggestedQuestions || [],
+          careerExists: Boolean(career),
+        };
+      }),
+    });
+  } catch (error) {
+    return res.status(500).json({
+      message: "Không thể tải danh sách hội thoại lúc này. Vui lòng thử lại.",
+      error: error.message,
+    });
+  }
+}
+
 async function exploreCareerChat(req, res) {
   let stage = "load_context";
 
@@ -137,7 +300,7 @@ async function exploreCareerChat(req, res) {
     const [profile, career] = await Promise.all([
       StudentProfile.findOne({ userId: req.user._id })
         .select(
-          "grade favoriteSubjects strongSubjects goal riasecCode elementScores elementScoreVersion coreQuizAnswers aiDiscoveries"
+          "grade favoriteSubjects strongSubjects goal riasecCode elementScores elementScoreVersion coreQuizAnswers aiDiscoveries careerExploreChatSessions"
         )
         .lean(),
       Career.findById(req.params.id)
@@ -154,7 +317,24 @@ async function exploreCareerChat(req, res) {
     }
 
     stage = "normalize_conversation";
-    const conversation = normalizeConversation(req.body?.messages);
+    const savedSession = findCareerExploreChatSession(profile, career._id);
+    const shouldReset = req.body?.reset === true;
+    const conversation = hydrateConversationMetadata(
+      normalizeConversation(req.body?.messages),
+      savedSession
+    );
+
+    if (shouldReset) {
+      stage = "reset_saved_session";
+      await resetCareerExploreChatSession(profile, career._id);
+    } else if (conversation.length === 0 && savedSession) {
+      return res.json({
+        messages: (savedSession.messages || []).map(toClientMessage),
+        suggestedQuestions: savedSession.suggestedQuestions || [],
+        cached: true,
+      });
+    }
+
     const latestUserMessage = [...conversation]
       .reverse()
       .find((message) => message.role === "user");
@@ -176,9 +356,22 @@ async function exploreCareerChat(req, res) {
     const chatResponse = await getParsedChatResponse(
       messages
     );
+    const storedMessages = buildStoredMessages({
+      conversation,
+      chatResponse,
+      searchResults,
+      webSearchStatus,
+    });
+    const savedChatSession = await saveCareerExploreChatSession({
+      profile,
+      careerId: career._id,
+      messages: storedMessages,
+      suggestedQuestions: chatResponse.suggestedQuestions,
+    });
 
     return res.json({
       ...chatResponse,
+      messages: savedChatSession.messages.map(toClientMessage),
       usedWebSearch: searchResults.length > 0,
       webSearchStatus,
       sources: searchResults.map(({ title, url }) => ({ title, url })),
@@ -206,4 +399,4 @@ async function exploreCareerChat(req, res) {
   }
 }
 
-module.exports = { exploreCareerChat };
+module.exports = { exploreCareerChat, listCareerExploreChats };

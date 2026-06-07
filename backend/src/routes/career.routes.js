@@ -33,8 +33,12 @@ const {
 } = require("../services/profileElementScore.service");
 const {
   exploreCareerChat,
+  listCareerExploreChats,
 } = require("../controllers/careerExploreChat.controller");
 const { protect, adminOnly } = require("../middleware/auth.middleware");
+const {
+  careerExploreChatRateLimit,
+} = require("../middleware/rateLimit.middleware");
 
 const router = express.Router();
 const RECOMMENDABLE_CAREER_FILTER = {
@@ -408,7 +412,14 @@ router.post("/:id/day-in-life", protect, async (req, res) => {
   }
 });
 
-router.post("/:id/explore-chat", protect, exploreCareerChat);
+router.post(
+  "/:id/explore-chat",
+  protect,
+  careerExploreChatRateLimit,
+  exploreCareerChat
+);
+
+router.get("/explore-chats/me", protect, listCareerExploreChats);
 
 router.get("/", async (req, res) => {
   try {

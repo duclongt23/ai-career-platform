@@ -292,7 +292,7 @@ function getPromptElements(elements) {
     type: element.type,
     name_vi: element.name_vi,
     description:
-      element.student_friendly_description || element.description_vi || "",
+      element.description_vi || "",
     riasecScore: element.riasecScore,
   }));
 }

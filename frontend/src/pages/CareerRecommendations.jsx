@@ -156,6 +156,9 @@ function CareerRecommendations() {
                 <Link className="detail-link" to={`/careers/${career._id}`}>
                   Khám phá nghề này
                 </Link>
+                <Link className="detail-link" to={`/careers/${career._id}/explore-chat`}>
+                  Hỏi AI về nghề này
+                </Link>
               </article>
             ))}
           </div>

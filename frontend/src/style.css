@@ -1269,6 +1269,138 @@ button:disabled {
   display: inline-block;
   font-weight: 700;
   margin-bottom: 14px;
+  margin-right: 14px;
+}
+
+.career-chat-hub {
+  display: grid;
+  gap: 18px;
+  grid-template-columns: minmax(260px, 0.36fr) minmax(0, 1fr);
+  max-width: 1180px;
+  margin: 0 auto;
+}
+
+.career-chat-sidebar {
+  background: white;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  min-height: 620px;
+  overflow: hidden;
+}
+
+.career-chat-sidebar-heading {
+  border-bottom: 1px solid #e2e8f0;
+  padding: 18px;
+}
+
+.career-chat-sidebar-heading span {
+  color: #2563eb;
+  display: block;
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  margin-bottom: 6px;
+  text-transform: uppercase;
+}
+
+.career-chat-sidebar-heading h1 {
+  color: #111827;
+  font-size: 22px;
+  line-height: 1.2;
+  margin: 0;
+}
+
+.career-chat-sidebar-status,
+.career-chat-empty {
+  color: #64748b;
+  line-height: 1.5;
+  margin: 0;
+  padding: 16px 18px;
+}
+
+.career-chat-empty a {
+  display: inline-block;
+  font-weight: 700;
+  margin-top: 8px;
+}
+
+.career-chat-list {
+  display: grid;
+}
+
+.career-chat-list-item {
+  border-bottom: 1px solid #e2e8f0;
+  color: #334155;
+  display: grid;
+  gap: 5px;
+  padding: 14px 16px;
+}
+
+.career-chat-list-item:hover,
+.career-chat-list-item.active {
+  background: #eff6ff;
+}
+
+.career-chat-list-item strong {
+  color: #111827;
+  font-size: 15px;
+  line-height: 1.35;
+}
+
+.career-chat-list-item span,
+.career-chat-list-item small {
+  color: #64748b;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.career-chat-list-item p {
+  color: #475569;
+  display: -webkit-box;
+  font-size: 13px;
+  line-height: 1.45;
+  margin: 0;
+  overflow: hidden;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+
+.career-chat-main {
+  min-width: 0;
+}
+
+.career-chat-context {
+  align-items: center;
+  display: flex;
+  gap: 12px;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+
+.career-chat-context a,
+.career-chat-context span {
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.career-chat-context span {
+  color: #334155;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.career-chat-placeholder {
+  text-align: center;
+}
+
+.career-chat-placeholder h2 {
+  margin-top: 0;
+}
+
+.career-chat-main-status {
+  color: #64748b;
+  text-align: center;
 }
 
 .career-explore-chat-cta {
@@ -1571,6 +1703,30 @@ button:disabled {
   .career-match-label,
   .career-match-pair {
     grid-column: 1 / -1;
+  }
+
+  .career-chat-hub {
+    grid-template-columns: 1fr;
+  }
+
+  .career-chat-sidebar {
+    min-height: auto;
+  }
+
+  .career-chat-list {
+    display: flex;
+    overflow-x: auto;
+  }
+
+  .career-chat-list-item {
+    border-bottom: 0;
+    border-right: 1px solid #e2e8f0;
+    flex: 0 0 260px;
+  }
+
+  .career-chat-context {
+    align-items: stretch;
+    flex-direction: column;
   }
 
   .career-explore-chat-heading,

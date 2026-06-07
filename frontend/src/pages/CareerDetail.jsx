@@ -29,26 +29,6 @@ function getCareerExploreChatStorageKey(careerId) {
   return `${CAREER_EXPLORE_CHAT_STORAGE_PREFIX}${careerId}`;
 }
 
-function readCareerExploreChatSession(storageKey) {
-  try {
-    const parsedSession = JSON.parse(localStorage.getItem(storageKey) || "{}");
-
-    return {
-      messages: Array.isArray(parsedSession.messages)
-        ? parsedSession.messages
-        : [],
-      suggestedQuestions: Array.isArray(parsedSession.suggestedQuestions)
-        ? parsedSession.suggestedQuestions
-        : [],
-    };
-  } catch {
-    return {
-      messages: [],
-      suggestedQuestions: [],
-    };
-  }
-}
-
 function writeCareerExploreChatSession(
   storageKey,
   { messages, suggestedQuestions }
@@ -358,24 +338,26 @@ function CareerDayInLifeSection({ careerId, title }) {
   );
 }
 
-export function CareerExploreChatSection({ careerId, title }) {
+export function CareerExploreChatSection({ careerId, title, onSessionChange }) {
   const storageKey = useMemo(
     () => getCareerExploreChatStorageKey(careerId),
     [careerId]
   );
-  const [messages, setMessages] = useState(() =>
-    readCareerExploreChatSession(storageKey).messages
-  );
-  const [suggestedQuestions, setSuggestedQuestions] = useState(
-    () => readCareerExploreChatSession(storageKey).suggestedQuestions
-  );
+  const [messages, setMessages] = useState([]);
+  const [suggestedQuestions, setSuggestedQuestions] = useState([]);
   const [question, setQuestion] = useState("");
-  const [loading, setLoading] = useState(() => messages.length === 0);
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
-  const [conversationVersion, setConversationVersion] = useState(0);
   const messagesEndRef = useRef(null);
 
   const addAssistantResponse = useCallback((response) => {
+    if (Array.isArray(response.messages)) {
+      setMessages(response.messages);
+      setSuggestedQuestions(response.suggestedQuestions || []);
+      onSessionChange?.(response);
+      return;
+    }
+
     setMessages((currentMessages) => [
       ...currentMessages,
       {
@@ -386,27 +368,11 @@ export function CareerExploreChatSection({ careerId, title }) {
       },
     ]);
     setSuggestedQuestions(response.suggestedQuestions || []);
-  }, []);
+    onSessionChange?.(response);
+  }, [onSessionChange]);
 
   useEffect(() => {
     let ignore = false;
-    const savedSession = readCareerExploreChatSession(storageKey);
-
-    if (savedSession.messages.length > 0) {
-      queueMicrotask(() => {
-        if (!ignore) {
-          setMessages(savedSession.messages);
-          setSuggestedQuestions(savedSession.suggestedQuestions);
-          setQuestion("");
-          setError("");
-          setLoading(false);
-        }
-      });
-
-      return () => {
-        ignore = true;
-      };
-    }
 
     api
       .post(`/careers/${careerId}/explore-chat`, { messages: [] })
@@ -432,7 +398,7 @@ export function CareerExploreChatSection({ careerId, title }) {
     return () => {
       ignore = true;
     };
-  }, [addAssistantResponse, careerId, conversationVersion, storageKey]);
+  }, [addAssistantResponse, careerId]);
 
   useEffect(() => {
     if (messages.length === 0 && suggestedQuestions.length === 0) {
@@ -500,7 +466,19 @@ export function CareerExploreChatSection({ careerId, title }) {
     setQuestion("");
     setError("");
     setLoading(true);
-    setConversationVersion((currentVersion) => currentVersion + 1);
+    api
+      .post(`/careers/${careerId}/explore-chat`, {
+        messages: [],
+        reset: true,
+      })
+      .then((response) => addAssistantResponse(response.data))
+      .catch((requestError) => {
+        setError(
+          requestError.response?.data?.message ||
+            "KhÃ´ng thá»ƒ má»Ÿ cuá»™c trÃ² chuyá»‡n lÃºc nÃ y. Vui lÃ²ng thá»­ láº¡i."
+        );
+      })
+      .finally(() => setLoading(false));
   };
 
   return (
