@@ -621,7 +621,7 @@ function CareerDetail() {
 
   useEffect(() => {
     api
-      .get(`/careers/${id}`)
+      .get(`/careers/${id}`, { skipAuth: true })
       .then((response) => setCareer(response.data))
       .catch((error) => {
         console.error("Lỗi tải chi tiết nghề nghiệp", error);

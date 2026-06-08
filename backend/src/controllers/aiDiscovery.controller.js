@@ -7,6 +7,9 @@ const {
 } = require("../prompts/aiDiscoveryPrompt");
 const {
   buildAiDiscoveryOpeningMessage,
+  getAiDiscoveryOpeningOptions,
+  getDefaultOpeningQuestion,
+  getOpeningQuestionById,
 } = require("../services/aiDiscoveryOpeningService");
 const { callDeepSeek } = require("../services/deepseekClient");
 const {
@@ -134,18 +137,46 @@ async function getProfileWithRiasec(userId) {
   return profile;
 }
 
-function ensureOpeningMessage(session, profile) {
+function ensureOpeningMessage(session, profile, openingQuestionId) {
   if (session.messages.length > 0) {
     return false;
   }
 
-  // Opening được tạo cố định theo RIASEC để luôn ngắn, tự nhiên và chỉ hỏi một hướng.
+  const requestedOpening = openingQuestionId
+    ? getOpeningQuestionById(openingQuestionId)
+    : null;
+
+  if (openingQuestionId && !requestedOpening) {
+    throw createHttpError(400, "Invalid openingQuestionId");
+  }
+
+  const openingQuestion = requestedOpening || getDefaultOpeningQuestion(profile);
+
+  // Lưu metadata để biết phiên này bắt đầu từ góc nào; element selection các
+  // lượt sau dùng chính topic này để tránh mỗi request suy diễn lại từ message.
+  session.openingQuestionId = openingQuestion.id;
+  session.openingTopic = openingQuestion.topic;
+  session.topic = openingQuestion.topic;
   session.messages.push({
     role: "assistant",
-    content: buildAiDiscoveryOpeningMessage(profile),
+    content: buildAiDiscoveryOpeningMessage(profile, openingQuestion.id),
   });
 
   return true;
+}
+
+function getOpeningResponseFields(profile, session) {
+  return {
+    openingOptions: getAiDiscoveryOpeningOptions(profile).map((option) => ({
+      id: option.id,
+      topic: option.topic,
+      title: option.title,
+      question: option.question,
+      isRecommended: option.isRecommended,
+    })),
+    openingQuestionId: session.openingQuestionId,
+    openingTopic: session.openingTopic,
+  };
 }
 
 function parseJsonObject(rawResponse) {
@@ -343,8 +374,16 @@ async function sendMessage(req, res) {
   try {
     const message = normalizeMessage(req.body?.message);
     const profile = await getProfileWithRiasec(req.user._id);
+    const session = await getOrCreateSession(req.user._id, req.body?.sessionId);
 
-    const elements = await getElementsForAiDiscovery(profile);
+    // Giữ đúng flow opening -> user reply kể cả khi frontend hoặc client cũ
+    // gọi thẳng /message mà chưa chọn câu hỏi mở đầu.
+    ensureOpeningMessage(session, profile, req.body?.openingQuestionId);
+
+    const elements = await getElementsForAiDiscovery(profile, {
+      openingTopic: session.openingTopic,
+      seed: session._id,
+    });
 
     if (elements.length === 0) {
       throw createHttpError(
@@ -352,11 +391,6 @@ async function sendMessage(req, res) {
         "No suitable elements found for this RIASEC profile"
       );
     }
-
-    const session = await getOrCreateSession(req.user._id, req.body?.sessionId);
-
-    // Giữ đúng flow opening -> user reply kể cả khi frontend gọi thẳng /message.
-    ensureOpeningMessage(session, profile);
 
     // Lưu câu trả lời trước khi gọi upstream để không mất nội dung khi DeepSeek lỗi.
     session.messages.push({
@@ -410,6 +444,7 @@ async function sendMessage(req, res) {
         assistantMessage: aiResponse.assistantMessage,
         candidates: aiResponse.candidates,
         followUpCount: session.followUpCount,
+        ...getOpeningResponseFields(profile, session),
       });
     } catch (error) {
       // Ghi lỗi upstream để phân biệt lỗi API, JSON và validate candidate khi debug.
@@ -446,10 +481,14 @@ async function startSession(req, res) {
       allowConfirmedSession: true,
       resumeLatestConfirmed: true,
     });
-    const openingCreated = ensureOpeningMessage(session, profile);
+    const openingCreated = req.body?.openingQuestionId
+      ? ensureOpeningMessage(session, profile, req.body.openingQuestionId)
+      : false;
     const messagesTrimmed = trimStoredMessages(session);
+    const shouldPersistBlankSession =
+      session.isNew && session.messages.length === 0;
 
-    if (openingCreated || messagesTrimmed) {
+    if (openingCreated || messagesTrimmed || shouldPersistBlankSession) {
       await session.save();
     }
 
@@ -470,7 +509,9 @@ async function startSession(req, res) {
           ? "confirmed"
           : session.status === "ready_to_confirm"
             ? "ready_to_confirm"
-            : "awaiting_user_message",
+            : session.messages.length === 0
+              ? "select_opening"
+              : "awaiting_user_message",
       messages: session.messages,
       assistantMessage:
         session.messages[session.messages.length - 1]?.role === "assistant"
@@ -480,6 +521,7 @@ async function startSession(req, res) {
       confirmedElements: session.confirmedElements,
       followUpCount: session.followUpCount,
       openingCreated,
+      ...getOpeningResponseFields(profile, session),
     });
   } catch (error) {
     return res.status(error.statusCode || 500).json({
@@ -509,19 +551,19 @@ async function resetSession(req, res) {
     );
 
     const session = new AiDiscoverySession({ userId: req.user._id });
-    ensureOpeningMessage(session, profile);
     await session.save();
 
     return res.json({
       message: "AI discovery session reset successfully",
       sessionId: session._id,
       status: session.status,
-      action: "awaiting_user_message",
+      action: "select_opening",
       messages: session.messages,
-      assistantMessage: session.messages[0].content,
+      assistantMessage: null,
       candidates: [],
       followUpCount: 0,
-      openingCreated: true,
+      openingCreated: false,
+      ...getOpeningResponseFields(profile, session),
     });
   } catch (error) {
     return res.status(error.statusCode || 500).json({
@@ -557,9 +599,11 @@ async function findMoreCandidates(req, res) {
 
     const existingCodes = getNormalizedCodeSet(session.extractedCandidates);
     const selectedCodes = getNormalizedCodeSet(req.body?.selectedCodes);
-    const elements = (await getElementsForAiDiscovery(profile)).filter(
-      (element) => !existingCodes.has(String(element.code).toLowerCase())
-    );
+    const elements = await getElementsForAiDiscovery(profile, {
+      openingTopic: session.openingTopic,
+      seed: `${session._id}:more:${session.extractedCandidates.length}`,
+      excludedCodes: existingCodes,
+    });
 
     if (elements.length < 3) {
       throw createHttpError(422, "Not enough new elements to suggest");
@@ -608,6 +652,7 @@ async function findMoreCandidates(req, res) {
       candidates: session.extractedCandidates,
       addedCandidates: aiResponse.candidates,
       followUpCount: session.followUpCount,
+      ...getOpeningResponseFields(profile, session),
     });
   } catch (error) {
     return res.status(error.statusCode || 500).json({

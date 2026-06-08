@@ -6,6 +6,7 @@ import {
   formatCareerClusters,
   normalizeCareerClusters,
 } from "../utils/careerCluster";
+import { getStoredUser } from "../utils/storage";
 
 const elementTypes = [
   "ability",
@@ -139,7 +140,7 @@ function AdminCareers() {
   const clusterDropdownRef = useRef(null);
 
   const user = useMemo(
-    () => JSON.parse(localStorage.getItem("user") || "{}"),
+    () => getStoredUser(),
     []
   );
   const isAdmin = user?.role === "admin";

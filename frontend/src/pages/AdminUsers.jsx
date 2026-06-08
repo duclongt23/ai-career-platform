@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import api from "../api/axios";
+import { getStoredUser } from "../utils/storage";
 
 const adminPageLimit = 50;
 const emptyForm = {
@@ -47,7 +48,7 @@ function AdminUsers() {
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
   const currentUser = useMemo(
-    () => JSON.parse(localStorage.getItem("user") || "{}"),
+    () => getStoredUser(),
     []
   );
   const isAdmin = currentUser?.role === "admin";

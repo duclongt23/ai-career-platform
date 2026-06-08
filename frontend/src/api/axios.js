@@ -1,4 +1,5 @@
 import axios from "axios";
+import { clearStoredAuth } from "../utils/storage";
 
 const API_BASE_URL = "http://localhost:5000/api";
 
@@ -9,7 +10,7 @@ const api = axios.create({
 api.interceptors.request.use((config) => {
   const token = localStorage.getItem("token");
 
-  if (token) {
+  if (token && !config.skipAuth) {
     config.headers.Authorization = `Bearer ${token}`;
   }
 
@@ -20,18 +21,30 @@ api.interceptors.response.use(
   (response) => response,
   async (error) => {
     const originalRequest = error.config;
+    const hasStoredAuth = Boolean(
+      localStorage.getItem("token") || localStorage.getItem("refreshToken")
+    );
 
     if (
       error.response?.status !== 401 ||
-      originalRequest?._retry ||
       originalRequest?.url === "/auth/refresh"
     ) {
+      return Promise.reject(error);
+    }
+
+    if (!hasStoredAuth || originalRequest?.url === "/auth/login") {
+      return Promise.reject(error);
+    }
+
+    if (originalRequest?._retry) {
+      clearStoredAuth();
       return Promise.reject(error);
     }
 
     const refreshToken = localStorage.getItem("refreshToken");
 
     if (!refreshToken) {
+      clearStoredAuth();
       return Promise.reject(error);
     }
 
@@ -56,9 +69,7 @@ api.interceptors.response.use(
       originalRequest.headers.Authorization = `Bearer ${res.data.token}`;
       return api(originalRequest);
     } catch (refreshError) {
-      localStorage.removeItem("token");
-      localStorage.removeItem("refreshToken");
-      localStorage.removeItem("user");
+      clearStoredAuth();
       return Promise.reject(refreshError);
     }
   }

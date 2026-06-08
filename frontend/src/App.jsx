@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import { Routes, Route, Link, Navigate, useNavigate } from "react-router-dom";
 import Register from "./pages/Register";
 import Login from "./pages/Login";
@@ -18,12 +19,36 @@ import CareerExploreChats from "./pages/CareerExploreChats";
 import DiscoverySummaryDashboard from "./pages/DiscoverySummaryDashboard";
 import DiscoveryWorkflowLayout from "./components/DiscoveryWorkflowLayout";
 import api from "./api/axios";
+import { AUTH_SESSION_EXPIRED_EVENT, getStoredUser } from "./utils/storage";
+import useStaleOverlayCleanup from "./utils/useStaleOverlayCleanup";
 
 function App() {
+  useStaleOverlayCleanup();
+
   const navigate = useNavigate();
   const token = localStorage.getItem("token");
-  const user = JSON.parse(localStorage.getItem("user"));
+  const user = getStoredUser();
   const isAdmin = user?.role === "admin";
+
+  useEffect(() => {
+    const handleSessionExpired = () => {
+      navigate("/login", {
+        replace: true,
+        state: {
+          message: "Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.",
+        },
+      });
+    };
+
+    window.addEventListener(AUTH_SESSION_EXPIRED_EVENT, handleSessionExpired);
+
+    return () => {
+      window.removeEventListener(
+        AUTH_SESSION_EXPIRED_EVENT,
+        handleSessionExpired
+      );
+    };
+  }, [navigate]);
 
   const handleLogout = async () => {
     const refreshToken = localStorage.getItem("refreshToken");

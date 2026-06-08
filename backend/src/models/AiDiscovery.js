@@ -101,6 +101,18 @@ const aiDiscoverySessionSchema = new mongoose.Schema(
       default: "general_self_discovery",
     },
 
+    openingQuestionId: {
+      type: String,
+      default: "",
+      trim: true,
+    },
+
+    openingTopic: {
+      type: String,
+      default: "",
+      trim: true,
+    },
+
     status: {
       type: String,
       enum: ["in_progress", "ready_to_confirm", "confirmed", "cancelled"],

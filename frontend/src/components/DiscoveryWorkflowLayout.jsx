@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { NavLink, Outlet, useLocation } from "react-router-dom";
 import api from "../api/axios";
+import { getStoredUser } from "../utils/storage";
 
 export const DISCOVERY_PROGRESS_UPDATED = "discovery-progress-updated";
 
@@ -67,7 +68,7 @@ function getProgress(profile, recommendationsViewed = false) {
 function DiscoveryWorkflowLayout() {
   const location = useLocation();
   const token = localStorage.getItem("token");
-  const user = JSON.parse(localStorage.getItem("user") || "{}");
+  const user = getStoredUser();
   const recommendationsViewedKey = `discovery-recommendations-viewed:${user.id || "guest"}`;
   const [progress, setProgress] = useState(EMPTY_PROGRESS);
 

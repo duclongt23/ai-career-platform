@@ -23,6 +23,7 @@ function Careers() {
 
     try {
       const response = await api.get("/careers", {
+        skipAuth: true,
         params: {
           ...currentFilters,
           page,
@@ -45,6 +46,7 @@ function Careers() {
 
     api
       .get("/careers", {
+        skipAuth: true,
         params: {
           page: 1,
           limit: PAGE_SIZE,

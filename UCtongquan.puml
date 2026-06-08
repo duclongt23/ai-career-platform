@@ -1,0 +1,129 @@
+@startuml UCtongquan
+title Biểu đồ use case tổng quan - AI Career Platform
+
+left to right direction
+skinparam actorStyle awesome
+skinparam packageStyle rectangle
+skinparam shadowing false
+skinparam ArrowColor #2F4858
+skinparam usecase {
+  BorderColor #2F4858
+  BackgroundColor #F7FBFF
+}
+
+actor "Người dùng" as User
+actor "Học sinh" as Student
+actor "Admin" as Admin
+actor "DeepSeek API" as DeepSeek
+actor "Tavily Search API" as Tavily
+
+Student --|> User
+Admin --|> User
+
+rectangle "AI Career Platform" {
+  package "Xác thực & phân quyền" {
+    usecase "Đăng ký tài khoản" as UC_Register
+    usecase "Đăng nhập" as UC_Login
+    usecase "Đăng xuất" as UC_Logout
+    usecase "Làm mới token" as UC_RefreshToken
+    usecase "Tạo tài khoản admin\nbằng setup secret" as UC_CreateAdmin
+  }
+
+  package "Hồ sơ & khám phá bản thân" {
+    usecase "Cập nhật hồ sơ\ncá nhân, học tập" as UC_UpdateProfile
+    usecase "Làm bài RIASEC" as UC_RIASEC
+    usecase "Làm Core Quiz" as UC_CoreQuiz
+    usecase "Làm lại Core Quiz" as UC_ResetCoreQuiz
+    usecase "Trò chuyện AI Discovery" as UC_AiDiscovery
+    usecase "Xác nhận yếu tố\nAI đề xuất" as UC_ConfirmElements
+    usecase "Tính điểm yếu tố\nhồ sơ học sinh" as UC_CalculateProfile
+    usecase "Xem dashboard hồ sơ" as UC_Dashboard
+  }
+
+  package "Tra cứu & gợi ý nghề" {
+    usecase "Xem danh sách nghề" as UC_ListCareers
+    usecase "Tìm kiếm, lọc nghề" as UC_SearchCareers
+    usecase "Xem chi tiết nghề" as UC_CareerDetail
+    usecase "So khớp hồ sơ\nvới dữ liệu nghề" as UC_MatchCareers
+    usecase "Xem gợi ý nghề\ncá nhân hóa" as UC_Recommendations
+    usecase "Xem giải thích\nmức độ phù hợp" as UC_FitExplanation
+    usecase "Xem một ngày làm việc\nđiển hình" as UC_DayInLife
+    usecase "Hỏi đáp sâu về nghề" as UC_ExploreChat
+    usecase "Xem lịch sử\nCareer Explore Chat" as UC_ExploreHistory
+  }
+
+  package "Quản trị dữ liệu" {
+    usecase "Quản lý dữ liệu nghề" as UC_ManageCareers
+    usecase "Thêm/Sửa/Xóa nghề" as UC_CrudCareer
+    usecase "Gắn yếu tố nghề\nvà trọng số" as UC_ManageCareerElements
+    usecase "Quản lý Core Quiz" as UC_ManageCoreQuiz
+    usecase "Cập nhật câu hỏi,\nđáp án, mapping điểm" as UC_EditQuizMapping
+    usecase "Tra cứu element chuẩn" as UC_SearchElements
+  }
+}
+
+User --> UC_Login
+User --> UC_Logout
+User --> UC_RefreshToken
+
+Student --> UC_Register
+Student --> UC_UpdateProfile
+Student --> UC_RIASEC
+Student --> UC_CoreQuiz
+Student --> UC_ResetCoreQuiz
+Student --> UC_AiDiscovery
+Student --> UC_ConfirmElements
+Student --> UC_Dashboard
+Student --> UC_ListCareers
+Student --> UC_SearchCareers
+Student --> UC_CareerDetail
+Student --> UC_Recommendations
+Student --> UC_FitExplanation
+Student --> UC_DayInLife
+Student --> UC_ExploreChat
+Student --> UC_ExploreHistory
+
+Admin --> UC_CreateAdmin
+Admin --> UC_ManageCareers
+Admin --> UC_ManageCoreQuiz
+Admin --> UC_SearchElements
+
+DeepSeek --> UC_AiDiscovery
+DeepSeek --> UC_FitExplanation
+DeepSeek --> UC_DayInLife
+DeepSeek --> UC_ExploreChat
+Tavily --> UC_ExploreChat
+
+UC_CoreQuiz .> UC_UpdateProfile : <<include>>
+UC_AiDiscovery .> UC_RIASEC : <<include>>
+UC_ConfirmElements .> UC_AiDiscovery : <<extend>>
+UC_CalculateProfile .> UC_UpdateProfile : <<include>>
+UC_Dashboard .> UC_CalculateProfile : <<include>>
+UC_Recommendations .> UC_CalculateProfile : <<include>>
+UC_Recommendations .> UC_MatchCareers : <<include>>
+UC_FitExplanation .> UC_CareerDetail : <<extend>>
+UC_DayInLife .> UC_CareerDetail : <<extend>>
+UC_ExploreChat .> UC_CareerDetail : <<extend>>
+
+UC_SearchCareers .> UC_ListCareers : <<extend>>
+UC_CareerDetail .> UC_ListCareers : <<extend>>
+
+UC_ManageCareers .> UC_CrudCareer : <<include>>
+UC_ManageCareers .> UC_ManageCareerElements : <<include>>
+UC_ManageCareers .> UC_SearchElements : <<include>>
+UC_ManageCoreQuiz .> UC_EditQuizMapping : <<include>>
+UC_ManageCoreQuiz .> UC_SearchElements : <<include>>
+
+note right of UC_Recommendations
+  Danh sách gợi ý nghề dựa trên
+  hồ sơ học sinh, dữ liệu nghề có cấu trúc
+  và thuật toán so khớp; AI không tự quyết định.
+end note
+
+note bottom of UC_AiDiscovery
+  Học sinh phải hoàn thành RIASEC,
+  sau đó tự xác nhận yếu tố phù hợp
+  trước khi dùng để tính điểm gợi ý.
+end note
+
+@enduml

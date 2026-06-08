@@ -10,7 +10,7 @@ function CareerExploreChat() {
 
   useEffect(() => {
     api
-      .get(`/careers/${id}`)
+      .get(`/careers/${id}`, { skipAuth: true })
       .then((response) => setCareer(response.data))
       .catch(() => setCareer(null))
       .finally(() => setLoading(false));

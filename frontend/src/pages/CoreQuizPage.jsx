@@ -3,6 +3,7 @@ import { Link, useNavigate } from "react-router-dom";
 import api from "../api/axios";
 import AdminCoreQuizAnswerScores from "../components/AdminCoreQuizAnswerScores";
 import { DISCOVERY_PROGRESS_UPDATED } from "../components/DiscoveryWorkflowLayout";
+import { getStoredUser } from "../utils/storage";
 
 const TYPE_LABELS = {
   ability: "Năng lực",
@@ -53,7 +54,7 @@ const formatScoreNumber = (value) => {
 function CoreQuizPage() {
   const navigate = useNavigate();
   const token = localStorage.getItem("token");
-  const user = JSON.parse(localStorage.getItem("user"));
+  const user = getStoredUser();
   const isAdmin = user?.role === "admin";
   const [questions, setQuestions] = useState([]);
   const [answers, setAnswers] = useState({});

@@ -85,11 +85,11 @@ function CareerExploreChats() {
       };
     }
 
-    const timeoutId = window.setTimeout(() => {
-      setLoadingCareer(true);
-      api
-        .get(`/careers/${id}`)
-        .then((response) => {
+      const timeoutId = window.setTimeout(() => {
+        setLoadingCareer(true);
+        api
+          .get(`/careers/${id}`, { skipAuth: true })
+          .then((response) => {
           if (!ignore) {
             setCareer(response.data);
           }

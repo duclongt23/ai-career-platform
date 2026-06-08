@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import api from "../api/axios";
+import { getStoredUser } from "../utils/storage";
 
 const targetTypes = [
   "ability",
@@ -190,7 +191,7 @@ function AdminCoreQuiz() {
   const visibleQuestions = questions.slice(pageStart, pageEnd);
 
   useEffect(() => {
-    const storedUser = JSON.parse(localStorage.getItem("user"));
+    const storedUser = getStoredUser();
 
     if (!storedUser || storedUser.role !== "admin") {
       navigate("/careers");

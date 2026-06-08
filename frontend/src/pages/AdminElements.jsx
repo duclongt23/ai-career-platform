@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import api from "../api/axios";
+import { getStoredUser } from "../utils/storage";
 
 const elementTypes = [
   "ability",
@@ -120,7 +121,7 @@ function AdminElements() {
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
   const user = useMemo(
-    () => JSON.parse(localStorage.getItem("user") || "{}"),
+    () => getStoredUser(),
     []
   );
   const isAdmin = user?.role === "admin";

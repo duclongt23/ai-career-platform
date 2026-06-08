@@ -3473,6 +3473,72 @@ button.danger {
   margin-top: 4px;
 }
 
+.ai-discovery-start-card {
+  text-align: left;
+}
+
+.ai-discovery-start-heading h2 {
+  color: #111827;
+  font-size: 24px;
+  line-height: 1.25;
+  margin: 8px 0;
+}
+
+.ai-discovery-start-heading p:last-child {
+  color: #4b5563;
+  line-height: 1.6;
+  margin: 0;
+}
+
+.ai-discovery-opening-grid {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  margin-top: 18px;
+}
+
+.ai-discovery-opening-option {
+  background: #f8fafc;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  color: #111827;
+  display: grid;
+  gap: 8px;
+  min-height: 164px;
+  padding: 15px;
+  text-align: left;
+}
+
+.ai-discovery-opening-option:hover {
+  background: #f0fdfa;
+  border-color: #0f766e;
+}
+
+.ai-discovery-opening-option:disabled {
+  background: #e5e7eb;
+  color: #64748b;
+}
+
+.ai-discovery-opening-option span {
+  color: #0f766e;
+  font-size: 12px;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.ai-discovery-opening-option strong {
+  color: #111827;
+  font-size: 17px;
+  line-height: 1.3;
+}
+
+.ai-discovery-opening-option p {
+  color: #4b5563;
+  font-size: 14px;
+  line-height: 1.5;
+  margin: 0;
+}
+
 .ai-discovery-chat-card {
   padding: 0;
   overflow: hidden;
@@ -3749,6 +3815,10 @@ button.danger {
   }
 
   .ai-discovery-candidate-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .ai-discovery-opening-grid {
     grid-template-columns: 1fr;
   }
 

@@ -42,28 +42,34 @@ function AiDiscoveryPage() {
   const [candidates, setCandidates] = useState([]);
   const [status, setStatus] = useState("in_progress");
   const [selectedCandidates, setSelectedCandidates] = useState({});
+  const [openingOptions, setOpeningOptions] = useState([]);
+  const [openingQuestionId, setOpeningQuestionId] = useState("");
   const [input, setInput] = useState("");
   const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(true);
   const [isConfirming, setIsConfirming] = useState(false);
   const [isFindingMore, setIsFindingMore] = useState(false);
   const [isResetting, setIsResetting] = useState(false);
+  const [isSelectingOpening, setIsSelectingOpening] = useState(false);
   const [isSending, setIsSending] = useState(false);
+
+  const hydrateSession = useCallback((data = {}) => {
+    setSessionId(data.sessionId);
+    setMessages(keepLatestMessages(data.messages));
+    setCandidates(data.candidates || []);
+    setStatus(data.status || "in_progress");
+    setOpeningOptions(data.openingOptions || []);
+    setOpeningQuestionId(data.openingQuestionId || "");
+    // A confirmed session is restored by the backend after a page reload.
+    // Hydrate saved levels so disabled controls still show the final state.
+    setSelectedCandidates(getSelectedCandidateLevels(data.confirmedElements));
+  }, []);
 
   const loadSession = useCallback(async (currentSessionId = "") => {
     const payload = currentSessionId ? { sessionId: currentSessionId } : {};
     const res = await api.post("/profile/ai-discovery/start", payload);
-
-    setSessionId(res.data.sessionId);
-    setMessages(keepLatestMessages(res.data.messages));
-    setCandidates(res.data.candidates || []);
-    setStatus(res.data.status || "in_progress");
-    // A confirmed session is restored by the backend after a page reload.
-    // Hydrate saved levels so disabled controls still show the final state.
-    setSelectedCandidates(
-      getSelectedCandidateLevels(res.data.confirmedElements)
-    );
-  }, []);
+    hydrateSession(res.data);
+  }, [hydrateSession]);
 
   useEffect(() => {
     if (!token) {
@@ -83,15 +89,7 @@ function AiDiscoveryPage() {
       .then((res) => {
         if (!isMounted) return;
 
-        setSessionId(res.data.sessionId);
-        setMessages(keepLatestMessages(res.data.messages));
-        setCandidates(res.data.candidates || []);
-        setStatus(res.data.status || "in_progress");
-        // Preserve confirmed choices when the latest completed discovery is
-        // loaded instead of starting with an empty candidate selection.
-        setSelectedCandidates(
-          getSelectedCandidateLevels(res.data.confirmedElements)
-        );
+        hydrateSession(res.data);
       })
       .catch((err) => {
         if (!isMounted) return;
@@ -112,11 +110,38 @@ function AiDiscoveryPage() {
     return () => {
       isMounted = false;
     };
-  }, [loadSession, navigate, token]);
+  }, [hydrateSession, loadSession, navigate, token]);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages, isSending]);
+
+  const selectOpeningQuestion = async (optionId) => {
+    if (!optionId || isSelectingOpening) {
+      return;
+    }
+
+    setIsSelectingOpening(true);
+    setError("");
+
+    try {
+      const res = await api.post("/profile/ai-discovery/start", {
+        sessionId,
+        openingQuestionId: optionId,
+      });
+
+      hydrateSession(res.data);
+    } catch (err) {
+      setError(
+        getApiErrorMessage(
+          err,
+          "Chưa thể bắt đầu từ câu hỏi này. Vui lòng thử lại."
+        )
+      );
+    } finally {
+      setIsSelectingOpening(false);
+    }
+  };
 
   const sendMessage = async (event) => {
     event.preventDefault();
@@ -153,6 +178,8 @@ function AiDiscoveryPage() {
       setSessionId(res.data.sessionId);
       setStatus(res.data.status || "in_progress");
       setCandidates(res.data.candidates || []);
+      setOpeningOptions(res.data.openingOptions || openingOptions);
+      setOpeningQuestionId(res.data.openingQuestionId || openingQuestionId);
       setSelectedCandidates({});
       setMessages((currentMessages) =>
         keepLatestMessages([
@@ -199,7 +226,8 @@ function AiDiscoveryPage() {
       isSending ||
       isResetting ||
       isConfirming ||
-      isFindingMore
+      isFindingMore ||
+      isSelectingOpening
     ) {
       return;
     }
@@ -210,11 +238,7 @@ function AiDiscoveryPage() {
     try {
       const res = await api.post("/profile/ai-discovery/reset");
 
-      setSessionId(res.data.sessionId);
-      setMessages(keepLatestMessages(res.data.messages));
-      setCandidates([]);
-      setSelectedCandidates({});
-      setStatus(res.data.status || "in_progress");
+      hydrateSession(res.data);
       setInput("");
     } catch (err) {
       setError(
@@ -267,6 +291,8 @@ function AiDiscoveryPage() {
       setSessionId(res.data.sessionId);
       setStatus(res.data.status || "ready_to_confirm");
       setCandidates(res.data.candidates || []);
+      setOpeningOptions(res.data.openingOptions || openingOptions);
+      setOpeningQuestionId(res.data.openingQuestionId || openingQuestionId);
 
       if (res.data.assistantMessage) {
         setMessages((currentMessages) =>
@@ -336,7 +362,7 @@ function AiDiscoveryPage() {
     );
   }
 
-  if (error && messages.length === 0) {
+  if (error && messages.length === 0 && openingOptions.length === 0) {
     return (
       <section className="card ai-discovery-card">
         <p className="error">{error}</p>
@@ -350,6 +376,9 @@ function AiDiscoveryPage() {
     );
   }
 
+  const shouldSelectOpening =
+    messages.length === 0 && status === "in_progress" && openingOptions.length > 0;
+
   return (
     <div className="ai-discovery-page">
       <section className="ai-discovery-header">
@@ -361,6 +390,38 @@ function AiDiscoveryPage() {
         </p>
       </section>
 
+      {shouldSelectOpening ? (
+        <section className="card ai-discovery-start-card">
+          <div className="ai-discovery-start-heading">
+            <p className="ai-discovery-eyebrow">Chọn điểm bắt đầu</p>
+            <h2>Em muốn mở cuộc trò chuyện từ đâu?</h2>
+            <p>
+              Chọn một câu gần với trải nghiệm của em nhất. Các câu được gợi ý
+              theo RIASEC sẽ hiện trước, nhưng em có thể chọn bất kỳ hướng nào.
+            </p>
+          </div>
+
+          {error && <p className="error ai-discovery-error">{error}</p>}
+
+          <div className="ai-discovery-opening-grid">
+            {openingOptions.map((option) => (
+              <button
+                className="ai-discovery-opening-option"
+                type="button"
+                key={option.id}
+                onClick={() => selectOpeningQuestion(option.id)}
+                disabled={isSelectingOpening}
+              >
+                <span>
+                  {option.isRecommended ? "Gợi ý từ RIASEC" : "Câu hỏi mở"}
+                </span>
+                <strong>{option.title}</strong>
+                <p>{option.question}</p>
+              </button>
+            ))}
+          </div>
+        </section>
+      ) : (
       <section className="card ai-discovery-chat-card">
         <div className="ai-discovery-chat-heading">
           <div>
@@ -379,7 +440,13 @@ function AiDiscoveryPage() {
               className="ai-discovery-reset-button"
               type="button"
               onClick={resetSession}
-              disabled={isSending || isResetting || isConfirming || isFindingMore}
+              disabled={
+                isSending ||
+                isResetting ||
+                isConfirming ||
+                isFindingMore ||
+                isSelectingOpening
+              }
             >
               {isResetting ? "Đang bắt đầu lại..." : "Bắt đầu lại"}
             </button>
@@ -441,6 +508,7 @@ function AiDiscoveryPage() {
           </div>
         </form>
       </section>
+      )}
 
       {candidates.length > 0 && (
         <section className="card ai-discovery-candidate-panel">
