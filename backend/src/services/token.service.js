@@ -44,6 +44,7 @@ function toPublicUser(user) {
     name: user.name,
     email: user.email,
     role: user.role,
+    is_active: user.is_active !== false,
   };
 }
 

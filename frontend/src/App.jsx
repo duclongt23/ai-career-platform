@@ -6,6 +6,8 @@ import Careers from "./pages/Careers";
 import CareerDetail from "./pages/CareerDetail";
 import AdminCareers from "./pages/AdminCareers";
 import AdminCoreQuiz from "./pages/AdminCoreQuiz";
+import AdminElements from "./pages/AdminElements";
+import AdminUsers from "./pages/AdminUsers";
 import RiasecTest from "./pages/RiasecTest";
 import RiasecInfo from "./pages/RiasecInfo";
 import CoreQuizPage from "./pages/CoreQuizPage";
@@ -54,6 +56,8 @@ function App() {
             <>
               {isAdmin && <Link to="/admin/careers">Admin Careers</Link>}
               {isAdmin && <Link to="/admin/core-quiz">Admin Quiz</Link>}
+              {isAdmin && <Link to="/admin/elements">Admin Elements</Link>}
+              {isAdmin && <Link to="/admin/users">Admin Users</Link>}
               <Link to="/profile">Hồ sơ</Link>
               <button onClick={handleLogout}>Đăng xuất</button>
             </>
@@ -92,6 +96,8 @@ function App() {
           <Route path="/career-explore-chats/:id" element={<CareerExploreChats />} />
           <Route path="/admin/careers" element={<AdminCareers />} />
           <Route path="/admin/core-quiz" element={<AdminCoreQuiz />} />
+          <Route path="/admin/elements" element={<AdminElements />} />
+          <Route path="/admin/users" element={<AdminUsers />} />
         </Routes>
       </main>
     </div>

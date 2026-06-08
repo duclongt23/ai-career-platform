@@ -1,7 +1,9 @@
 const test = require("node:test");
 const assert = require("node:assert/strict");
 const {
+  CAREER_CLUSTER_VALUES,
   formatCareerClusters,
+  isValidCareerCluster,
   loadCareerClusterMap,
   normalizeCareerClusters,
 } = require("./careerCluster");
@@ -26,6 +28,12 @@ test("formatCareerClusters joins cluster arrays and uses fallback for empty valu
     "Công nghệ số, Giáo dục"
   );
   assert.equal(formatCareerClusters([], "Chưa cập nhật"), "Chưa cập nhật");
+});
+
+test("career cluster values expose the fixed Vietnamese options", () => {
+  assert.equal(CAREER_CLUSTER_VALUES.length, 14);
+  assert.equal(isValidCareerCluster("Công nghệ số"), true);
+  assert.equal(isValidCareerCluster("Information Technology"), false);
 });
 
 test("loadCareerClusterMap translates CSV file names and supports multi-cluster careers", () => {

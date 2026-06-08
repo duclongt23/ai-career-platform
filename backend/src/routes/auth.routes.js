@@ -95,6 +95,12 @@ router.post("/login", authRateLimit, validate(loginSchema), async (req, res) => 
       });
     }
 
+    if (user.is_active === false) {
+      return res.status(403).json({
+        message: "Account is inactive",
+      });
+    }
+
     const isMatch = await bcrypt.compare(password, user.password);
 
     if (!isMatch) {
@@ -128,6 +134,12 @@ router.post("/refresh", validate(refreshSchema), async (req, res) => {
     if (!user || !user.refreshTokenExpiresAt || user.refreshTokenExpiresAt <= new Date()) {
       return res.status(401).json({
         message: "Invalid or expired refresh token",
+      });
+    }
+
+    if (user.is_active === false) {
+      return res.status(403).json({
+        message: "Account is inactive",
       });
     }
 

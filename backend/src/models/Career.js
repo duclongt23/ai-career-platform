@@ -1,5 +1,8 @@
 const mongoose = require("mongoose");
-const { normalizeCareerClusters } = require("../utils/careerCluster");
+const {
+  isValidCareerCluster,
+  normalizeCareerClusters,
+} = require("../utils/careerCluster");
 
 const careerElementSchema = new mongoose.Schema(
   {
@@ -68,6 +71,12 @@ const careerSchema = new mongoose.Schema(
       type: [String],
       default: [],
       set: normalizeCareerClusters,
+      validate: {
+        validator(clusters) {
+          return normalizeCareerClusters(clusters).every(isValidCareerCluster);
+        },
+        message: "careerCluster must use one of the configured career cluster values.",
+      },
     },
 
     riasecCode: {

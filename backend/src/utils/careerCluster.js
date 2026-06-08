@@ -20,6 +20,9 @@ const CAREER_CLUSTER_TRANSLATIONS = {
   Supply_Chain_Transportation: "Chuỗi cung ứng và vận tải",
 };
 
+const CAREER_CLUSTER_VALUES = Object.values(CAREER_CLUSTER_TRANSLATIONS);
+const CAREER_CLUSTER_VALUE_SET = new Set(CAREER_CLUSTER_VALUES);
+
 function parseCsv(content) {
   const rows = [];
   let row = [];
@@ -97,6 +100,10 @@ function formatCareerClusters(value, fallback = "") {
   return clusters.length ? clusters.join(", ") : fallback;
 }
 
+function isValidCareerCluster(value) {
+  return CAREER_CLUSTER_VALUE_SET.has(String(value || "").trim());
+}
+
 function toFallbackClusterName(fileName) {
   return path.basename(fileName, ".csv").replace(/_/g, " ");
 }
@@ -167,7 +174,9 @@ function loadCareerClusterMap(clusterDir = CAREER_CLUSTER_DIR) {
 
 module.exports = {
   CAREER_CLUSTER_TRANSLATIONS,
+  CAREER_CLUSTER_VALUES,
   formatCareerClusters,
+  isValidCareerCluster,
   loadCareerClusterMap,
   normalizeCareerClusters,
 };

@@ -23,6 +23,10 @@ const UserSchema = new mongoose.Schema({
         enum: ["student", "admin"],
         default: "student"
     },
+    is_active: {
+        type: Boolean,
+        default: true,
+    },
     refreshTokenHash: {
         type: String,
         default: null,

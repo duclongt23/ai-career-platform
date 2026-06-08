@@ -41,6 +41,23 @@ const emptyMapping = {
   evidence_strength: "medium",
 };
 
+function createEmptyQuestion() {
+  return {
+    _id: `new-${Date.now()}`,
+    _isNew: true,
+    question_id: "",
+    target_type: "ability",
+    target_elements: [{ ...emptyTargetElement }],
+    question_style: "behavioral",
+    difficulty_level: "easy",
+    selection_mode: "single",
+    question_purpose: "",
+    question: "",
+    is_active: true,
+    answers: Array.from({ length: 4 }, () => ({ ...emptyAnswer, mappings: [] })),
+  };
+}
+
 function elementSearchKey(questionId, elementIndex) {
   return `${questionId}:${elementIndex}`;
 }
@@ -239,6 +256,18 @@ function AdminCoreQuiz() {
     } finally {
       setLoading(false);
     }
+  };
+
+  const addQuestion = () => {
+    setQuestions((current) =>
+      current.some((question) => question._isNew)
+        ? current
+        : [createEmptyQuestion(), ...current]
+    );
+    setCurrentPage(1);
+    setMessage("");
+    setError("");
+    window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
   const updateQuestion = (id, updater) => {
@@ -485,18 +514,62 @@ function AdminCoreQuiz() {
     setSavingIds((current) => ({ ...current, [question._id]: true }));
 
     try {
-      const res = await api.put(
-        `/admin/core-quiz/questions/${question._id}`,
-        buildPayload(question)
-      );
+      const res = question._isNew
+        ? await api.post("/admin/core-quiz/questions", buildPayload(question))
+        : await api.put(
+            `/admin/core-quiz/questions/${question._id}`,
+            buildPayload(question)
+          );
 
       updateQuestion(question._id, () => normalizeQuestion(res.data.question));
-      setMessage(`Da luu cau hoi ${res.data.question.question_id}.`);
+      setMessage(
+        question._isNew
+          ? `Da them cau hoi ${res.data.question.question_id}.`
+          : `Da luu cau hoi ${res.data.question.question_id}.`
+      );
     } catch (err) {
       setError(
         err.response?.data?.error ||
           err.response?.data?.message ||
           "Luu cau hoi that bai."
+      );
+    } finally {
+      setSavingIds((current) => ({ ...current, [question._id]: false }));
+    }
+  };
+
+  const deleteQuestion = async (question) => {
+    if (question._isNew) {
+      setQuestions((current) =>
+        current.filter((currentQuestion) => currentQuestion._id !== question._id)
+      );
+      return;
+    }
+
+    const confirmed = window.confirm(
+      `Ban co chac muon xoa cau hoi ${question.question_id}?`
+    );
+
+    if (!confirmed) return;
+
+    setMessage("");
+    setError("");
+    setSavingIds((current) => ({ ...current, [question._id]: true }));
+
+    try {
+      const res = await api.delete(`/admin/core-quiz/questions/${question._id}`);
+
+      setQuestions((current) =>
+        current.filter((currentQuestion) => currentQuestion._id !== question._id)
+      );
+      setMessage(
+        `Da xoa cau hoi ${question.question_id}. Cap nhat ${res.data.affectedProfiles || 0} ho so hoc sinh.`
+      );
+    } catch (err) {
+      setError(
+        err.response?.data?.error ||
+          err.response?.data?.message ||
+          "Xoa cau hoi that bai."
       );
     } finally {
       setSavingIds((current) => ({ ...current, [question._id]: false }));
@@ -579,6 +652,9 @@ function AdminCoreQuiz() {
         </div>
 
         <div className="admin-core-toolbar-actions">
+          <button type="button" onClick={addQuestion}>
+            Them cau hoi
+          </button>
           <button type="button" className="secondary" onClick={fetchQuestions}>
             Tai lai
           </button>
@@ -595,23 +671,34 @@ function AdminCoreQuiz() {
             <div className="admin-question-heading">
               <div>
                 <span>Cau {pageStart + visibleQuestionIndex + 1}</span>
-                <h2>{question.question_id}</h2>
+                <h2>{question.question_id || "Cau hoi moi"}</h2>
               </div>
 
-              <label className="admin-toggle">
-                <input
-                  type="checkbox"
-                  checked={Boolean(question.is_active)}
-                  onChange={(e) =>
-                    updateQuestionField(
-                      question._id,
-                      "is_active",
-                      e.target.checked
-                    )
-                  }
-                />
-                Active
-              </label>
+              <div className="admin-core-toolbar-actions">
+                <label className="admin-toggle">
+                  <input
+                    type="checkbox"
+                    checked={Boolean(question.is_active)}
+                    onChange={(e) =>
+                      updateQuestionField(
+                        question._id,
+                        "is_active",
+                        e.target.checked
+                      )
+                    }
+                  />
+                  Active
+                </label>
+
+                <button
+                  type="button"
+                  className="danger"
+                  disabled={Boolean(savingIds[question._id])}
+                  onClick={() => deleteQuestion(question)}
+                >
+                  Xoa cau hoi
+                </button>
+              </div>
             </div>
 
             <div className="admin-core-grid">

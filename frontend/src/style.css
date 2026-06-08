@@ -2082,7 +2082,9 @@ button:disabled {
   margin-bottom: 24px;
 }
 
-.admin-careers-page {
+.admin-careers-page,
+.admin-elements-page,
+.admin-users-page {
   max-width: 1180px;
   margin: 0 auto;
 }
@@ -2096,7 +2098,11 @@ button:disabled {
 
 .admin-career-filter {
   align-items: end;
-  grid-template-columns: minmax(240px, 1fr) minmax(180px, 0.35fr) auto;
+  grid-template-columns: minmax(240px, 1fr) repeat(2, minmax(160px, 0.35fr)) auto;
+}
+
+.admin-user-filter {
+  grid-template-columns: minmax(240px, 1fr) repeat(2, minmax(160px, 0.35fr)) auto auto;
 }
 
 .admin-career-grid label,
@@ -2106,7 +2112,9 @@ button:disabled {
   margin-top: 0;
 }
 
-.admin-careers-page .admin-form form > label {
+.admin-careers-page .admin-form form > label,
+.admin-elements-page .admin-form form > label,
+.admin-users-page .admin-form form > label {
   display: grid;
   gap: 7px;
   margin-top: 0;
@@ -2114,15 +2122,100 @@ button:disabled {
 
 .admin-careers-page input,
 .admin-careers-page select,
-.admin-careers-page textarea {
+.admin-careers-page textarea,
+.admin-elements-page input,
+.admin-elements-page select,
+.admin-elements-page textarea,
+.admin-users-page input,
+.admin-users-page select,
+.admin-users-page textarea {
   min-width: 0;
   width: 100%;
 }
 
-.admin-careers-page textarea {
+.admin-careers-page textarea,
+.admin-elements-page textarea,
+.admin-users-page textarea {
   line-height: 1.5;
   min-height: 128px;
   resize: vertical;
+}
+
+.admin-cluster-dropdown {
+  position: relative;
+}
+
+.admin-cluster-trigger {
+  align-items: center;
+  background: white;
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  color: #111827;
+  display: flex;
+  gap: 12px;
+  justify-content: space-between;
+  min-height: 44px;
+  padding: 10px 12px;
+  text-align: left;
+  width: 100%;
+}
+
+.admin-cluster-trigger span {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.admin-cluster-trigger small {
+  color: #6b7280;
+  flex: 0 0 auto;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.admin-cluster-menu {
+  background: white;
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  box-shadow: 0 12px 24px rgba(15, 23, 42, 0.12);
+  display: grid;
+  left: 0;
+  margin-top: 6px;
+  max-height: 260px;
+  overflow: auto;
+  padding: 6px;
+  position: absolute;
+  right: 0;
+  z-index: 8;
+}
+
+.admin-career-grid .admin-cluster-option {
+  align-items: center;
+  border-radius: 6px;
+  cursor: pointer;
+  display: grid;
+  gap: 9px;
+  grid-template-columns: 18px minmax(0, 1fr);
+  margin: 0;
+  padding: 9px 10px;
+}
+
+.admin-career-grid .admin-cluster-option:hover {
+  background: #eef2ff;
+}
+
+.admin-career-grid .admin-cluster-option input {
+  accent-color: #2563eb;
+  height: 16px;
+  margin: 0;
+  width: 16px;
+}
+
+.admin-cluster-option span {
+  min-width: 0;
+  overflow-wrap: anywhere;
 }
 
 .admin-career-toggles {
@@ -2335,6 +2428,23 @@ button.danger {
 
 .admin-toggle input {
   width: auto;
+}
+
+.admin-career-grid .admin-user-active-toggle {
+  align-items: center;
+  align-self: end;
+  display: inline-flex;
+  gap: 10px;
+  justify-content: flex-start;
+  min-height: 44px;
+}
+
+.admin-career-grid .admin-user-active-toggle input[type="checkbox"] {
+  accent-color: #2563eb;
+  flex: 0 0 18px;
+  height: 18px;
+  margin: 0;
+  width: 18px;
 }
 
 .admin-core-grid {

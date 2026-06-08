@@ -1,7 +1,8 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import api from "../api/axios";
 import {
+  CAREER_CLUSTER_OPTIONS,
   formatCareerClusters,
   normalizeCareerClusters,
 } from "../utils/careerCluster";
@@ -37,7 +38,7 @@ const emptyForm = {
   title_vi: "",
   aliases: "",
   description_vi: "",
-  careerCluster: "",
+  careerCluster: [],
   riasecCode: "",
   vietnam_relevance: 0.5,
   is_active: true,
@@ -73,7 +74,7 @@ function normalizeCareerForForm(career) {
     title_vi: career.title_vi || "",
     aliases: formatAliases(career.aliases),
     description_vi: career.description_vi || "",
-    careerCluster: formatCareerClusters(career.careerCluster),
+    careerCluster: normalizeCareerClusters(career.careerCluster),
     riasecCode: career.riasecCode || "",
     vietnam_relevance: career.vietnam_relevance ?? 0.5,
     is_active: career.is_active !== false,
@@ -134,6 +135,8 @@ function AdminCareers() {
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
   const [elementSearches, setElementSearches] = useState({});
+  const [clusterDropdownOpen, setClusterDropdownOpen] = useState(false);
+  const clusterDropdownRef = useRef(null);
 
   const user = useMemo(
     () => JSON.parse(localStorage.getItem("user") || "{}"),
@@ -190,12 +193,14 @@ function AdminCareers() {
       if (
         target &&
         typeof target.closest === "function" &&
-        target.closest(".admin-element-picker")
+        (target.closest(".admin-element-picker") ||
+          clusterDropdownRef.current?.contains(target))
       ) {
         return;
       }
 
       setElementSearches({});
+      setClusterDropdownOpen(false);
     };
 
     document.addEventListener("mousedown", handleOutsidePickerClick);
@@ -212,6 +217,20 @@ function AdminCareers() {
       ...current,
       [field]: value,
     }));
+  };
+
+  const toggleCareerCluster = (cluster) => {
+    setForm((current) => {
+      const currentClusters = normalizeCareerClusters(current.careerCluster);
+      const nextClusters = currentClusters.includes(cluster)
+        ? currentClusters.filter((item) => item !== cluster)
+        : [...currentClusters, cluster];
+
+      return {
+        ...current,
+        careerCluster: nextClusters,
+      };
+    });
   };
 
   const updateElement = (index, field, value) => {
@@ -333,6 +352,7 @@ function AdminCareers() {
 
       setForm(emptyForm);
       setEditingId(null);
+      setClusterDropdownOpen(false);
       await fetchCareers(pagination.page, filters);
     } catch (err) {
       setError(err.response?.data?.error || err.response?.data?.message || "Luu career that bai.");
@@ -370,12 +390,18 @@ function AdminCareers() {
     setEditingId(null);
     setForm(emptyForm);
     setElementSearches({});
+    setClusterDropdownOpen(false);
   };
 
   const handleFilterSubmit = (event) => {
     event.preventDefault();
     fetchCareers(1, filters);
   };
+
+  const selectedCareerClusters = normalizeCareerClusters(form.careerCluster);
+  const careerClusterLabel = selectedCareerClusters.length
+    ? formatCareerClusters(selectedCareerClusters)
+    : "Chọn nhóm nghề";
 
   return (
     <div className="admin-careers-page">
@@ -405,14 +431,32 @@ function AdminCareers() {
 
             <label>
               Nhóm nghề
-              <input
-                name="careerCluster"
-                value={form.careerCluster}
-                onChange={(event) =>
-                  updateFormField("careerCluster", event.target.value)
-                }
-                placeholder="Information Technology"
-              />
+              <div className="admin-cluster-dropdown" ref={clusterDropdownRef}>
+                <button
+                  type="button"
+                  className="admin-cluster-trigger"
+                  aria-expanded={clusterDropdownOpen}
+                  onClick={() => setClusterDropdownOpen((current) => !current)}
+                >
+                  <span>{careerClusterLabel}</span>
+                  <small>{selectedCareerClusters.length || 0} đã chọn</small>
+                </button>
+
+                {clusterDropdownOpen && (
+                  <div className="admin-cluster-menu">
+                    {CAREER_CLUSTER_OPTIONS.map((cluster) => (
+                      <label className="admin-cluster-option" key={cluster}>
+                        <input
+                          type="checkbox"
+                          checked={selectedCareerClusters.includes(cluster)}
+                          onChange={() => toggleCareerCluster(cluster)}
+                        />
+                        <span>{cluster}</span>
+                      </label>
+                    ))}
+                  </div>
+                )}
+              </div>
             </label>
 
             <label>

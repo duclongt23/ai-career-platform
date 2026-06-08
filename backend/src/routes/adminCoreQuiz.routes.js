@@ -1,7 +1,12 @@
 const express = require("express");
 const Element = require("../models/Element");
 const ProfilingQuestion = require("../models/ProfilingQuestion");
+const StudentProfile = require("../models/StudentProfile");
 const { protect, adminOnly } = require("../middleware/auth.middleware");
+const {
+  ELEMENT_SCORE_ALGORITHM_VERSION,
+  calculateProfileElementScores,
+} = require("../services/profileElementScore.service");
 const {
   normalizeQuestionPayload,
   validateQuestionElements,
@@ -134,6 +139,28 @@ router.get("/questions", protect, adminOnly, async (req, res) => {
   }
 });
 
+router.post("/questions", protect, adminOnly, async (req, res) => {
+  try {
+    const editablePayload = pickEditableQuestionFields(req.body);
+    const payload = normalizeQuestionPayload(editablePayload);
+    const question = new ProfilingQuestion(payload);
+
+    await validateQuestionElements(question);
+    await question.save();
+    const elementNameMap = await getElementNameMap([question]);
+
+    res.status(201).json({
+      message: "Profiling question created successfully",
+      question: serializeQuestion(question, elementNameMap),
+    });
+  } catch (error) {
+    res.status(400).json({
+      message: "Failed to create profiling question",
+      error: error.message,
+    });
+  }
+});
+
 router.put("/questions/:id", protect, adminOnly, async (req, res) => {
   try {
     const editablePayload = pickEditableQuestionFields(req.body);
@@ -160,6 +187,51 @@ router.put("/questions/:id", protect, adminOnly, async (req, res) => {
   } catch (error) {
     res.status(400).json({
       message: "Failed to update profiling question",
+      error: error.message,
+    });
+  }
+});
+
+router.delete("/questions/:id", protect, adminOnly, async (req, res) => {
+  try {
+    const question = await ProfilingQuestion.findById(req.params.id).lean();
+
+    if (!question) {
+      return res.status(404).json({
+        message: "Profiling question not found",
+      });
+    }
+
+    await ProfilingQuestion.deleteOne({ _id: question._id });
+
+    const affectedProfiles = await StudentProfile.find({
+      "coreQuizAnswers.questionId": question.question_id,
+    }).select("coreQuizAnswers aiDiscoveries");
+
+    await Promise.all(
+      affectedProfiles.map(async (profile) => {
+        const coreQuizAnswers = (profile.coreQuizAnswers || []).filter(
+          (answer) => answer.questionId !== question.question_id
+        );
+        const elementScores = await calculateProfileElementScores({
+          coreQuizAnswers,
+          aiDiscoveries: profile.aiDiscoveries || [],
+        });
+
+        profile.coreQuizAnswers = coreQuizAnswers;
+        profile.elementScores = elementScores;
+        profile.elementScoreVersion = ELEMENT_SCORE_ALGORITHM_VERSION;
+        await profile.save();
+      })
+    );
+
+    res.json({
+      message: "Profiling question deleted successfully",
+      affectedProfiles: affectedProfiles.length,
+    });
+  } catch (error) {
+    res.status(500).json({
+      message: "Failed to delete profiling question",
       error: error.message,
     });
   }

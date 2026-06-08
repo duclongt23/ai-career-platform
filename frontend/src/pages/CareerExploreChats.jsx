@@ -61,39 +61,54 @@ function CareerExploreChats() {
   }, [id, navigate, token]);
 
   useEffect(() => {
-    loadChats();
+    const timeoutId = window.setTimeout(() => {
+      loadChats();
+    }, 0);
+
+    return () => window.clearTimeout(timeoutId);
   }, [loadChats]);
 
   useEffect(() => {
-    if (!id) {
-      setCareer(null);
-      setLoadingCareer(false);
-      return undefined;
-    }
-
     let ignore = false;
 
-    setLoadingCareer(true);
-    api
-      .get(`/careers/${id}`)
-      .then((response) => {
-        if (!ignore) {
-          setCareer(response.data);
-        }
-      })
-      .catch(() => {
+    if (!id) {
+      const timeoutId = window.setTimeout(() => {
         if (!ignore) {
           setCareer(null);
-        }
-      })
-      .finally(() => {
-        if (!ignore) {
           setLoadingCareer(false);
         }
-      });
+      }, 0);
+
+      return () => {
+        ignore = true;
+        window.clearTimeout(timeoutId);
+      };
+    }
+
+    const timeoutId = window.setTimeout(() => {
+      setLoadingCareer(true);
+      api
+        .get(`/careers/${id}`)
+        .then((response) => {
+          if (!ignore) {
+            setCareer(response.data);
+          }
+        })
+        .catch(() => {
+          if (!ignore) {
+            setCareer(null);
+          }
+        })
+        .finally(() => {
+          if (!ignore) {
+            setLoadingCareer(false);
+          }
+        });
+    }, 0);
 
     return () => {
       ignore = true;
+      window.clearTimeout(timeoutId);
     };
   }, [id]);
 
