@@ -17,6 +17,7 @@ const {
 const {
   searchVietnamJobMarket,
 } = require("../services/webSearch.service");
+const { formatCareerClusters } = require("../utils/careerCluster");
 
 const MAX_PROFILE_ELEMENTS = 8;
 const MAX_STORED_CHAT_MESSAGES = 80;
@@ -276,7 +277,7 @@ async function listCareerExploreChats(req, res) {
           careerId: String(session.careerId),
           title: `Tìm hiểu về ngành ${careerTitle}`,
           careerTitle,
-          careerCluster: career?.careerCluster || "",
+          careerCluster: formatCareerClusters(career?.careerCluster),
           lastMessage: lastMessage?.content || "",
           messageCount: session.messages?.length || 0,
           updatedAt: session.updatedAt,

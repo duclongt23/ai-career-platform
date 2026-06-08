@@ -1,4 +1,5 @@
 const mongoose = require("mongoose");
+const { normalizeCareerClusters } = require("../utils/careerCluster");
 
 const careerElementSchema = new mongoose.Schema(
   {
@@ -64,8 +65,9 @@ const careerSchema = new mongoose.Schema(
     },
 
     careerCluster: {
-      type: String,
-      default: "",
+      type: [String],
+      default: [],
+      set: normalizeCareerClusters,
     },
 
     riasecCode: {

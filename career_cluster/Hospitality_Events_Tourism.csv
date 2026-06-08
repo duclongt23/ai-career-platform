@@ -1,0 +1,54 @@
+Sub-Cluster,Code,Occupation
+Accommodations,39-6011.00,Baggage Porters and Bellhops
+Accommodations,39-6012.00,Concierges
+Accommodations,37-1011.00,First-Line Supervisors of Housekeeping and Janitorial Workers
+Accommodations,43-4081.00,"Hotel, Motel, and Resort Desk Clerks"
+Accommodations,11-9081.00,Lodging Managers
+Accommodations,37-2012.00,Maids and Housekeeping Cleaners
+Accommodations,43-4171.00,Receptionists and Information Clerks
+Conferences & Events,13-1131.00,Fundraisers
+Conferences & Events,11-2033.00,Fundraising Managers
+Conferences & Events,13-1121.00,"Meeting, Convention, and Event Planners"
+Culinary & Food Services,51-3011.00,Bakers
+Culinary & Food Services,35-3023.01,Baristas
+Culinary & Food Services,35-3011.00,Bartenders
+Culinary & Food Services,35-1011.00,Chefs and Head Cooks
+Culinary & Food Services,35-2019.00,"Cooks, All Other"
+Culinary & Food Services,35-2011.00,"Cooks, Fast Food"
+Culinary & Food Services,35-2012.00,"Cooks, Institution and Cafeteria"
+Culinary & Food Services,35-2013.00,"Cooks, Private Household"
+Culinary & Food Services,35-2014.00,"Cooks, Restaurant"
+Culinary & Food Services,35-2015.00,"Cooks, Short Order"
+Culinary & Food Services,35-9011.00,Dining Room and Cafeteria Attendants and Bartender Helpers
+Culinary & Food Services,35-9021.00,Dishwashers
+Culinary & Food Services,35-3023.00,Fast Food and Counter Workers
+Culinary & Food Services,35-1012.00,First-Line Supervisors of Food Preparation and Serving Workers
+Culinary & Food Services,35-9099.00,"Food Preparation and Serving Related Workers, All Other"
+Culinary & Food Services,35-2021.00,Food Preparation Workers
+Culinary & Food Services,11-9051.00,Food Service Managers
+Culinary & Food Services,35-9031.00,"Hosts and Hostesses, Restaurant, Lounge, and Coffee Shop"
+Culinary & Food Services,35-3031.00,Waiters and Waitresses
+Travel & Leisure,39-3091.00,Amusement and Recreation Attendants
+Travel & Leisure,49-9091.00,"Coin, Vending, and Amusement Machine Servicers and Repairers"
+Travel & Leisure,41-2021.00,Counter and Rental Clerks
+Travel & Leisure,11-9072.00,"Entertainment and Recreation Managers, Except Gambling"
+Travel & Leisure,39-1014.00,"First-Line Supervisors of Entertainment and Recreation Workers, Except Gambling Services"
+Travel & Leisure,39-1013.00,First-Line Supervisors of Gambling Services Workers
+Travel & Leisure,37-1012.00,"First-Line Supervisors of Landscaping, Lawn Service, and Groundskeeping Workers"
+Travel & Leisure,39-3012.00,Gambling and Sports Book Writers and Runners
+Travel & Leisure,43-3041.00,Gambling Cage Workers
+Travel & Leisure,41-2012.00,Gambling Change Persons and Booth Cashiers
+Travel & Leisure,39-3011.00,Gambling Dealers
+Travel & Leisure,11-9071.00,Gambling Managers
+Travel & Leisure,39-3019.00,"Gambling Service Workers, All Other"
+Travel & Leisure,37-2011.00,"Janitors and Cleaners, Except Maids and Housekeeping Cleaners"
+Travel & Leisure,37-3011.00,Landscaping and Groundskeeping Workers
+Travel & Leisure,25-4013.00,Museum Technicians and Conservators
+Travel & Leisure,53-6061.00,Passenger Attendants
+Travel & Leisure,39-9032.00,Recreation Workers
+Travel & Leisure,43-4181.00,Reservation and Transportation Ticket Agents and Travel Clerks
+Travel & Leisure,39-7011.00,Tour Guides and Escorts
+Travel & Leisure,41-3041.00,Travel Agents
+Travel & Leisure,39-7012.00,Travel Guides
+Travel & Leisure,37-3013.00,Tree Trimmers and Pruners
+Travel & Leisure,39-3031.00,"Ushers, Lobby Attendants, and Ticket Takers"

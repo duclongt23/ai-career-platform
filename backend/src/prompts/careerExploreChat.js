@@ -1,4 +1,5 @@
 const MAX_PROFILE_ELEMENTS = 8;
+const { formatCareerClusters } = require("../utils/careerCluster");
 
 function formatProfile({ profile, topElements = [] }) {
   const lines = [
@@ -72,7 +73,7 @@ ${formatProfile({ profile, topElements })}
 NGHỀ ĐANG KHÁM PHÁ
 - Tên nghề: ${careerTitle}
 - Tên tiếng Anh: ${career.title_en || "Chưa cập nhật"}
-- Nhóm nghề: ${career.careerCluster || "Chưa cập nhật"}
+- Nhóm nghề: ${formatCareerClusters(career.careerCluster, "Chưa cập nhật")}
 - Mô tả: ${career.description_vi || "Chưa có mô tả."}
 
 KẾT QUẢ WEB CHO LƯỢT HIỆN TẠI

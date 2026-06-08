@@ -8,6 +8,8 @@
     "migrate:optimized-schemas": "node src/scripts/migrateOptimizedSchemas.js",
     "seed:careers": "node src/scripts/seedCareers.js",
     "seed:careers:dry-run": "node src/scripts/seedCareers.js --dry-run",
+    "update:career-clusters": "node src/scripts/updateCareerClusters.js",
+    "update:career-clusters:dry-run": "node src/scripts/updateCareerClusters.js --dry-run",
     "seed:elements": "node src/scripts/seedElements.js",
     "seed:profiling": "node src/scripts/seedProfilingQuestions.js"
   },

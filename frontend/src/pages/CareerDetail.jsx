@@ -11,8 +11,36 @@ import {
 import "@xyflow/react/dist/style.css";
 import api from "../api/axios";
 import JobMatchCompareChart from "../components/analytics/JobMatchCompareChart";
+import { normalizeCareerClusters } from "../utils/careerCluster";
 
-const DEFAULT_VISIBLE_ELEMENT_COUNT = 10;
+const DEFAULT_VISIBLE_ELEMENT_COUNT = 5;
+const MIN_VISIBLE_ELEMENT_IMPORTANCE = 0.5;
+const RIASEC_CODE_INFO = {
+  R: {
+    title: "Realistic - Kỹ thuật",
+    description: "Thích hoạt động thực tế, công cụ, máy móc hoặc môi trường ngoài trời.",
+  },
+  I: {
+    title: "Investigative - Nghiên cứu",
+    description: "Thích quan sát, phân tích, tìm nguyên nhân và giải quyết vấn đề.",
+  },
+  A: {
+    title: "Artistic - Nghệ thuật",
+    description: "Thích sáng tạo, diễn đạt ý tưởng, thiết kế, viết hoặc biểu diễn.",
+  },
+  S: {
+    title: "Social - Xã hội",
+    description: "Thích hỗ trợ, hướng dẫn, đào tạo, chăm sóc hoặc làm việc với con người.",
+  },
+  E: {
+    title: "Enterprising - Quản lý",
+    description: "Thích thuyết phục, lãnh đạo, kinh doanh và tạo ảnh hưởng.",
+  },
+  C: {
+    title: "Conventional - Nghiệp vụ",
+    description: "Thích quy trình, dữ liệu, hồ sơ và các nhiệm vụ cần sự chính xác.",
+  },
+};
 const ELEMENT_GROUPS = [
   { type: "knowledge", label: "Kiến thức" },
   { type: "essential_skill", label: "Kỹ năng thiết yếu" },
@@ -27,6 +55,18 @@ const CAREER_EXPLORE_CHAT_STORAGE_PREFIX = "careerExploreChat:v1:";
 
 function getCareerExploreChatStorageKey(careerId) {
   return `${CAREER_EXPLORE_CHAT_STORAGE_PREFIX}${careerId}`;
+}
+
+function getRiasecCodeDescription(code = "") {
+  return String(code)
+    .toUpperCase()
+    .split("")
+    .map((letter) => {
+      const info = RIASEC_CODE_INFO[letter];
+      return info ? `${letter} - ${info.title}: ${info.description}` : null;
+    })
+    .filter(Boolean)
+    .join(" ");
 }
 
 function writeCareerExploreChatSession(
@@ -623,10 +663,14 @@ function CareerDetail() {
 
   const title = career.title_vi || career.name || career.title_en;
   const description = career.description_vi || career.description;
+  const careerClusters = normalizeCareerClusters(career.careerCluster || career.field);
   const elements = career.elements || [];
+  const importantElements = elements.filter(
+    (element) => Number(element.importance || 0) > MIN_VISIBLE_ELEMENT_IMPORTANCE
+  );
   const elementGroups = ELEMENT_GROUPS.map((group) => ({
     ...group,
-    elements: elements
+    elements: importantElements
       .filter((element) => element.type === group.type)
       .sort((a, b) => b.importance - a.importance),
   })).filter((group) => group.elements.length > 0);
@@ -644,28 +688,15 @@ function CareerDetail() {
 
       <h1>{title}</h1>
 
-      {(career.careerCluster || career.field) && (
-        <span className="tag">{career.careerCluster || career.field}</span>
-      )}
+      {careerClusters.map((cluster) => (
+        <span className="tag" key={cluster}>
+          {cluster}
+        </span>
+      ))}
 
       {career.title_vi && <p className="muted">{career.title_en}</p>}
       <p>{description || "Đang cập nhật mô tả nghề nghiệp."}</p>
 
-      {career.riasecCode && (
-        <section>
-          <h3>Mã RIASEC</h3>
-          <p>{career.riasecCode}</p>
-        </section>
-      )}
-
-      {token && <CareerFitSection careerId={id} title={title} />}
-      {token && elements.length > 0 && (
-        <JobMatchCompareChart
-          careerElements={elements}
-          profileElementScores={profileElementScores}
-        />
-      )}
-      {token && <CareerDayInLifeSection careerId={id} title={title} />}
       {token && (
         <section className="career-explore-chat-cta">
           <div>
@@ -681,7 +712,29 @@ function CareerDetail() {
         </section>
       )}
 
-      {elements.length > 0 && (
+      {career.riasecCode && (
+        <section className="career-riasec-summary">
+          <p className="career-riasec-code">
+            <span>RIASEC:</span> <strong>{career.riasecCode}</strong>
+          </p>
+          {getRiasecCodeDescription(career.riasecCode) && (
+            <p className="career-riasec-description">
+              {getRiasecCodeDescription(career.riasecCode)}
+            </p>
+          )}
+        </section>
+      )}
+
+      {token && <CareerFitSection careerId={id} title={title} />}
+      {token && elements.length > 0 && (
+        <JobMatchCompareChart
+          careerElements={elements}
+          profileElementScores={profileElementScores}
+        />
+      )}
+      {token && <CareerDayInLifeSection careerId={id} title={title} />}
+
+      {importantElements.length > 0 && (
         <section>
           <h3>Năng lực và kỹ năng quan trọng</h3>
           <div className="career-element-groups">

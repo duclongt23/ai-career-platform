@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { Link, Navigate, useNavigate, useParams } from "react-router-dom";
 import api from "../api/axios";
 import { CareerExploreChatSection } from "./CareerDetail";
+import { formatCareerClusters } from "../utils/careerCluster";
 
 function formatUpdatedAt(value) {
   if (!value) {
@@ -130,7 +131,9 @@ function CareerExploreChats() {
               to={`/career-explore-chats/${chat.careerId}`}
             >
               <strong>{chat.title}</strong>
-              {chat.careerCluster && <span>{chat.careerCluster}</span>}
+              {formatCareerClusters(chat.careerCluster) && (
+                <span>{formatCareerClusters(chat.careerCluster)}</span>
+              )}
               {chat.lastMessage && <p>{chat.lastMessage}</p>}
               <small>
                 {chat.messageCount} tin nhắn · {formatUpdatedAt(chat.updatedAt)}

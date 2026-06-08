@@ -80,6 +80,41 @@ function toWeightMap(elements, scoreField) {
   return weights;
 }
 
+function escapeRegExp(value) {
+  return String(value || "").replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+async function addCareerElementNames(careers) {
+  const codes = [
+    ...new Set(
+      careers
+        .flatMap((career) => career.elements || [])
+        .map((element) => element.code)
+        .filter(Boolean)
+    ),
+  ];
+
+  if (!codes.length) {
+    return careers;
+  }
+
+  const elements = await Element.find({ code: { $in: codes } })
+    .select("code name_vi name_en")
+    .lean();
+  const elementNameMap = new Map(
+    elements.map((element) => [element.code, element])
+  );
+
+  return careers.map((career) => ({
+    ...career,
+    elements: (career.elements || []).map((element) => ({
+      ...element,
+      name_vi: elementNameMap.get(element.code)?.name_vi || "",
+      name_en: elementNameMap.get(element.code)?.name_en || "",
+    })),
+  }));
+}
+
 async function getCurrentElementScores(profile) {
   if (profile.elementScoreVersion === ELEMENT_SCORE_ALGORITHM_VERSION) {
     return profile.elementScores;
@@ -421,6 +456,96 @@ router.post(
 
 router.get("/explore-chats/me", protect, listCareerExploreChats);
 
+router.get("/admin/elements", protect, adminOnly, async (req, res) => {
+  try {
+    const { q, type } = req.query;
+    const query = {};
+
+    if (type) {
+      query.type = type;
+    }
+
+    if (q) {
+      const searchPattern = { $regex: escapeRegExp(q), $options: "i" };
+
+      query.$or = [
+        { code: searchPattern },
+        { name_vi: searchPattern },
+        { name_en: searchPattern },
+      ];
+    }
+
+    const elements = await Element.find(query)
+      .select("code name_vi name_en type")
+      .sort({ type: 1, name_vi: 1, name_en: 1 })
+      .limit(12)
+      .lean();
+
+    res.json({ elements });
+  } catch (error) {
+    res.status(500).json({
+      message: "Failed to search elements",
+      error: error.message,
+    });
+  }
+});
+
+router.get("/admin", protect, adminOnly, async (req, res) => {
+  try {
+    const { search, status } = req.query;
+    const page = Math.max(Number.parseInt(req.query.page, 10) || 1, 1);
+    const limit = Math.min(
+      Math.max(Number.parseInt(req.query.limit, 10) || 50, 1),
+      200
+    );
+    const filter = {};
+
+    if (search) {
+      const searchPattern = { $regex: escapeRegExp(search), $options: "i" };
+
+      filter.$or = [
+        { onetCode: searchPattern },
+        { title_vi: searchPattern },
+        { title_en: searchPattern },
+        { aliases: searchPattern },
+        { careerCluster: searchPattern },
+      ];
+    }
+
+    if (status === "active") {
+      filter.is_active = true;
+    } else if (status === "inactive") {
+      filter.is_active = false;
+    } else if (status === "student_suitable") {
+      filter.student_suitable = true;
+    }
+
+    const [careers, total] = await Promise.all([
+      Career.find(filter)
+        .sort({ updatedAt: -1, title_vi: 1, title_en: 1 })
+        .skip((page - 1) * limit)
+        .limit(limit)
+        .lean(),
+      Career.countDocuments(filter),
+    ]);
+
+    res.json({
+      careers: await addCareerElementNames(careers),
+      pagination: {
+        page,
+        limit,
+        total,
+        totalPages: Math.ceil(total / limit),
+      },
+    });
+  } catch (error) {
+    res.status(500).json({
+      message: "Server error",
+      error: error.message,
+    });
+  }
+});
+
 router.get("/", async (req, res) => {
   try {
     const { search, field } = req.query;
@@ -435,7 +560,7 @@ router.get("/", async (req, res) => {
     };
 
     if (search) {
-      const escapedSearch = String(search).replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+      const escapedSearch = escapeRegExp(search);
       const searchPattern = { $regex: escapedSearch, $options: "i" };
 
       filter.$or = [
@@ -447,7 +572,7 @@ router.get("/", async (req, res) => {
     }
 
     if (field) {
-      const escapedField = String(field).replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+      const escapedField = escapeRegExp(field);
       filter.careerCluster = { $regex: escapedField, $options: "i" };
     }
 

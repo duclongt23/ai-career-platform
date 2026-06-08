@@ -1,4 +1,6 @@
-const DONUT_COLORS = [
+import { normalizeCareerClusters } from "../../utils/careerCluster";
+
+const INDUSTRY_BAR_COLORS = [
   "#2563eb",
   "#0f766e",
   "#f97316",
@@ -7,132 +9,89 @@ const DONUT_COLORS = [
   "#0891b2",
   "#65a30d",
   "#9333ea",
+  "#ca8a04",
+  "#db2777",
+  "#475569",
+  "#16a34a",
 ];
 
-const getClusterName = (career) =>
-  career.careerCluster || career.field || "Chua phan nhom";
+const getClusterNames = (career) => {
+  const clusters = normalizeCareerClusters(career.careerCluster || career.field);
 
-function polarToCartesian(center, radius, angle) {
-  const radians = ((angle - 90) * Math.PI) / 180;
-
-  return {
-    x: center + radius * Math.cos(radians),
-    y: center + radius * Math.sin(radians),
-  };
-}
-
-function describeArc(center, radius, startAngle, endAngle) {
-  const start = polarToCartesian(center, radius, endAngle);
-  const end = polarToCartesian(center, radius, startAngle);
-  const largeArcFlag = endAngle - startAngle <= 180 ? "0" : "1";
-
-  return [
-    "M",
-    start.x,
-    start.y,
-    "A",
-    radius,
-    radius,
-    0,
-    largeArcFlag,
-    0,
-    end.x,
-    end.y,
-  ].join(" ");
-}
+  return clusters.length ? clusters : ["Chưa phân nhóm"];
+};
 
 function IndustryDonutChart({ recommendations = [] }) {
-  const total = recommendations.length;
+  const careerTotal = recommendations.length;
   const groups = Object.entries(
     recommendations.reduce((result, career) => {
-      const cluster = getClusterName(career);
-      result[cluster] = (result[cluster] || 0) + 1;
+      getClusterNames(career).forEach((cluster) => {
+        result[cluster] = (result[cluster] || 0) + 1;
+      });
       return result;
     }, {})
   )
     .map(([name, count]) => ({ name, count }))
     .sort((a, b) => b.count - a.count || a.name.localeCompare(b.name));
+  const total = groups.reduce((count, group) => count + group.count, 0);
 
-  if (total === 0 || groups.length === 0) {
+  if (careerTotal === 0 || total === 0 || groups.length === 0) {
     return null;
   }
 
-  const segments = groups.reduce(
-    (state, group, index) => {
-      const degrees = (group.count / total) * 360;
-
-      return {
-        angle: state.angle + degrees,
-        items: [
-          ...state.items,
-          {
-            ...group,
-            color: DONUT_COLORS[index % DONUT_COLORS.length],
-            isFullCircle: degrees >= 360,
-            path: describeArc(100, 72, state.angle, state.angle + degrees),
-            percent: Math.round((group.count / total) * 100),
-          },
-        ],
-      };
-    },
-    { angle: 0, items: [] }
-  ).items;
+  const segments = groups.map((group, index) => ({
+    ...group,
+    color: INDUSTRY_BAR_COLORS[index % INDUSTRY_BAR_COLORS.length],
+    percent: Math.round((group.count / total) * 100),
+  }));
+  const maxPercent = Math.max(...segments.map((segment) => segment.percent));
+  const axisMax = Math.max(50, Math.ceil(maxPercent / 10) * 10);
+  const ticks = Array.from({ length: axisMax / 10 + 1 }, (_, index) => index * 10);
 
   return (
     <section className="industry-donut-card card">
       <div className="industry-donut-heading">
         <div>
-          <span className="recommendation-eyebrow">Phan bo nhom nganh</span>
+          <span className="recommendation-eyebrow">Phân bổ nhóm ngành</span>
           <h2>15 nghề gợi ý đang nghiêng về nhóm nào?</h2>
         </div>
-        <strong>{total} nghề</strong>
       </div>
 
-      <div className="industry-donut-content">
-        <div className="industry-donut-visual" aria-label="Bieu do donut nhom nganh">
-          <svg viewBox="0 0 200 200" role="img">
-            <title>Phan bo nghe phu hop theo nhom nganh</title>
-            <circle className="industry-donut-base" cx="100" cy="100" r="72" />
-            {segments.map((segment) =>
-              segment.isFullCircle ? (
-                <circle
-                  className="industry-donut-segment"
-                  cx="100"
-                  cy="100"
-                  key={segment.name}
-                  r="72"
-                  stroke={segment.color}
-                />
-              ) : (
-                <path
-                  className="industry-donut-segment"
-                  d={segment.path}
-                  key={segment.name}
-                  stroke={segment.color}
-                />
-              )
-            )}
-            <text className="industry-donut-total" x="100" y="94" textAnchor="middle">
-              {total}
-            </text>
-            <text className="industry-donut-caption" x="100" y="114" textAnchor="middle">
-              nghe goi y
-            </text>
-          </svg>
-        </div>
-
-        <div className="industry-donut-legend">
+      <div className="industry-bar-list" aria-label="Biểu đồ thanh ngang nhóm ngành">
+        <div className="industry-bar-plot">
           {segments.map((segment) => (
-            <article key={segment.name}>
-              <span>
-                <i style={{ backgroundColor: segment.color }} />
-                {segment.name}
-              </span>
-              <strong>
-                {segment.count} nghề · {segment.percent}%
-              </strong>
+            <article className="industry-bar-row" key={segment.name}>
+              <div className="industry-bar-label">{segment.name}</div>
+              <div className="industry-bar-track">
+                {ticks.map((tick) => (
+                  <span
+                    className="industry-bar-gridline"
+                    key={tick}
+                    style={{ left: `${(tick / axisMax) * 100}%` }}
+                  />
+                ))}
+                <div
+                  className="industry-bar-fill"
+                  style={{
+                    backgroundColor: segment.color,
+                    width: `${(segment.percent / axisMax) * 100}%`,
+                  }}
+                >
+                  <span>{segment.percent}%</span>
+                </div>
+              </div>
             </article>
           ))}
+        </div>
+        <div className="industry-bar-axis" aria-hidden="true">
+          <span />
+          <div>
+            {ticks.map((tick) => (
+              <small key={tick} style={{ left: `${(tick / axisMax) * 100}%` }}>
+                {tick}%
+              </small>
+            ))}
+          </div>
         </div>
       </div>
     </section>

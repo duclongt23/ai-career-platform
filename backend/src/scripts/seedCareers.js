@@ -5,6 +5,7 @@ const dotenv = require("dotenv");
 const ExcelJS = require("exceljs");
 const Career = require("../models/Career");
 const Element = require("../models/Element");
+const { loadCareerClusterMap } = require("../utils/careerCluster");
 
 dotenv.config({ path: path.resolve(__dirname, "../../.env") });
 
@@ -221,6 +222,7 @@ function loadCareers() {
       title_en: row[columnNumbers.get("Title")],
       title_vi: row[columnNumbers.get("Tiêu đề")],
       description_vi: row[columnNumbers.get("Mô tả")],
+      careerCluster: [],
       riasecCode: "",
       elements: [],
       elementKeys: new Set(),
@@ -228,6 +230,28 @@ function loadCareers() {
   });
 
   return careers;
+}
+
+function addCareerClusters(careers) {
+  const { clusterByOnetCode, stats } = loadCareerClusterMap();
+  let matchedCount = 0;
+
+  clusterByOnetCode.forEach((careerCluster, onetCode) => {
+    const career = careers.get(onetCode);
+
+    if (!career) {
+      return;
+    }
+
+    career.careerCluster = careerCluster;
+    matchedCount += 1;
+  });
+
+  return {
+    matchedCount,
+    sourceCount: clusterByOnetCode.size,
+    stats,
+  };
 }
 
 async function addCareerElements(careers, elementCodes, source) {
@@ -358,7 +382,7 @@ function toCareerDocuments(careers) {
   return [...careers.values()].map(({ elementKeys, ...career }) => career);
 }
 
-function printStats(careers, sourceStats, riasecCount) {
+function printStats(careers, sourceStats, riasecCount, careerClusterStats) {
   const careerDocuments = toCareerDocuments(careers);
   const careersWithElements = careerDocuments.filter((career) => career.elements.length).length;
   const elementCount = careerDocuments.reduce(
@@ -371,12 +395,18 @@ function printStats(careers, sourceStats, riasecCount) {
       `${fileName}: imported ${importedCount} element weights, excluded ${excludedCount} not relevant elements.`
     );
   });
+  careerClusterStats.stats.forEach(({ fileName, clusterName, importedCount }) => {
+    console.log(`${fileName}: mapped ${importedCount} rows to "${clusterName}".`);
+  });
   console.log(
     `Prepared ${careerDocuments.length} careers and ${elementCount} element weights. ` +
       `${careersWithElements} careers have elements; ${careerDocuments.length - careersWithElements} do not.`
   );
   console.log(
     `RIASEC codes: ${riasecCount} present; ${careerDocuments.length - riasecCount} missing.`
+  );
+  console.log(
+    `Career clusters: ${careerClusterStats.matchedCount} careers matched from ${careerClusterStats.sourceCount} O*NET codes in career_cluster.`
   );
 }
 
@@ -405,6 +435,7 @@ async function seedCareers() {
   const dryRun = process.argv.includes("--dry-run");
   const careers = loadCareers();
   const elementCodes = loadElementCodes();
+  const careerClusterStats = addCareerClusters(careers);
   const sourceStats = [];
 
   for (const source of CAREER_ELEMENT_SOURCES) {
@@ -412,7 +443,7 @@ async function seedCareers() {
   }
 
   const riasecCount = await addRiasecCodes(careers);
-  printStats(careers, sourceStats, riasecCount);
+  printStats(careers, sourceStats, riasecCount, careerClusterStats);
 
   if (dryRun) {
     console.log("Dry run completed. MongoDB was not modified.");

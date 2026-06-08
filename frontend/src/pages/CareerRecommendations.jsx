@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import api from "../api/axios";
 import IndustryDonutChart from "../components/analytics/IndustryDonutChart";
+import { normalizeCareerClusters } from "../utils/careerCluster";
 
 function formatElementCode(code) {
   return String(code || "")
@@ -129,9 +130,11 @@ function CareerRecommendations() {
                 </div>
 
                 <div className="recommendation-card-title">
-                  {career.careerCluster && (
-                    <span className="tag">{career.careerCluster}</span>
-                  )}
+                  {normalizeCareerClusters(career.careerCluster).map((cluster) => (
+                    <span className="tag" key={cluster}>
+                      {cluster}
+                    </span>
+                  ))}
                   <h2>{career.title_vi || career.title_en}</h2>
                   {career.title_vi && <p className="muted">{career.title_en}</p>}
                 </div>
@@ -153,12 +156,14 @@ function CareerRecommendations() {
                   </div>
                 )}
 
-                <Link className="detail-link" to={`/careers/${career._id}`}>
-                  Khám phá nghề này
-                </Link>
-                <Link className="detail-link" to={`/careers/${career._id}/explore-chat`}>
-                  Hỏi AI về nghề này
-                </Link>
+                <div className="recommendation-card-actions">
+                  <Link className="detail-link" to={`/careers/${career._id}`}>
+                    Khám phá nghề này
+                  </Link>
+                  <Link className="detail-link" to={`/careers/${career._id}/explore-chat`}>
+                    Hỏi AI về nghề này
+                  </Link>
+                </div>
               </article>
             ))}
           </div>

@@ -371,6 +371,33 @@ button:disabled {
   margin-bottom: 8px;
 }
 
+.career-riasec-summary {
+  color: #475569;
+}
+
+.career-riasec-code {
+  margin: 0;
+  color: #0f172a;
+  font-size: 16px;
+}
+
+.career-riasec-code span {
+  font-weight: 700;
+}
+
+.career-riasec-code strong {
+  color: #1d4ed8;
+  font-weight: 800;
+}
+
+.career-riasec-description {
+  max-width: 680px;
+  margin: 6px 0 0;
+  color: #64748b;
+  font-size: 13px;
+  line-height: 1.5;
+}
+
 .recommendation-page {
   max-width: 1040px;
   margin: 0 auto;
@@ -387,7 +414,7 @@ button:disabled {
 .recommendation-eyebrow {
   display: inline-block;
   margin-bottom: 8px;
-  color: #bfdbfe;
+  color: #cb0c0c;
   font-size: 14px;
   font-weight: 700;
   letter-spacing: 0.08em;
@@ -479,6 +506,35 @@ button:disabled {
   font-weight: 600;
 }
 
+.recommendation-card-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 16px;
+}
+
+.recommendation-card-actions .detail-link {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 38px;
+  margin-top: 0;
+  padding: 8px 14px;
+  border: 1px solid #2563eb;
+  border-radius: 8px;
+  color: #1d4ed8;
+  font-size: 14px;
+  font-weight: 700;
+  text-decoration: none;
+  transition: background-color 0.2s ease, color 0.2s ease, border-color 0.2s ease;
+}
+
+.recommendation-card-actions .detail-link:hover {
+  border-color: #1d4ed8;
+  background: #eff6ff;
+  color: #1e40af;
+}
+
 .recommendation-empty {
   max-width: 720px;
   margin: 36px auto;
@@ -535,95 +591,83 @@ button:disabled {
   margin: 6px 0 0;
 }
 
-.industry-donut-heading > strong {
-  background: #eff6ff;
-  border-radius: 8px;
-  color: #1d4ed8;
-  flex: 0 0 auto;
-  padding: 8px 12px;
-}
-
-.industry-donut-content {
-  align-items: center;
+.industry-bar-list {
   display: grid;
-  gap: 20px;
-  grid-template-columns: 240px minmax(0, 1fr);
-}
-
-.industry-donut-visual {
-  aspect-ratio: 1;
-}
-
-.industry-donut-visual svg {
-  display: block;
-  height: 100%;
-  width: 100%;
-}
-
-.industry-donut-base {
-  fill: none;
-  stroke: #e5e7eb;
-  stroke-width: 22;
-}
-
-.industry-donut-segment {
-  fill: none;
-  stroke-linecap: round;
-  stroke-width: 22;
-}
-
-.industry-donut-total {
-  fill: #111827;
-  font-size: 28px;
-  font-weight: 800;
-}
-
-.industry-donut-caption {
-  fill: #64748b;
-  font-size: 11px;
-  font-weight: 700;
-  text-transform: uppercase;
-}
-
-.industry-donut-legend {
-  display: grid;
-  gap: 10px;
-}
-
-.industry-donut-legend article {
-  align-items: center;
-  border-bottom: 1px solid #e5e7eb;
-  display: flex;
-  gap: 12px;
-  justify-content: space-between;
-  padding-bottom: 10px;
-}
-
-.industry-donut-legend article:last-child {
-  border-bottom: 0;
-  padding-bottom: 0;
-}
-
-.industry-donut-legend span {
-  align-items: center;
-  color: #334155;
-  display: inline-flex;
-  font-weight: 700;
   gap: 8px;
 }
 
-.industry-donut-legend i {
-  border-radius: 50%;
-  display: inline-block;
-  flex: 0 0 auto;
-  height: 11px;
-  width: 11px;
+.industry-bar-plot {
+  display: grid;
+  gap: 7px;
 }
 
-.industry-donut-legend strong {
-  color: #64748b;
-  flex: 0 0 auto;
+.industry-bar-row {
+  align-items: center;
+  display: grid;
+  gap: 12px;
+  grid-template-columns: minmax(170px, 260px) minmax(0, 1fr);
+}
+
+.industry-bar-label {
+  color: #334155;
   font-size: 13px;
+  font-weight: 700;
+  line-height: 1.25;
+  overflow-wrap: anywhere;
+  text-align: right;
+}
+
+.industry-bar-track {
+  height: 18px;
+  position: relative;
+}
+
+.industry-bar-gridline {
+  background: #e5e7eb;
+  bottom: -3px;
+  position: absolute;
+  top: -3px;
+  transform: translateX(-50%);
+  width: 1px;
+  z-index: 0;
+}
+
+.industry-bar-fill {
+  align-items: center;
+  display: flex;
+  height: 100%;
+  justify-content: center;
+  min-width: 34px;
+  position: relative;
+  z-index: 1;
+}
+
+.industry-bar-fill span {
+  color: white;
+  font-size: 11px;
+  font-weight: 800;
+  line-height: 1;
+}
+
+.industry-bar-axis {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: minmax(170px, 260px) minmax(0, 1fr);
+  min-height: 18px;
+}
+
+.industry-bar-axis > div {
+  position: relative;
+}
+
+.industry-bar-axis small {
+  color: #64748b;
+  font-size: 11px;
+  font-weight: 700;
+  position: absolute;
+  top: 0;
+  transform: translateX(-50%);
+  white-space: nowrap;
 }
 
 .summary-dashboard-page {
@@ -1971,20 +2015,22 @@ button:disabled {
     flex-direction: column;
   }
 
-  .industry-donut-heading,
-  .industry-donut-legend article {
+  .industry-donut-heading {
     align-items: stretch;
     flex-direction: column;
   }
 
-  .industry-donut-content {
+  .industry-bar-row,
+  .industry-bar-axis {
     grid-template-columns: 1fr;
   }
 
-  .industry-donut-visual {
-    margin: 0 auto;
-    max-width: 260px;
-    width: 100%;
+  .industry-bar-label {
+    text-align: left;
+  }
+
+  .industry-bar-axis > span {
+    display: none;
   }
 
   .summary-dashboard-hero h1 {
@@ -2034,6 +2080,99 @@ button:disabled {
 
 .admin-form {
   margin-bottom: 24px;
+}
+
+.admin-careers-page {
+  max-width: 1180px;
+  margin: 0 auto;
+}
+
+.admin-career-grid,
+.admin-career-filter {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.admin-career-filter {
+  align-items: end;
+  grid-template-columns: minmax(240px, 1fr) minmax(180px, 0.35fr) auto;
+}
+
+.admin-career-grid label,
+.admin-career-element-row label {
+  display: grid;
+  gap: 7px;
+  margin-top: 0;
+}
+
+.admin-careers-page .admin-form form > label {
+  display: grid;
+  gap: 7px;
+  margin-top: 0;
+}
+
+.admin-careers-page input,
+.admin-careers-page select,
+.admin-careers-page textarea {
+  min-width: 0;
+  width: 100%;
+}
+
+.admin-careers-page textarea {
+  line-height: 1.5;
+  min-height: 128px;
+  resize: vertical;
+}
+
+.admin-career-toggles {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+}
+
+.admin-career-element-row {
+  align-items: end;
+  display: grid;
+  gap: 12px;
+  grid-template-columns: minmax(260px, 1fr) minmax(160px, 0.3fr) 130px auto;
+  margin-top: 12px;
+}
+
+.admin-table-heading {
+  align-items: center;
+  display: flex;
+  gap: 16px;
+  justify-content: space-between;
+}
+
+.admin-table-heading h2 {
+  margin: 0;
+}
+
+.admin-table-heading span,
+.admin-table small {
+  color: #6b7280;
+  display: block;
+  font-size: 13px;
+  font-weight: 600;
+  margin-top: 4px;
+}
+
+.admin-status-list {
+  display: grid;
+  gap: 5px;
+}
+
+.admin-status-list span {
+  background: #f3f4f6;
+  border-radius: 999px;
+  color: #374151;
+  display: inline-block;
+  font-size: 12px;
+  font-weight: 700;
+  padding: 5px 8px;
+  width: fit-content;
 }
 
 .json-textarea {
@@ -2374,8 +2513,16 @@ button.danger {
 
   .admin-core-grid,
   .admin-target-row,
-  .admin-mapping-row {
+  .admin-mapping-row,
+  .admin-career-grid,
+  .admin-career-filter,
+  .admin-career-element-row {
     grid-template-columns: 1fr;
+  }
+
+  .admin-table-heading {
+    align-items: flex-start;
+    flex-direction: column;
   }
 }
 
