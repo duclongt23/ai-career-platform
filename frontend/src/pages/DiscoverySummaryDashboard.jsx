@@ -8,12 +8,14 @@ import {
   CORE_TYPE_COLORS,
   CORE_TYPE_LABELS,
 } from "../components/analytics/chartUtils";
+import { normalizeCareerClusters } from "../utils/careerCluster";
 
 function DiscoverySummaryDashboard() {
   const navigate = useNavigate();
   const token = localStorage.getItem("token");
   const [profile, setProfile] = useState(null);
   const [coreResult, setCoreResult] = useState(null);
+  const [recommendations, setRecommendations] = useState([]);
   const [questions, setQuestions] = useState([]);
   const [isLoading, setIsLoading] = useState(Boolean(token));
   const [error, setError] = useState("");
@@ -34,9 +36,10 @@ function DiscoverySummaryDashboard() {
     Promise.allSettled([
       api.get("/profile"),
       api.get("/profile/core-quiz/result"),
+      api.get("/careers/recommendations/me"),
       api.get("/riasec/questions"),
     ])
-      .then(([profileResponse, coreResponse, questionsResponse]) => {
+      .then(([profileResponse, coreResponse, recommendationsResponse, questionsResponse]) => {
         if (!isMounted) return;
 
         if (profileResponse.status === "fulfilled") {
@@ -47,6 +50,10 @@ function DiscoverySummaryDashboard() {
 
         if (coreResponse.status === "fulfilled") {
           setCoreResult(coreResponse.value.data);
+        }
+
+        if (recommendationsResponse.status === "fulfilled") {
+          setRecommendations(recommendationsResponse.value.data.recommendations || []);
         }
 
         if (questionsResponse.status === "fulfilled") {
@@ -77,6 +84,24 @@ function DiscoverySummaryDashboard() {
   }, [coreResult, profile]);
   const hasRiasec = Boolean(profile?.riasecScores || profile?.riasecCode);
   const hasCoreScores = coreScores.length > 0;
+  const careerClusterSummary = useMemo(() => {
+    const counts = new Map();
+
+    recommendations.forEach((career) => {
+      const clusters = normalizeCareerClusters(career.careerCluster);
+      const normalizedClusters = clusters.length ? clusters : ["Chưa phân nhóm"];
+
+      normalizedClusters.forEach((cluster) => {
+        counts.set(cluster, (counts.get(cluster) || 0) + 1);
+      });
+    });
+
+    return [...counts.entries()]
+      .map(([cluster, count]) => ({ cluster, count }))
+      .sort((a, b) => b.count - a.count || a.cluster.localeCompare(b.cluster))
+      .slice(0, 5);
+  }, [recommendations]);
+  const hasCareerClusters = careerClusterSummary.length > 0;
 
   if (isLoading) {
     return (
@@ -103,6 +128,39 @@ function DiscoverySummaryDashboard() {
           Dashboard gom hai lớp dữ liệu quan trọng: sở thích Holland Code và
           các yếu tố năng lực cốt lõi có điểm cao nhất.
         </p>
+      </section>
+
+      <section className="card summary-dashboard-card">
+        <div className="summary-section-heading">
+          <div>
+            <p className="summary-dashboard-eyebrow">Career Cluster</p>
+            <h2>Nhóm ngành nổi bật trong gợi ý nghề</h2>
+          </div>
+          {recommendations.length > 0 && (
+            <span>{recommendations.length} nghề đã phân tích</span>
+          )}
+        </div>
+
+        {hasCareerClusters ? (
+          <div className="summary-cluster-list">
+            {careerClusterSummary.map((item, index) => (
+              <article key={item.cluster}>
+                <div>
+                  <span>Top {index + 1}</span>
+                  <strong>{item.cluster}</strong>
+                </div>
+                <em>{item.count} nghề</em>
+              </article>
+            ))}
+          </div>
+        ) : (
+          <div className="summary-empty-state">
+            <p>Chưa có dữ liệu nhóm ngành từ danh sách nghề gợi ý.</p>
+            <Link className="workflow-next-action" to="/discovery/recommendations">
+              Xem gợi ý nghề
+            </Link>
+          </div>
+        )}
       </section>
 
       <section className="card summary-dashboard-card">

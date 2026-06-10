@@ -160,7 +160,7 @@ function AdminElements() {
 
   useEffect(() => {
     if (!isAdmin) {
-      navigate("/careers");
+      navigate("/");
       return;
     }
 

@@ -125,9 +125,6 @@ function CoreQuizPage() {
   const selectedIndexes = currentQuestion
     ? answers[currentQuestion.question_id] || []
     : [];
-  const answeredCount = Object.keys(answers).filter(
-    (questionId) => answers[questionId]?.length > 0
-  ).length;
   const progressPercent = questions.length
     ? Math.round(((currentIndex + 1) / questions.length) * 100)
     : 0;
@@ -446,7 +443,7 @@ function CoreQuizPage() {
           <span>
             Câu {currentIndex + 1} / {questions.length}
           </span>
-          <strong>{answeredCount} đã trả lời</strong>
+          <strong>{progressPercent}%</strong>
         </div>
         <div className="core-progress">
           <div style={{ width: `${progressPercent}%` }} />

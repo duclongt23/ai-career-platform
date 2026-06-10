@@ -1,9 +1,14 @@
 import { useEffect } from "react";
-import { Routes, Route, Link, Navigate, useNavigate } from "react-router-dom";
-import Register from "./pages/Register";
-import Login from "./pages/Login";
+import {
+  Routes,
+  Route,
+  Link,
+  Navigate,
+  useLocation,
+  useNavigate,
+} from "react-router-dom";
+import LandingPage from "./pages/LandingPage";
 import Profile from "./pages/Profile";
-import Careers from "./pages/Careers";
 import CareerDetail from "./pages/CareerDetail";
 import AdminCareers from "./pages/AdminCareers";
 import AdminCoreQuiz from "./pages/AdminCoreQuiz";
@@ -19,16 +24,35 @@ import CareerExploreChats from "./pages/CareerExploreChats";
 import DiscoverySummaryDashboard from "./pages/DiscoverySummaryDashboard";
 import DiscoveryWorkflowLayout from "./components/DiscoveryWorkflowLayout";
 import api from "./api/axios";
+import logoIcon from "./assets/logo.png";
 import { AUTH_SESSION_EXPIRED_EVENT, getStoredUser } from "./utils/storage";
 import useStaleOverlayCleanup from "./utils/useStaleOverlayCleanup";
+
+function AuthRedirect({ mode }) {
+  const location = useLocation();
+
+  return (
+    <Navigate
+      to="/"
+      replace
+      state={{
+        ...location.state,
+        authMode: mode,
+      }}
+    />
+  );
+}
 
 function App() {
   useStaleOverlayCleanup();
 
   const navigate = useNavigate();
+  const location = useLocation();
   const token = localStorage.getItem("token");
   const user = getStoredUser();
   const isAdmin = user?.role === "admin";
+  const isLandingPage = location.pathname === "/";
+  const isDiscoveryPage = location.pathname.startsWith("/discovery");
 
   useEffect(() => {
     const handleSessionExpired = () => {
@@ -69,39 +93,49 @@ function App() {
 
   return (
     <div>
-      <nav className="navbar">
-        <h2>AI Career Platform</h2>
+      {!isLandingPage && (
+        <nav className="navbar">
+          <Link to="/" className="landing-logo app-logo" aria-label="Career Dreamer">
+            <img src={logoIcon} alt="" aria-hidden="true" />
+            <span>career</span>
+            <strong>dreamer</strong>
+          </Link>
 
-        <div className="nav-links">
-          <Link to="/careers">Ngành nghề</Link>
-          {token && <Link to="/discovery">Hành trình khám phá</Link>}
-          {token && <Link to="/career-explore-chats">Hội thoại nghề</Link>}
+          <div className="nav-links">
+            {token && <Link to="/discovery">Hành trình khám phá</Link>}
+            {token && <Link to="/career-explore-chats">Hội thoại nghề</Link>}
 
-          {token ? (
-            <>
-              {isAdmin && <Link to="/admin/careers">Admin Careers</Link>}
-              {isAdmin && <Link to="/admin/core-quiz">Admin Quiz</Link>}
-              {isAdmin && <Link to="/admin/elements">Admin Elements</Link>}
-              {isAdmin && <Link to="/admin/users">Admin Users</Link>}
-              <Link to="/profile">Hồ sơ</Link>
-              <button onClick={handleLogout}>Đăng xuất</button>
-            </>
-          ) : (
-            <>
-              <Link to="/login">Đăng nhập</Link>
-              <Link to="/register">Đăng ký</Link>
-            </>
-          )}
-        </div>
-      </nav>
+            {token ? (
+              <>
+                {isAdmin && <Link to="/admin/careers">Admin Careers</Link>}
+                {isAdmin && <Link to="/admin/core-quiz">Admin Quiz</Link>}
+                {isAdmin && <Link to="/admin/elements">Admin Elements</Link>}
+                {isAdmin && <Link to="/admin/users">Admin Users</Link>}
+                <Link to="/profile">Hồ sơ</Link>
+                <button onClick={handleLogout}>Đăng xuất</button>
+              </>
+            ) : (
+              <Link className="nav-auth-link" to="/login">
+                Đăng nhập
+              </Link>
+            )}
+          </div>
+        </nav>
+      )}
 
-      <main className="container">
+      <main
+        className={
+          isLandingPage
+            ? "landing-container"
+            : `container${isDiscoveryPage ? " discovery-container" : ""}`
+        }
+      >
         <Routes>
-          <Route path="/" element={<Navigate to="/careers" />} />
-          <Route path="/register" element={<Register />} />
-          <Route path="/login" element={<Login />} />
+          <Route path="/" element={<LandingPage />} />
+          <Route path="/register" element={<AuthRedirect mode="register" />} />
+          <Route path="/login" element={<AuthRedirect mode="login" />} />
           <Route path="/profile" element={<Profile />} />
-          <Route path="/careers" element={<Careers />} />
+          <Route path="/careers" element={<Navigate to="/" replace />} />
           <Route path="/career-recommendations" element={<Navigate to="/discovery/recommendations" replace />} />
           <Route path="/riasec-info" element={<RiasecInfo />} />
           <Route path="/riasec-test" element={<Navigate to="/discovery/riasec" replace />} />

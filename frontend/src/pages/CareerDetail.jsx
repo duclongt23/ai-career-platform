@@ -681,119 +681,171 @@ function CareerDetail() {
       [type]: !currentGroups[type],
     }));
   };
+  const firstSectionId =
+    (career.riasecCode && "career-riasec") ||
+    (token && "career-fit") ||
+    (importantElements.length > 0 && "career-elements") ||
+    "";
 
   return (
-    <div className="card detail-card">
-      <Link to="/discovery/recommendations">← Quay lại danh sách gợi ý</Link>
+    <div className="career-detail-page">
+      <aside className="career-detail-rail" aria-label="Điều hướng trang nghề">
+        <a href="#career-overview" aria-label="Tổng quan" />
+        {career.riasecCode && <a href="#career-riasec" aria-label="RIASEC" />}
+        {token && <a href="#career-fit" aria-label="Điểm mạnh phù hợp" />}
+        {token && elements.length > 0 && (
+          <a href="#career-match" aria-label="So sánh hồ sơ" />
+        )}
+        {importantElements.length > 0 && (
+          <a href="#career-elements" aria-label="Kỹ năng quan trọng" />
+        )}
+        {token && <a href="#career-day" aria-label="Một ngày làm việc" />}
+      </aside>
 
-      <h1>{title}</h1>
+      <section className="career-detail-hero" id="career-overview">
+        <Link className="career-detail-back" to="/discovery/recommendations">
+          ← Quay lại danh sách gợi ý
+        </Link>
 
-      {careerClusters.map((cluster) => (
-        <span className="tag" key={cluster}>
-          {cluster}
-        </span>
-      ))}
-
-      {career.title_vi && <p className="muted">{career.title_en}</p>}
-      <p>{description || "Đang cập nhật mô tả nghề nghiệp."}</p>
-
-      {token && (
-        <section className="career-explore-chat-cta">
-          <div>
-            <h3>Bạn vẫn còn câu hỏi về nghề này?</h3>
-            <p>
-              Trao đổi thêm với AI cố vấn về công việc, kỹ năng và thị trường
-              Việt Nam.
-            </p>
-          </div>
-          <Link className="career-explore-chat-link" to={`/careers/${id}/explore-chat`}>
-            Tìm hiểu thêm với Career Explore Chat
-          </Link>
-        </section>
-      )}
-
-      {career.riasecCode && (
-        <section className="career-riasec-summary">
-          <p className="career-riasec-code">
-            <span>RIASEC:</span> <strong>{career.riasecCode}</strong>
+        <div className="career-detail-hero-copy">
+          <span className="career-detail-kicker">Imagine yourself as</span>
+          <h1>{title}</h1>
+          {career.title_vi && <p className="career-detail-title-en">{career.title_en}</p>}
+          <p className="career-detail-description">
+            {description || "Đang cập nhật mô tả nghề nghiệp."}
           </p>
-          {getRiasecCodeDescription(career.riasecCode) && (
-            <p className="career-riasec-description">
-              {getRiasecCodeDescription(career.riasecCode)}
-            </p>
-          )}
-        </section>
-      )}
 
-      {token && <CareerFitSection careerId={id} title={title} />}
-      {token && elements.length > 0 && (
-        <JobMatchCompareChart
-          careerElements={elements}
-          profileElementScores={profileElementScores}
-        />
-      )}
-      {token && <CareerDayInLifeSection careerId={id} title={title} />}
-
-      {importantElements.length > 0 && (
-        <section>
-          <h3>Năng lực và kỹ năng quan trọng</h3>
-          <div className="career-element-groups">
-            {elementGroups.map((group) => {
-              const isExpanded = expandedGroups[group.type];
-              const visibleElements = isExpanded
-                ? group.elements
-                : group.elements.slice(0, DEFAULT_VISIBLE_ELEMENT_COUNT);
-              const hasHiddenElements =
-                group.elements.length > DEFAULT_VISIBLE_ELEMENT_COUNT;
-
-              return (
-                <section className="career-element-group" key={group.type}>
-                  <div className="career-element-group-header">
-                    <h4>{group.label}</h4>
-                    <span>
-                      Hiện {visibleElements.length}/{group.elements.length}
-                    </span>
-                  </div>
-
-                  <ul className="career-element-list">
-                    {visibleElements.map((element) => (
-                      <li key={`${element.type}-${element.code}`}>
-                        <span>
-                          {element.name_vi ||
-                            element.name_en ||
-                            formatElementCode(element.code)}
-                        </span>
-                        <strong>{Math.round(element.importance * 100)}%</strong>
-                      </li>
-                    ))}
-                  </ul>
-
-                  {hasHiddenElements && (
-                    <button
-                      className="career-element-toggle"
-                      type="button"
-                      onClick={() => toggleGroup(group.type)}
-                    >
-                      {isExpanded ? "Thu gọn" : `Xem đầy đủ ${group.elements.length} mục`}
-                    </button>
-                  )}
-                </section>
-              );
-            })}
-          </div>
-        </section>
-      )}
-
-      {career.requiredSubjects?.length > 0 && (
-        <section>
-          <h3>Môn học liên quan</h3>
-          <ul>
-            {career.requiredSubjects.map((item) => (
-              <li key={item}>{item}</li>
+          <div className="career-detail-tags">
+            {careerClusters.map((cluster) => (
+              <span className="tag" key={cluster}>
+                {cluster}
+              </span>
             ))}
-          </ul>
-        </section>
-      )}
+          </div>
+        </div>
+
+        {token && (
+          <section className="career-explore-chat-cta">
+            <div>
+              <h3>Bạn vẫn còn câu hỏi về nghề này?</h3>
+              <p>
+                Trao đổi thêm với AI cố vấn về công việc, kỹ năng và thị trường
+                Việt Nam.
+              </p>
+            </div>
+            <Link className="career-explore-chat-link" to={`/careers/${id}/explore-chat`}>
+              Tìm hiểu thêm với Career Explore Chat
+            </Link>
+          </section>
+        )}
+
+        {firstSectionId && (
+          <a className="career-detail-scroll" href={`#${firstSectionId}`}>
+            ↓
+          </a>
+        )}
+      </section>
+
+      <div className="career-detail-sections">
+        {career.riasecCode && (
+          <section className="career-riasec-summary" id="career-riasec">
+            <p className="career-detail-section-eyebrow">Holland code</p>
+            <p className="career-riasec-code">
+              <span>RIASEC:</span> <strong>{career.riasecCode}</strong>
+            </p>
+            {getRiasecCodeDescription(career.riasecCode) && (
+              <p className="career-riasec-description">
+                {getRiasecCodeDescription(career.riasecCode)}
+              </p>
+            )}
+          </section>
+        )}
+
+        {token && (
+          <div id="career-fit">
+            <CareerFitSection careerId={id} title={title} />
+          </div>
+        )}
+
+        {token && elements.length > 0 && (
+          <div id="career-match">
+            <JobMatchCompareChart
+              careerElements={elements}
+              profileElementScores={profileElementScores}
+            />
+          </div>
+        )}
+
+        {importantElements.length > 0 && (
+          <section className="career-elements-section" id="career-elements">
+            <div className="career-elements-heading">
+              <p className="career-detail-section-eyebrow">Requirements</p>
+              <h3>Năng lực và kỹ năng quan trọng</h3>
+            </div>
+            <div className="career-element-groups">
+              {elementGroups.map((group) => {
+                const isExpanded = expandedGroups[group.type];
+                const visibleElements = isExpanded
+                  ? group.elements
+                  : group.elements.slice(0, DEFAULT_VISIBLE_ELEMENT_COUNT);
+                const hasHiddenElements =
+                  group.elements.length > DEFAULT_VISIBLE_ELEMENT_COUNT;
+
+                return (
+                  <section className="career-element-group" key={group.type}>
+                    <div className="career-element-group-header">
+                      <h4>{group.label}</h4>
+                      <span>
+                        Hiện {visibleElements.length}/{group.elements.length}
+                      </span>
+                    </div>
+
+                    <ul className="career-element-list">
+                      {visibleElements.map((element) => (
+                        <li key={`${element.type}-${element.code}`}>
+                          <span>
+                            {element.name_vi ||
+                              element.name_en ||
+                              formatElementCode(element.code)}
+                          </span>
+                          <strong>{Math.round(element.importance * 100)}%</strong>
+                        </li>
+                      ))}
+                    </ul>
+
+                    {hasHiddenElements && (
+                      <button
+                        className="career-element-toggle"
+                        type="button"
+                        onClick={() => toggleGroup(group.type)}
+                      >
+                        {isExpanded ? "Thu gọn" : `Xem đầy đủ ${group.elements.length} mục`}
+                      </button>
+                    )}
+                  </section>
+                );
+              })}
+            </div>
+          </section>
+        )}
+
+        {token && (
+          <div id="career-day">
+            <CareerDayInLifeSection careerId={id} title={title} />
+          </div>
+        )}
+
+        {career.requiredSubjects?.length > 0 && (
+          <section className="career-subjects-section">
+            <h3>Môn học liên quan</h3>
+            <ul>
+              {career.requiredSubjects.map((item) => (
+                <li key={item}>{item}</li>
+              ))}
+            </ul>
+          </section>
+        )}
+      </div>
     </div>
   );
 }

@@ -84,7 +84,7 @@ function AdminUsers() {
 
   useEffect(() => {
     if (!isAdmin) {
-      navigate("/careers");
+      navigate("/");
       return;
     }
 

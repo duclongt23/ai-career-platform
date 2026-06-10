@@ -194,7 +194,7 @@ function AdminCoreQuiz() {
     const storedUser = getStoredUser();
 
     if (!storedUser || storedUser.role !== "admin") {
-      navigate("/careers");
+      navigate("/");
       return;
     }
 

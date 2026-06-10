@@ -447,6 +447,16 @@ function RiasecTest() {
     }
   };
 
+  const goToNext = () => {
+    if (!currentQuestion || answers[currentQuestion.id] === undefined) return;
+
+    if (currentIndex < questions.length - 1) {
+      setCurrentIndex((prev) => prev + 1);
+    } else {
+      saveRiasecResult(answers);
+    }
+  };
+
   const goToPrevious = () => {
     setCurrentIndex((prev) => Math.max(prev - 1, 0));
   };
@@ -583,11 +593,14 @@ function RiasecTest() {
             <strong>{progressPercent}%</strong>
           </div>
           <div className="riasec-progress">
-            <div style={{ width: `${progressPercent}%` }} />
+            <div style={{ width: progressPercent ? `${progressPercent}%` : 18 }} />
           </div>
 
           <div className="riasec-question">
-            <h2>{currentQuestion.text}</h2>
+            <p>
+              Câu hỏi {currentIndex + 1}/{questions.length}
+            </p>
+            <h2>Bạn có thích hoạt động {currentQuestion.text} không?</h2>
           </div>
 
           <div className="riasec-options">
@@ -595,9 +608,13 @@ function RiasecTest() {
               <button
                 key={option.value}
                 type="button"
-                className={
-                  answers[currentQuestion.id] === option.value ? "selected" : ""
-                }
+                className={[
+                  "riasec-scale-option",
+                  `scale-${option.value}`,
+                  answers[currentQuestion.id] === option.value ? "selected" : "",
+                ]
+                  .filter(Boolean)
+                  .join(" ")}
                 onClick={() => handleAnswer(option.value)}
               >
                 <span>{option.label}</span>
@@ -614,7 +631,13 @@ function RiasecTest() {
             >
               Câu trước
             </button>
-            <span>{answeredCount} câu đã trả lời</span>
+            <button
+              type="button"
+              onClick={goToNext}
+              disabled={answers[currentQuestion.id] === undefined}
+            >
+              {currentIndex < questions.length - 1 ? "Câu tiếp theo" : "Hoàn thành"}
+            </button>
           </div>
         </section>
       ) : (

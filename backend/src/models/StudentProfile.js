@@ -123,6 +123,11 @@ const careerRecommendationSnapshotSchema = new mongoose.Schema(
       required: true,
       min: 1,
     },
+    recommendationLimit: {
+      type: Number,
+      default: 15,
+      min: 1,
+    },
     elementScoresFingerprint: {
       type: String,
       required: true,

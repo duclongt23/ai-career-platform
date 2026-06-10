@@ -180,7 +180,7 @@ function AdminCareers() {
 
   useEffect(() => {
     if (!isAdmin) {
-      navigate("/careers");
+      navigate("/");
       return;
     }
 

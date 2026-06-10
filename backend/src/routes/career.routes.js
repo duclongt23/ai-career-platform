@@ -187,6 +187,7 @@ router.get("/recommendations/me", protect, async (req, res) => {
     const snapshot = profile.careerRecommendationSnapshot;
     const canReuseSnapshot =
       snapshot?.algorithmVersion === RECOMMENDATION_ALGORITHM_VERSION &&
+      snapshot.recommendationLimit === DEFAULT_RECOMMENDATION_LIMIT &&
       snapshot.elementScoresFingerprint === elementScoresFingerprint &&
       snapshot.careerDataFingerprint === careerDataFingerprint &&
       Array.isArray(snapshot.recommendations);
@@ -221,6 +222,7 @@ router.get("/recommendations/me", protect, async (req, res) => {
         $set: {
           careerRecommendationSnapshot: {
             algorithmVersion: RECOMMENDATION_ALGORITHM_VERSION,
+            recommendationLimit: DEFAULT_RECOMMENDATION_LIMIT,
             elementScoresFingerprint,
             careerDataFingerprint,
             recommendations,

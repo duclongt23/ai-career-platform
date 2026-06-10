@@ -1,13 +1,136 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import api from "../api/axios";
-import IndustryDonutChart from "../components/analytics/IndustryDonutChart";
 import { normalizeCareerClusters } from "../utils/careerCluster";
+
+const NODE_LAYOUT = [
+  { top: 16, left: 43, size: "lg", placement: "down" },
+  { top: 27, left: 57, size: "lg", placement: "down" },
+  { top: 42, left: 45, size: "lg", placement: "down" },
+  { top: 53, left: 58, size: "lg", placement: "up" },
+  { top: 34, left: 33, size: "lg", placement: "down" },
+  { top: 18, left: 24, size: "md", placement: "down" },
+  { top: 19, left: 72, size: "md", placement: "down-left" },
+  { top: 34, left: 16, size: "md", placement: "down" },
+  { top: 36, left: 82, size: "md", placement: "down-left" },
+  { top: 52, left: 23, size: "md", placement: "up" },
+  { top: 51, left: 76, size: "md", placement: "up-left" },
+  { top: 68, left: 35, size: "md", placement: "up" },
+  { top: 69, left: 63, size: "md", placement: "up" },
+  { top: 81, left: 47, size: "md", placement: "up" },
+  { top: 82, left: 75, size: "md", placement: "up-left" },
+  { top: 12, left: 9, size: "sm", placement: "down" },
+  { top: 10, left: 91, size: "sm", placement: "down-left" },
+  { top: 27, left: 7, size: "sm", placement: "down" },
+  { top: 28, left: 93, size: "sm", placement: "down-left" },
+  { top: 47, left: 8, size: "sm", placement: "up" },
+  { top: 47, left: 93, size: "sm", placement: "up-left" },
+  { top: 66, left: 10, size: "sm", placement: "up" },
+  { top: 66, left: 90, size: "sm", placement: "up-left" },
+  { top: 86, left: 15, size: "sm", placement: "up" },
+  { top: 89, left: 88, size: "sm", placement: "up-left" },
+];
 
 function formatElementCode(code) {
   return String(code || "")
     .replaceAll("_", " ")
     .replace(/\b\w/g, (character) => character.toUpperCase());
+}
+
+function getMatchScore(career) {
+  if (Number.isFinite(career.matchPercentage)) {
+    return Math.round(career.matchPercentage);
+  }
+
+  if (Number.isFinite(career.recommendationScore)) {
+    return Math.round(
+      career.recommendationScore <= 1
+        ? career.recommendationScore * 100
+        : career.recommendationScore
+    );
+  }
+
+  return null;
+}
+
+function getTier(index) {
+  if (index < 5) {
+    return "tier-best";
+  }
+
+  if (index < 15) {
+    return "tier-strong";
+  }
+
+  return "tier-explore";
+}
+
+function RecommendationNode({ career, index }) {
+  const title = career.title_vi || career.title_en;
+  const clusters = normalizeCareerClusters(career.careerCluster).slice(0, 2);
+  const matchedElements = career.topMatchedElements?.slice(0, 3) || [];
+  const matchScore = getMatchScore(career);
+  const layout = NODE_LAYOUT[index] || NODE_LAYOUT[NODE_LAYOUT.length - 1];
+  const tier = getTier(index);
+
+  return (
+    <article
+      className={`recommendation-node ${tier} node-${layout.size} popover-${layout.placement}`}
+      style={{ "--node-left": `${layout.left}%`, "--node-top": `${layout.top}%` }}
+    >
+      <Link className="recommendation-node-link" to={`/careers/${career._id}`}>
+        <span className="recommendation-node-dot" aria-hidden="true" />
+        <span className="recommendation-node-copy">
+          <span className="recommendation-rank">#{index + 1}</span>
+          <span className="recommendation-title">{title}</span>
+          {matchScore !== null && (
+            <span className="recommendation-score">{matchScore}% match</span>
+          )}
+        </span>
+      </Link>
+
+      <div className="recommendation-popover">
+        <div className="recommendation-card-title">
+          <div className="recommendation-tag-row">
+            {clusters.map((cluster) => (
+              <span className="tag" key={cluster}>
+                {cluster}
+              </span>
+            ))}
+          </div>
+          <h2>{title}</h2>
+          {career.title_vi && <p className="muted">{career.title_en}</p>}
+        </div>
+
+        <p className="recommendation-description">
+          {career.description_vi || "Đang cập nhật mô tả nghề nghiệp."}
+        </p>
+
+        {matchedElements.length > 0 && (
+          <div className="recommendation-matches">
+            <strong>Điểm mạnh phù hợp</strong>
+            <div>
+              {matchedElements.map((element) => (
+                <span key={element.code}>{formatElementCode(element.code)}</span>
+              ))}
+            </div>
+          </div>
+        )}
+
+        <div className="recommendation-card-actions">
+          <Link className="detail-link" to={`/careers/${career._id}`}>
+            Khám phá nghề này
+          </Link>
+          <Link
+            className="detail-link secondary"
+            to={`/careers/${career._id}/explore-chat`}
+          >
+            Hỏi AI
+          </Link>
+        </div>
+      </div>
+    </article>
+  );
 }
 
 function CareerRecommendations() {
@@ -76,12 +199,10 @@ function CareerRecommendations() {
   return (
     <div className="recommendation-page">
       <header className="recommendation-hero">
-        <span className="recommendation-eyebrow">Gợi ý cá nhân hóa</span>
-        <h1>15 nghề nghiệp phù hợp với bạn</h1>
+        <h1>Nghề nghiệp gợi ý cho bạn</h1>
         <p>
-          Kết quả được xếp hạng từ những năng lực, kỹ năng và phong cách làm
-          việc bạn đã xác nhận. Hãy dùng danh sách này làm điểm bắt đầu để khám
-          phá sâu hơn.
+          Các nghề được đặt theo mức độ phù hợp. Node lớn và nổi hơn là nhóm nên
+          ưu tiên xem trước, các node nhỏ hơn là hướng mở rộng để so sánh.
         </p>
       </header>
 
@@ -116,57 +237,22 @@ function CareerRecommendations() {
 
       {recommendations.length > 0 && (
         <>
-          <IndustryDonutChart recommendations={recommendations} />
-
           <div className="recommendation-summary">
             <strong>{recommendations.length} nghề được đề xuất</strong>
+            <span>Hover vào từng node để xem thông tin nhanh</span>
           </div>
 
-          <div className="recommendation-grid">
-            {recommendations.map((career, index) => (
-              <article className="card recommendation-card" key={career._id}>
-                <div className="recommendation-card-top">
-                  <span className="recommendation-rank">#{index + 1}</span>
-                </div>
+          <section className="recommendation-map" aria-label="Bản đồ nghề nghiệp gợi ý">
+            <div className="recommendation-map-legend" aria-label="Phân tầng gợi ý">
+              <span><i className="tier-best" /> Best Matches</span>
+              <span><i className="tier-strong" /> Strong Recommendations</span>
+              <span><i className="tier-explore" /> Explore More</span>
+            </div>
 
-                <div className="recommendation-card-title">
-                  {normalizeCareerClusters(career.careerCluster).map((cluster) => (
-                    <span className="tag" key={cluster}>
-                      {cluster}
-                    </span>
-                  ))}
-                  <h2>{career.title_vi || career.title_en}</h2>
-                  {career.title_vi && <p className="muted">{career.title_en}</p>}
-                </div>
-
-                <p className="recommendation-description">
-                  {career.description_vi || "Đang cập nhật mô tả nghề nghiệp."}
-                </p>
-
-                {career.topMatchedElements?.length > 0 && (
-                  <div className="recommendation-matches">
-                    <strong>Điểm mạnh phù hợp</strong>
-                    <div>
-                      {career.topMatchedElements.map((element) => (
-                        <span key={element.code}>
-                          {formatElementCode(element.code)}
-                        </span>
-                      ))}
-                    </div>
-                  </div>
-                )}
-
-                <div className="recommendation-card-actions">
-                  <Link className="detail-link" to={`/careers/${career._id}`}>
-                    Khám phá nghề này
-                  </Link>
-                  <Link className="detail-link" to={`/careers/${career._id}/explore-chat`}>
-                    Hỏi AI về nghề này
-                  </Link>
-                </div>
-              </article>
+            {recommendations.slice(0, 25).map((career, index) => (
+              <RecommendationNode career={career} index={index} key={career._id} />
             ))}
-          </div>
+          </section>
         </>
       )}
     </div>
