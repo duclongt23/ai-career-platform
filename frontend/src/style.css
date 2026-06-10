@@ -5030,21 +5030,28 @@ button.danger {
 }
 
 .ai-discovery-start-card {
+  font-family: "Segoe UI", Arial, sans-serif;
   margin: 0 auto;
   max-width: var(--discovery-content-width);
   text-align: left;
   width: 100%;
 }
 
+.ai-discovery-start-heading .ai-discovery-eyebrow {
+  letter-spacing: 0.04em;
+}
+
 .ai-discovery-start-heading h2 {
   color: #111827;
   font-size: 24px;
+  font-weight: 700;
   line-height: 1.25;
   margin: 8px 0;
 }
 
 .ai-discovery-start-heading p:last-child {
   color: #4b5563;
+  font-weight: 400;
   line-height: 1.6;
   margin: 0;
 }
@@ -5062,6 +5069,8 @@ button.danger {
   border-radius: 8px;
   color: #111827;
   display: grid;
+  font-family: "Segoe UI", Arial, sans-serif;
+  font-weight: 400;
   gap: 8px;
   min-height: 164px;
   padding: 15px;
@@ -5081,19 +5090,21 @@ button.danger {
 .ai-discovery-opening-option span {
   color: #0f766e;
   font-size: 12px;
-  font-weight: 800;
-  text-transform: uppercase;
+  font-weight: 700;
+  letter-spacing: 0.02em;
 }
 
 .ai-discovery-opening-option strong {
   color: #111827;
   font-size: 17px;
+  font-weight: 600;
   line-height: 1.3;
 }
 
 .ai-discovery-opening-option p {
   color: #4b5563;
   font-size: 14px;
+  font-weight: 400;
   line-height: 1.5;
   margin: 0;
 }
@@ -5153,6 +5164,65 @@ button.danger {
 
 .ai-discovery-reset-button:hover {
   background: #d1d5db;
+}
+
+.ai-discovery-modal-backdrop {
+  align-items: center;
+  background: rgba(15, 23, 42, 0.58);
+  display: flex;
+  inset: 0;
+  justify-content: center;
+  padding: 24px;
+  position: fixed;
+  z-index: 100;
+}
+
+.ai-discovery-confirm-modal {
+  background: white;
+  border: 1px solid #dbe3ef;
+  border-radius: 8px;
+  box-shadow: 0 28px 80px rgba(15, 23, 42, 0.28);
+  display: grid;
+  gap: 18px;
+  max-width: 460px;
+  padding: 28px;
+  width: min(100%, 460px);
+}
+
+.ai-discovery-confirm-icon {
+  align-items: center;
+  background: #ccfbf1;
+  border-radius: 50%;
+  color: #0f766e;
+  display: inline-flex;
+  font-size: 18px;
+  font-weight: 800;
+  height: 42px;
+  justify-content: center;
+  width: 42px;
+}
+
+.ai-discovery-confirm-modal h2 {
+  color: #111827;
+  font-size: 24px;
+  line-height: 1.25;
+  margin: 8px 0;
+}
+
+.ai-discovery-confirm-modal p:last-child {
+  color: #4b5563;
+  line-height: 1.6;
+  margin: 0;
+}
+
+.ai-discovery-confirm-modal-actions {
+  display: flex;
+  gap: 10px;
+  justify-content: flex-end;
+}
+
+.ai-discovery-confirm-modal-actions button {
+  min-width: 110px;
 }
 
 .ai-discovery-messages {

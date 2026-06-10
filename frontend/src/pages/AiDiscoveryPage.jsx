@@ -50,6 +50,7 @@ function AiDiscoveryPage() {
   const [isConfirming, setIsConfirming] = useState(false);
   const [isFindingMore, setIsFindingMore] = useState(false);
   const [isResetting, setIsResetting] = useState(false);
+  const [showResetConfirm, setShowResetConfirm] = useState(false);
   const [isSelectingOpening, setIsSelectingOpening] = useState(false);
   const [isSending, setIsSending] = useState(false);
 
@@ -217,12 +218,7 @@ function AiDiscoveryPage() {
   };
 
   const resetSession = async () => {
-    const shouldReset = window.confirm(
-      "Bắt đầu lại sẽ tạo cuộc trò chuyện mới. Bạn có muốn tiếp tục không?"
-    );
-
     if (
-      !shouldReset ||
       isSending ||
       isResetting ||
       isConfirming ||
@@ -240,6 +236,7 @@ function AiDiscoveryPage() {
 
       hydrateSession(res.data);
       setInput("");
+      setShowResetConfirm(false);
     } catch (err) {
       setError(
         getApiErrorMessage(
@@ -247,6 +244,7 @@ function AiDiscoveryPage() {
           "Chưa thể bắt đầu lại cuộc trò chuyện. Vui lòng thử lại sau."
         )
       );
+      setShowResetConfirm(false);
     } finally {
       setIsResetting(false);
     }
@@ -439,7 +437,7 @@ function AiDiscoveryPage() {
             <button
               className="ai-discovery-reset-button"
               type="button"
-              onClick={resetSession}
+              onClick={() => setShowResetConfirm(true)}
               disabled={
                 isSending ||
                 isResetting ||
@@ -508,6 +506,48 @@ function AiDiscoveryPage() {
           </div>
         </form>
       </section>
+      )}
+
+      {showResetConfirm && (
+        <div className="ai-discovery-modal-backdrop" role="presentation">
+          <section
+            className="ai-discovery-confirm-modal"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="ai-discovery-reset-title"
+          >
+            <div className="ai-discovery-confirm-icon" aria-hidden="true">
+              i
+            </div>
+            <div>
+              <p className="ai-discovery-eyebrow">Bắt đầu lại</p>
+              <h2 id="ai-discovery-reset-title">
+                Tạo cuộc trò chuyện mới?
+              </h2>
+              <p>
+                Nội dung trò chuyện hiện tại sẽ được thay bằng một phiên khám phá mới.
+                Các yếu tố đã xác nhận trước đó trong hồ sơ vẫn được giữ nguyên.
+              </p>
+            </div>
+            <div className="ai-discovery-confirm-modal-actions">
+              <button
+                className="secondary"
+                type="button"
+                onClick={() => setShowResetConfirm(false)}
+                disabled={isResetting}
+              >
+                Giữ lại
+              </button>
+              <button
+                type="button"
+                onClick={resetSession}
+                disabled={isResetting}
+              >
+                {isResetting ? "Đang tạo..." : "Bắt đầu lại"}
+              </button>
+            </div>
+          </section>
+        </div>
       )}
 
       {candidates.length > 0 && (
