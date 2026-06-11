@@ -3309,3 +3309,538 @@ button.danger:hover:not(:disabled),
     font-size: 25px;
   }
 }
+
+@media (max-width: 900px) {
+  .discovery-stepper {
+    display: flex;
+    gap: 8px;
+    overflow-x: auto;
+    overscroll-behavior-inline: contain;
+    padding: 8px;
+    scroll-snap-type: x proximity;
+    scrollbar-width: thin;
+  }
+
+  .discovery-step {
+    flex: 0 0 min(220px, 72vw);
+    scroll-snap-align: start;
+  }
+
+  .discovery-step strong,
+  .discovery-step small {
+    white-space: normal;
+  }
+
+  .discovery-workflow-heading {
+    align-items: start;
+  }
+
+  .discovery-workflow-heading h1 {
+    font-size: 26px;
+  }
+}
+
+@media (max-width: 768px) {
+  html,
+  body,
+  #root {
+    max-width: 100%;
+    overflow-x: hidden;
+  }
+
+  body {
+    background-size: 30px 30px, 30px 30px, auto;
+  }
+
+  button,
+  .nav-auth-link,
+  .detail-link,
+  .workflow-next-action,
+  .recommendation-action,
+  .recommendation-table-action,
+  .career-explore-chat-link,
+  .riasec-info-link,
+  .riasec-primary-link,
+  .ai-discovery-link {
+    min-height: 44px;
+  }
+
+  .navbar,
+  .landing-nav {
+    align-items: center;
+    flex-direction: row;
+    flex-wrap: wrap;
+    gap: 10px;
+    padding: 10px 14px;
+    position: sticky;
+  }
+
+  .landing-logo {
+    font-size: 22px;
+  }
+
+  .landing-logo img {
+    height: 32px;
+    width: 32px;
+  }
+
+  .nav-links {
+    flex-wrap: nowrap;
+    gap: 8px;
+    justify-content: flex-start;
+    margin-inline: -14px;
+    overflow-x: auto;
+    overscroll-behavior-inline: contain;
+    padding: 0 14px 4px;
+    scroll-snap-type: x proximity;
+    scrollbar-width: thin;
+    width: calc(100% + 28px);
+  }
+
+  .nav-links a,
+  .nav-links button {
+    flex: 0 0 auto;
+    font-size: 13px;
+    min-height: 38px;
+    padding: 8px 10px;
+    scroll-snap-align: start;
+    white-space: nowrap;
+  }
+
+  .landing-nav-actions {
+    margin-left: auto;
+    width: auto;
+  }
+
+  .landing-nav-actions button {
+    min-height: 38px;
+    padding: 8px 12px;
+    white-space: nowrap;
+  }
+
+  .container,
+  .discovery-container {
+    padding: 18px 12px 48px;
+  }
+
+  .card,
+  .riasec-card,
+  .core-quiz-card,
+  .ai-discovery-card,
+  .ai-discovery-start-card,
+  .admin-form,
+  .admin-table-wrapper {
+    padding: 16px;
+  }
+
+  .page-header h1,
+  .page-header h2,
+  .auth-copy h2,
+  .profile-title h1 {
+    font-size: 26px;
+  }
+
+  .landing-hero {
+    gap: 26px;
+    padding: 34px 16px 58px;
+  }
+
+  .landing-hero h1 {
+    font-size: 40px;
+    margin: 12px 0 14px;
+  }
+
+  .landing-subtitle {
+    font-size: 16px;
+    line-height: 1.55;
+  }
+
+  .landing-cta-row {
+    gap: 10px;
+    margin-top: 22px;
+  }
+
+  .landing-cta-row a,
+  .landing-cta-row button,
+  .landing-final button {
+    min-width: 0;
+    width: 100%;
+  }
+
+  .future-visual {
+    aspect-ratio: 4 / 3;
+    min-height: 0;
+  }
+
+  .landing-story,
+  .landing-final {
+    padding-bottom: 52px;
+    padding-top: 48px;
+  }
+
+  .story-card {
+    min-height: 0;
+    padding: 18px;
+  }
+
+  .auth-overlay,
+  .ai-discovery-modal-backdrop {
+    padding: 12px;
+  }
+
+  .auth-modal,
+  .ai-discovery-confirm-modal {
+    max-height: calc(100svh - 24px);
+    padding: 22px 16px;
+  }
+
+  .auth-tabs {
+    margin: 0 46px 20px 0;
+  }
+
+  .discovery-workflow-heading {
+    margin-bottom: 12px;
+  }
+
+  .discovery-workflow-heading > span,
+  .recommendation-rank-table-heading > span,
+  .summary-section-heading > span,
+  .summary-section-heading > strong,
+  .admin-table-heading span,
+  .industry-donut-heading span,
+  .admin-pagination-meta {
+    width: fit-content;
+  }
+
+  .recommendation-summary,
+  .recommendation-rank-table-heading,
+  .admin-table-heading,
+  .summary-section-heading,
+  .industry-donut-heading,
+  .career-fit-heading,
+  .career-day-heading,
+  .career-match-heading,
+  .career-elements-heading,
+  .ai-discovery-chat-heading,
+  .ai-discovery-candidate-heading,
+  .core-result-heading,
+  .riasec-result-heading,
+  .admin-core-toolbar,
+  .admin-question-heading,
+  .admin-section-title,
+  .admin-answer-heading,
+  .admin-mapping-header {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .recommendation-view-toggle {
+    width: 100%;
+  }
+
+  .recommendation-rank-table-section {
+    overflow: visible;
+  }
+
+  .recommendation-rank-table-heading {
+    padding: 16px 16px 0;
+  }
+
+  .recommendation-rank-table-wrap {
+    overflow: visible;
+    padding: 4px 12px 12px;
+  }
+
+  .recommendation-rank-table,
+  .recommendation-rank-table tbody,
+  .recommendation-rank-table tr,
+  .recommendation-rank-table td {
+    display: block;
+    min-width: 0;
+    width: 100%;
+  }
+
+  .recommendation-rank-table thead,
+  .recommendation-rank-table colgroup {
+    display: none;
+  }
+
+  .recommendation-rank-table tr {
+    background: var(--surface-soft);
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    margin-top: 10px;
+    padding: 12px;
+  }
+
+  .recommendation-rank-table td {
+    border-bottom: 0;
+    padding: 6px 0;
+  }
+
+  .recommendation-table-rank {
+    min-width: 0;
+  }
+
+  .recommendation-table-action {
+    margin-top: 4px;
+    width: 100%;
+  }
+
+  .recommendation-map {
+    padding-top: 78px;
+  }
+
+  .summary-radar-visual,
+  .riasec-radar-visual {
+    min-height: 240px;
+    padding: 10px;
+  }
+
+  .summary-radar-visual svg,
+  .riasec-radar-visual svg {
+    width: 100%;
+  }
+
+  .summary-cluster-row,
+  .summary-core-row,
+  .industry-bar-row,
+  .career-match-row,
+  .riasec-bar-row {
+    align-items: stretch;
+    gap: 8px;
+  }
+
+  .career-detail-hero,
+  .recommendation-hero,
+  .summary-dashboard-hero,
+  .riasec-header,
+  .core-quiz-header,
+  .ai-discovery-header {
+    padding: 20px;
+  }
+
+  .career-detail-hero h1 {
+    font-size: 30px;
+  }
+
+  .career-day-diagram {
+    height: 420px;
+  }
+
+  .career-element-list li,
+  .career-explore-chat-cta,
+  .workflow-result-actions,
+  .profile-actions,
+  .form-actions,
+  .riasec-actions,
+  .core-actions {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .career-element-list li strong {
+    align-self: flex-start;
+  }
+
+  .career-chat-hub {
+    gap: 14px;
+  }
+
+  .career-chat-sidebar,
+  .career-chat-main,
+  .career-explore-chat,
+  .ai-discovery-chat-card {
+    padding: 14px;
+  }
+
+  .career-chat-main {
+    min-height: auto;
+  }
+
+  .career-chat-title-form,
+  .career-chat-title-row {
+    align-items: stretch;
+    width: 100%;
+  }
+
+  .career-chat-title-form input {
+    max-width: none;
+  }
+
+  .career-explore-chat-messages,
+  .ai-discovery-messages {
+    max-height: min(58svh, 520px);
+    padding: 12px;
+  }
+
+  .career-explore-chat-composer,
+  .ai-discovery-composer {
+    grid-template-columns: 1fr;
+  }
+
+  .career-explore-chat-composer button,
+  .ai-discovery-composer button,
+  .career-explore-chat-cta .career-explore-chat-link,
+  .workflow-next-action,
+  .profile-actions button,
+  .form-actions button,
+  .riasec-actions button,
+  .core-actions button {
+    width: 100%;
+  }
+
+  .riasec-question h2,
+  .core-question h2 {
+    font-size: 23px;
+  }
+
+  .riasec-options button {
+    min-height: 74px;
+  }
+
+  .core-options label {
+    padding: 12px;
+  }
+
+  .profile-cover {
+    height: 100px;
+  }
+
+  .profile-header {
+    gap: 12px;
+    padding: 0 16px 18px;
+  }
+
+  .profile-avatar {
+    font-size: 26px;
+    height: 72px;
+    width: 72px;
+  }
+
+  .admin-table-wrapper {
+    overflow-x: auto;
+    padding-bottom: 14px;
+  }
+
+  .admin-table,
+  .core-admin-score-table {
+    min-width: 680px;
+  }
+
+  .admin-pagination {
+    justify-content: flex-start;
+  }
+
+  .admin-pagination-actions {
+    width: 100%;
+  }
+}
+
+@media (max-width: 560px) {
+  .card,
+  .riasec-card,
+  .core-quiz-card,
+  .ai-discovery-card,
+  .ai-discovery-start-card,
+  .admin-form,
+  .admin-table-wrapper {
+    padding: 14px;
+  }
+
+  .landing-logo {
+    font-size: 19px;
+    gap: 7px;
+  }
+
+  .app-logo {
+    font-size: 18px;
+  }
+
+  .landing-logo img {
+    height: 30px;
+    width: 30px;
+  }
+
+  .landing-hero h1 {
+    font-size: 36px;
+  }
+
+  .story-heading h2,
+  .landing-final h2 {
+    font-size: 25px;
+  }
+
+  .future-node.node-a {
+    left: 6%;
+    top: 20%;
+  }
+
+  .future-node.node-b {
+    right: 6%;
+    top: 24%;
+  }
+
+  .future-node.node-c {
+    bottom: 14%;
+    left: 28%;
+  }
+
+  .future-card {
+    padding: 12px;
+  }
+
+  .future-card.card-one {
+    left: 5%;
+    right: auto;
+    top: 54%;
+    transform: none;
+  }
+
+  .future-card.card-two {
+    left: auto;
+    right: 5%;
+    top: 56%;
+    transform: none;
+  }
+
+  .recommendation-hero h1,
+  .summary-dashboard-hero h1,
+  .riasec-header h1,
+  .riasec-intro-hero h1,
+  .core-quiz-header h1,
+  .ai-discovery-header h1 {
+    font-size: 25px;
+  }
+
+  .recommendation-rank-table-heading h2,
+  .summary-section-heading h2,
+  .industry-donut-heading h2,
+  .career-fit-heading h3,
+  .career-day-heading h3,
+  .career-match-heading h3,
+  .career-elements-heading h3,
+  .ai-discovery-candidate-heading h2,
+  .career-explore-chat-heading h3 {
+    font-size: 20px;
+  }
+
+  .auth-tabs {
+    grid-template-columns: 1fr;
+    margin-right: 44px;
+  }
+
+  .profile-header {
+    align-items: start;
+  }
+
+  .profile-avatar {
+    height: 64px;
+    width: 64px;
+  }
+
+  .admin-table,
+  .core-admin-score-table {
+    min-width: 620px;
+  }
+}

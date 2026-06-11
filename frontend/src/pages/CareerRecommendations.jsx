@@ -245,6 +245,27 @@ function CareerRecommendations() {
   const [error, setError] = useState("");
   const [needsProfiling, setNeedsProfiling] = useState(false);
   const [viewMode, setViewMode] = useState("node");
+  const [isMobileView, setIsMobileView] = useState(false);
+
+  useEffect(() => {
+    const mediaQuery = window.matchMedia("(max-width: 768px)");
+    const handleViewportChange = () => {
+      const nextIsMobile = mediaQuery.matches;
+
+      setIsMobileView(nextIsMobile);
+
+      if (nextIsMobile) {
+        setViewMode("table");
+      }
+    };
+
+    handleViewportChange();
+    mediaQuery.addEventListener("change", handleViewportChange);
+
+    return () => {
+      mediaQuery.removeEventListener("change", handleViewportChange);
+    };
+  }, []);
 
   useEffect(() => {
     if (!token) {
@@ -302,6 +323,8 @@ function CareerRecommendations() {
     );
   }
 
+  const effectiveViewMode = isMobileView ? "table" : viewMode;
+
   return (
     <div className="recommendation-page">
       <header className="recommendation-hero">
@@ -347,12 +370,13 @@ function CareerRecommendations() {
             <div>
               <strong>{recommendations.length} nghề được đề xuất</strong>
               <span>
-                {viewMode === "node"
+                {effectiveViewMode === "node"
                   ? "Hover vào từng node để xem thông tin nhanh"
                   : "Bảng rank giữ nguyên thứ tự và điểm phù hợp từ hệ thống"}
               </span>
             </div>
 
+            {!isMobileView && (
             <div className="recommendation-view-toggle" aria-label="Chọn kiểu hiển thị gợi ý">
               <button
                 className={viewMode === "node" ? "active" : ""}
@@ -371,9 +395,10 @@ function CareerRecommendations() {
                 Bảng xếp hạng
               </button>
             </div>
+            )}
           </div>
 
-          {viewMode === "table" ? (
+          {effectiveViewMode === "table" ? (
             <RecommendationRankTable recommendations={recommendations} />
           ) : (
             <section className="recommendation-map" aria-label="Bản đồ nghề nghiệp gợi ý">
