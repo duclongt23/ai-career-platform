@@ -111,7 +111,10 @@ function LandingPage() {
     try {
       const res = await api.post("/auth/register", registerForm);
       storeAuth(res.data);
-      navigate(authRedirect, { replace: true });
+      navigate("/profile/setup", {
+        replace: true,
+        state: { from: authRedirect },
+      });
     } catch (err) {
       setError(err.response?.data?.message || "Đăng ký thất bại");
     } finally {

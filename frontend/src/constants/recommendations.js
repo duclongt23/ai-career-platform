@@ -1,0 +1,1 @@
+export const DEFAULT_RECOMMENDATION_LIMIT = 25;

@@ -5,7 +5,7 @@ const {
   calculateSimilarity,
   createElementScoresFingerprint,
   rankCareerRecommendations,
-} = require("./careerRecommendation.service");
+} = require("../../src/services/careerRecommendation.service");
 
 test("calculateSimilarity returns a perfect score for identical vectors", () => {
   const weights = new Map([

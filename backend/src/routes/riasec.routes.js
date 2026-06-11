@@ -1,11 +1,9 @@
 const express = require("express");
-const onetInterest = require("../data/onetInterest.json");
+const riasecController = require("../controllers/riasec.controller");
 const { protect } = require("../middleware/auth.middleware");
 
 const router = express.Router();
 
-router.get("/questions", protect, (req, res) => {
-  res.json(onetInterest);
-});
+router.get("/questions", protect, riasecController.listQuestions);
 
 module.exports = router;

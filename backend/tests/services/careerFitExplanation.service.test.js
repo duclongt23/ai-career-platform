@@ -4,10 +4,10 @@ const {
   findCachedCareerFitExplanation,
   parseCareerFitExplanations,
   selectCareerStrength,
-} = require("./careerFitExplanation.service");
+} = require("../../src/services/careerFitExplanation.service");
 const {
   buildCareerFitExplanationMessages,
-} = require("../prompts/careerFitExplanationPrompt");
+} = require("../../src/prompts/careerFitExplanationPrompt");
 
 const strengths = [
   { code: "critical_thinking", name_vi: "Tư duy phản biện" },

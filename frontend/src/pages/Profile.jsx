@@ -163,9 +163,11 @@ function Profile() {
             <p>{user.email || "Cap nhat thong tin ca nhan cua ban"}</p>
           </div>
 
-          <button type="button" onClick={() => setIsEditing(!isEditing)}>
-            {isEditing ? "Dong chinh sua" : "Sua thong tin"}
-          </button>
+          {!isEditing && (
+            <button type="button" onClick={() => setIsEditing(true)}>
+              Chỉnh sửa thông tin
+            </button>
+          )}
         </div>
       </section>
 
@@ -177,12 +179,12 @@ function Profile() {
           <section className="card profile-card profile-summary">
             <h2>Thong tin hoc tap</h2>
             <div className="profile-stat">
-              <span>Lop hien tai</span>
-              <strong>Lop {form.grade}</strong>
+              <span>Lớp hiện tại</span>
+              <strong>Lớp {form.grade}</strong>
             </div>
             <div className="profile-stat">
-              <span>Muc tieu</span>
-              <p>{form.goal || "Chua cap nhat muc tieu hoc tap."}</p>
+              <span>Mục tiêu</span>
+              <p>{form.goal || "Chưa cập nhật mục tiêu học tập."}</p>
             </div>
             <div className="profile-stat">
               <span>Ma RIASEC</span>
@@ -190,20 +192,20 @@ function Profile() {
               {riasecDate ? (
                 <p>Cap nhat ngay {riasecDate}</p>
               ) : (
-                <p>Lam bai test RIASEC de nhan goi y nghe nghiep phu hop.</p>
+                <p>Làm bài test RIASEC để nhận gợi ý nghề nghiệp phù hợp.</p>
               )}
               <button
                 type="button"
                 className="profile-riasec-button"
                 onClick={() => navigate("/discovery/riasec")}
               >
-                {form.riasecCode ? "Lam lai RIASEC" : "Lam test RIASEC"}
+                {form.riasecCode ? "Làm lại RIASEC" : "Làm test RIASEC"}
               </button>
             </div>
           </section>
 
           <section className="card profile-card">
-            <h2>Mon hoc yeu thich</h2>
+            <h2>Môn học yêu thích</h2>
             {renderTags(
               form.favoriteSubjects,
               "Chua co mon hoc yeu thich."
@@ -211,58 +213,58 @@ function Profile() {
           </section>
 
           <section className="card profile-card">
-            <h2>Mon hoc hoc tot</h2>
+            <h2>Môn học học tốt</h2>
             {renderTags(form.strongSubjects, "Chua co mon hoc noi bat.")}
           </section>
         </div>
       ) : (
         <section className="card profile-edit-card">
-          <h2>Chinh sua thong tin</h2>
+          <h2>Chỉnh sửa thông tin</h2>
           <p className="muted">
-            Cac muc nhieu gia tri hay cach nhau bang dau phay.
+            Các mục có nhiều giá trị hãy cách nhau bằng dấu phẩy.
           </p>
 
           <form onSubmit={handleSaveProfile}>
-            <label>Lop hien tai</label>
+            <label>Lớp hiện tại</label>
             <select name="grade" value={form.grade} onChange={handleChange}>
               <option value={10}>Lop 10</option>
               <option value={11}>Lop 11</option>
               <option value={12}>Lop 12</option>
             </select>
 
-            <label>Mon hoc yeu thich</label>
+            <label>Môn học yêu thích</label>
             <input
               name="favoriteSubjects"
               value={form.favoriteSubjects}
               onChange={handleChange}
-              placeholder="Vi du: Toan, Tin hoc, Tieng Anh"
+              placeholder="Ví dụ: Toán, Tin học, Tiếng Anh"
             />
 
-            <label>Mon hoc hoc tot</label>
+            <label>Môn học học tốt</label>
             <input
               name="strongSubjects"
               value={form.strongSubjects}
               onChange={handleChange}
-              placeholder="Vi du: Toan, Vat ly"
+              placeholder="Ví dụ: Toán, Vật lý"
             />
 
-            <label>Muc tieu</label>
+            <label>Mục tiêu</label>
             <textarea
               name="goal"
               value={form.goal}
               onChange={handleChange}
-              placeholder="Vi du: hoc dai hoc, hoc nghe, du hoc, di lam som"
+              placeholder="Ví dụ: học đại học, học nghề, du học, đi làm sớm"
               rows="4"
             />
 
             <div className="profile-actions">
-              <button type="submit">Luu ho so</button>
+              <button type="submit">Lưu hồ sơ</button>
               <button
                 className="secondary-button"
                 type="button"
                 onClick={() => setIsEditing(false)}
               >
-                Huy
+                Hủy
               </button>
             </div>
           </form>

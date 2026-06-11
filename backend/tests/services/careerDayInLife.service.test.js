@@ -3,10 +3,10 @@ const assert = require("node:assert/strict");
 const {
   findCachedCareerDayInLife,
   parseCareerDayInLife,
-} = require("./careerDayInLife.service");
+} = require("../../src/services/careerDayInLife.service");
 const {
   buildCareerDayInLifeMessages,
-} = require("../prompts/careerDayInLifePrompt");
+} = require("../../src/prompts/careerDayInLifePrompt");
 
 test("parseCareerDayInLife accepts a valid activity list wrapped in a markdown fence", () => {
   assert.deepEqual(

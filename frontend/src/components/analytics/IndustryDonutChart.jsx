@@ -1,3 +1,4 @@
+import { DEFAULT_RECOMMENDATION_LIMIT } from "../../constants/recommendations";
 import { normalizeCareerClusters } from "../../utils/careerCluster";
 
 const INDUSTRY_BAR_COLORS = [
@@ -53,7 +54,7 @@ function IndustryDonutChart({ recommendations = [] }) {
       <div className="industry-donut-heading">
         <div>
           <span className="recommendation-eyebrow">Phân bổ nhóm ngành</span>
-          <h2>15 nghề gợi ý đang nghiêng về nhóm nào?</h2>
+          <h2>{DEFAULT_RECOMMENDATION_LIMIT} nghề gợi ý đang nghiêng về nhóm nào?</h2>
         </div>
       </div>
 

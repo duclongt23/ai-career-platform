@@ -1,7 +1,9 @@
 const crypto = require("node:crypto");
+const {
+  DEFAULT_RECOMMENDATION_LIMIT,
+  MAX_RECOMMENDATION_LIMIT,
+} = require("../constants/recommendations");
 
-const DEFAULT_RECOMMENDATION_LIMIT = 25;
-const MAX_RECOMMENDATION_LIMIT = 25;
 const RECOMMENDATION_ALGORITHM_VERSION = 2;
 const COSINE_WEIGHT = 0.7;
 const WEIGHTED_JACCARD_WEIGHT = 0.3;

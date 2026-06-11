@@ -52,7 +52,7 @@ function Register() {
       localStorage.setItem("refreshToken", res.data.refreshToken);
       localStorage.setItem("user", JSON.stringify(res.data.user));
 
-      navigate("/profile");
+      navigate("/profile/setup", { state: { from: "/discovery" } });
     } catch (err) {
       setError(err.response?.data?.message || "Đăng ký thất bại");
     } finally {

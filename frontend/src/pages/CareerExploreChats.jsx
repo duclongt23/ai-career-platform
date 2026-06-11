@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { Link, Navigate, useNavigate, useParams } from "react-router-dom";
 import api from "../api/axios";
 import { CareerExploreChatSection } from "./CareerDetail";
+import { DEFAULT_RECOMMENDATION_LIMIT } from "../constants/recommendations";
 import { formatCareerClusters } from "../utils/careerCluster";
 
 function formatUpdatedAt(value) {
@@ -132,7 +133,9 @@ function CareerExploreChats() {
         {!loadingChats && chats.length === 0 && (
           <div className="career-chat-empty">
             <p>Bạn chưa có cuộc trò chuyện đang dở.</p>
-            <Link to="/discovery/recommendations">Khám phá 15 nghề gợi ý</Link>
+            <Link to="/discovery/recommendations">
+              Khám phá {DEFAULT_RECOMMENDATION_LIMIT} nghề gợi ý
+            </Link>
           </div>
         )}
 

@@ -4,10 +4,10 @@ const {
   normalizeConversation,
   parseCareerExploreChatResponse,
   shouldSearchVietnamJobMarket,
-} = require("./careerExploreChat.service");
+} = require("../../src/services/careerExploreChat.service");
 const {
   buildCareerExploreChatMessages,
-} = require("../prompts/careerExploreChat");
+} = require("../../src/prompts/careerExploreChat");
 
 test("parseCareerExploreChatResponse accepts a complete JSON response", () => {
   assert.deepEqual(

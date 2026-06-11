@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import api from "../api/axios";
+import { DEFAULT_RECOMMENDATION_LIMIT } from "../constants/recommendations";
 import { normalizeCareerClusters } from "../utils/careerCluster";
 
 const NODE_LAYOUT = [
@@ -249,7 +250,7 @@ function CareerRecommendations() {
               <span><i className="tier-explore" /> Explore More</span>
             </div>
 
-            {recommendations.slice(0, 25).map((career, index) => (
+            {recommendations.slice(0, DEFAULT_RECOMMENDATION_LIMIT).map((career, index) => (
               <RecommendationNode career={career} index={index} key={career._id} />
             ))}
           </section>

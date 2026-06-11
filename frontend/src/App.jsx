@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import {
   Routes,
   Route,
@@ -9,6 +9,7 @@ import {
 } from "react-router-dom";
 import LandingPage from "./pages/LandingPage";
 import Profile from "./pages/Profile";
+import ProfileSetup from "./pages/ProfileSetup";
 import CareerDetail from "./pages/CareerDetail";
 import AdminCareers from "./pages/AdminCareers";
 import AdminCoreQuiz from "./pages/AdminCoreQuiz";
@@ -41,6 +42,97 @@ function AuthRedirect({ mode }) {
       }}
     />
   );
+}
+
+function hasBasicProfile(profile) {
+  return Boolean(
+    profile?.grade &&
+      profile?.favoriteSubjects?.length &&
+      profile?.strongSubjects?.length &&
+      profile?.goal?.trim()
+  );
+}
+
+function BasicProfileGate({ children }) {
+  const location = useLocation();
+  const token = localStorage.getItem("token");
+  const user = getStoredUser();
+  const [status, setStatus] = useState("loading");
+  const [error, setError] = useState("");
+
+  useEffect(() => {
+    if (!token) {
+      setStatus("unauthenticated");
+      return;
+    }
+
+    if (user?.role === "admin") {
+      setStatus("ready");
+      return;
+    }
+
+    let isMounted = true;
+    setStatus("loading");
+    setError("");
+
+    api
+      .get("/profile")
+      .then((res) => {
+        if (!isMounted) return;
+        setStatus(hasBasicProfile(res.data) ? "ready" : "needsSetup");
+      })
+      .catch((err) => {
+        if (!isMounted) return;
+
+        if (err.response?.status === 404) {
+          setStatus("needsSetup");
+          return;
+        }
+
+        if (err.response?.status === 401) {
+          setStatus("unauthenticated");
+          return;
+        }
+
+        setError(
+          err.response?.data?.message ||
+            "Khong kiem tra duoc ho so. Vui long thu lai."
+        );
+        setStatus("error");
+      });
+
+    return () => {
+      isMounted = false;
+    };
+  }, [location.pathname, token, user?.role]);
+
+  if (status === "loading") {
+    return (
+      <section className="card profile-card">
+        <p className="muted">Dang kiem tra ho so...</p>
+      </section>
+    );
+  }
+
+  if (status === "unauthenticated") {
+    return <Navigate to="/login" replace state={{ from: location.pathname }} />;
+  }
+
+  if (status === "needsSetup") {
+    return (
+      <Navigate
+        to="/profile/setup"
+        replace
+        state={{ from: location.pathname }}
+      />
+    );
+  }
+
+  if (status === "error") {
+    return <p className="error">{error}</p>;
+  }
+
+  return children;
 }
 
 function App() {
@@ -134,14 +226,29 @@ function App() {
           <Route path="/" element={<LandingPage />} />
           <Route path="/register" element={<AuthRedirect mode="register" />} />
           <Route path="/login" element={<AuthRedirect mode="login" />} />
-          <Route path="/profile" element={<Profile />} />
+          <Route path="/profile/setup" element={<ProfileSetup />} />
+          <Route
+            path="/profile"
+            element={
+              <BasicProfileGate>
+                <Profile />
+              </BasicProfileGate>
+            }
+          />
           <Route path="/careers" element={<Navigate to="/" replace />} />
           <Route path="/career-recommendations" element={<Navigate to="/discovery/recommendations" replace />} />
           <Route path="/riasec-info" element={<RiasecInfo />} />
           <Route path="/riasec-test" element={<Navigate to="/discovery/riasec" replace />} />
           <Route path="/core-quiz" element={<Navigate to="/discovery/core-quiz" replace />} />
           <Route path="/ai-discovery" element={<Navigate to="/discovery/ai-discovery" replace />} />
-          <Route path="/discovery" element={<DiscoveryWorkflowLayout />}>
+          <Route
+            path="/discovery"
+            element={
+              <BasicProfileGate>
+                <DiscoveryWorkflowLayout />
+              </BasicProfileGate>
+            }
+          >
             <Route index element={<Navigate to="riasec" replace />} />
             <Route path="riasec" element={<RiasecTest />} />
             <Route path="core-quiz" element={<CoreQuizPage />} />
@@ -149,10 +256,38 @@ function App() {
             <Route path="dashboard" element={<DiscoverySummaryDashboard />} />
             <Route path="recommendations" element={<CareerRecommendations />} />
           </Route>
-          <Route path="/careers/:id" element={<CareerDetail />} />
-          <Route path="/careers/:id/explore-chat" element={<CareerExploreChat />} />
-          <Route path="/career-explore-chats" element={<CareerExploreChats />} />
-          <Route path="/career-explore-chats/:id" element={<CareerExploreChats />} />
+          <Route
+            path="/careers/:id"
+            element={
+              <BasicProfileGate>
+                <CareerDetail />
+              </BasicProfileGate>
+            }
+          />
+          <Route
+            path="/careers/:id/explore-chat"
+            element={
+              <BasicProfileGate>
+                <CareerExploreChat />
+              </BasicProfileGate>
+            }
+          />
+          <Route
+            path="/career-explore-chats"
+            element={
+              <BasicProfileGate>
+                <CareerExploreChats />
+              </BasicProfileGate>
+            }
+          />
+          <Route
+            path="/career-explore-chats/:id"
+            element={
+              <BasicProfileGate>
+                <CareerExploreChats />
+              </BasicProfileGate>
+            }
+          />
           <Route path="/admin/careers" element={<AdminCareers />} />
           <Route path="/admin/core-quiz" element={<AdminCoreQuiz />} />
           <Route path="/admin/elements" element={<AdminElements />} />
