@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import api from "../api/axios";
 import logoIcon from "../assets/logo.png";
+import landingVisual from "../assets/landing-visual.jpg";
 
 const storyCards = [
   {
@@ -157,21 +158,7 @@ function LandingPage() {
         </div>
 
         <div className="future-visual" aria-hidden="true">
-          <div className="future-grid" />
-          <div className="future-orbit orbit-one" />
-          <div className="future-orbit orbit-two" />
-          <div className="future-node main-node">AI</div>
-          <div className="future-node node-a">RIASEC</div>
-          <div className="future-node node-b">Giá trị</div>
-          <div className="future-node node-c">Ước mơ</div>
-          <div className="future-card card-one">
-            <span>Khám phá</span>
-            <strong>Điểm mạnh đang nổi lên</strong>
-          </div>
-          <div className="future-card card-two">
-            <span>Gợi ý</span>
-            <strong>3 nhóm ngành phù hợp</strong>
-          </div>
+          <img src={landingVisual} alt="" />
         </div>
 
         <a className="scroll-cue" href="#story" aria-label="Cuộn xuống">

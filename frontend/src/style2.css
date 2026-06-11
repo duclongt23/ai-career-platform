@@ -737,118 +737,25 @@ button.danger:hover:not(:disabled),
 }
 
 .future-visual {
-  aspect-ratio: 1;
-  background:
-    linear-gradient(rgba(255, 255, 255, 0.9), rgba(248, 250, 246, 0.82)),
-    url("./assets/hero.png");
-  background-position: center;
-  background-repeat: no-repeat;
-  background-size: 52%, cover;
-  border: 1px solid rgba(255, 255, 255, 0.58);
+  aspect-ratio: 4 / 3;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.72);
   border-radius: 8px;
   box-shadow: var(--shadow-strong);
   min-height: 420px;
   overflow: hidden;
 }
 
-.future-grid {
-  background-image:
-    linear-gradient(rgba(15, 118, 110, 0.12) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(15, 118, 110, 0.12) 1px, transparent 1px);
-  background-size: 36px 36px;
-  inset: 0;
-  position: absolute;
+.future-visual img {
+  display: block;
+  height: 100%;
+  object-fit: cover;
+  object-position: center;
+  width: 100%;
 }
 
-.future-orbit {
-  border: 1px solid rgba(15, 118, 110, 0.18);
-  border-radius: 50%;
-  inset: 14%;
-  position: absolute;
-}
-
-.future-orbit.orbit-two {
-  inset: 28%;
-  transform: rotate(28deg);
-}
-
-.future-node {
-  align-items: center;
-  background: #ffffff;
-  border: 1px solid var(--line);
-  border-radius: 8px;
-  box-shadow: var(--shadow-sm);
-  color: var(--ink);
-  display: inline-flex;
-  font-size: 13px;
-  font-weight: 900;
-  justify-content: center;
-  min-height: 40px;
-  padding: 0 14px;
-  position: absolute;
-  white-space: nowrap;
-}
-
-.future-node.main-node {
-  background: var(--ink);
-  color: #ffffff;
-  font-size: 18px;
-  height: 72px;
-  left: 50%;
-  min-height: 72px;
-  padding: 0;
-  top: 49%;
-  transform: translate(-50%, -50%);
-  width: 72px;
-}
-
-.future-node.node-a {
-  left: 10%;
-  top: 25%;
-}
-
-.future-node.node-b {
-  right: 9%;
-  top: 29%;
-}
-
-.future-node.node-c {
-  bottom: 18%;
-  left: 35%;
-}
-
-.future-card {
-  background: rgba(255, 255, 255, 0.92);
-  border: 1px solid var(--line);
-  border-radius: 8px;
-  box-shadow: var(--shadow-card);
-  display: grid;
-  gap: 6px;
-  max-width: 230px;
-  padding: 16px;
-  position: absolute;
-}
-
-.future-card span {
-  color: var(--primary);
-  font-size: 12px;
-  font-weight: 900;
-  text-transform: uppercase;
-}
-
-.future-card strong {
-  color: var(--ink);
-  line-height: 1.35;
-}
-
-.future-card.card-one {
-  left: 7%;
-  top: 57%;
-}
-
-.future-card.card-two {
-  right: 7%;
-  top: 52%;
+.future-visual > :not(img) {
+  display: none;
 }
 
 .scroll-cue {
@@ -3273,36 +3180,7 @@ button.danger:hover:not(:disabled),
   }
 
   .future-visual {
-    min-height: 320px;
-  }
-
-  .future-card {
-    max-width: 78%;
-  }
-
-  .future-card.card-one {
-    left: 50%;
-    top: 56%;
-    transform: translateX(-50%);
-  }
-
-  .future-card.card-two {
-    left: 50%;
-    right: auto;
-    top: 74%;
-    transform: translateX(-50%);
-  }
-
-  .future-node {
-    font-size: 12px;
-    min-height: 36px;
-    padding: 0 10px;
-  }
-
-  .future-node.main-node {
-    height: 60px;
-    min-height: 60px;
-    width: 60px;
+    min-height: 420px;
   }
 
   .auth-copy h2 {
@@ -3771,37 +3649,8 @@ button.danger:hover:not(:disabled),
     font-size: 25px;
   }
 
-  .future-node.node-a {
-    left: 6%;
-    top: 20%;
-  }
-
-  .future-node.node-b {
-    right: 6%;
-    top: 24%;
-  }
-
-  .future-node.node-c {
-    bottom: 14%;
-    left: 28%;
-  }
-
-  .future-card {
-    padding: 12px;
-  }
-
-  .future-card.card-one {
-    left: 5%;
-    right: auto;
-    top: 54%;
-    transform: none;
-  }
-
-  .future-card.card-two {
-    left: auto;
-    right: 5%;
-    top: 56%;
-    transform: none;
+  .future-visual {
+    min-height: 360px;
   }
 
   .recommendation-hero h1,
