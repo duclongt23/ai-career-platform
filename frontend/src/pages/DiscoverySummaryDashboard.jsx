@@ -126,7 +126,7 @@ function DiscoverySummaryDashboard() {
   return (
     <div className="summary-dashboard-page">
       <section className="summary-dashboard-hero">
-        <p className="summary-dashboard-eyebrow">Tong ket ho so</p>
+        <p className="summary-dashboard-eyebrow">Tổng kết hồ sơ</p>
         <h1>Nhìn lại hồ sơ khám phá bản thân trước khi xem nghề</h1>
         <p>
           Dashboard gom hai lớp dữ liệu quan trọng: sở thích Holland Code và

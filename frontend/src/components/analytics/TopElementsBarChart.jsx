@@ -26,7 +26,7 @@ function TopElementsBarChart({ scores = [], limit = 10 }) {
               <span>{CORE_TYPE_LABELS[score.type] || score.type}</span>
             </div>
             <div className="summary-core-track">
-              <div style={{ backgroundColor: color, width: `${width}%` }} />
+              <div style={{ background: color, width: `${width}%` }} />
             </div>
             <span className="summary-core-score">{Math.round(value * 100)}%</span>
           </article>

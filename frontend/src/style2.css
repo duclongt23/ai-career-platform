@@ -1365,7 +1365,7 @@ button.danger:hover:not(:disabled),
     linear-gradient(135deg, #ffffff, #f1f7f4);
   background-size: 42px 42px, 42px 42px, auto;
   min-height: 760px;
-  overflow: hidden;
+  overflow: visible;
   position: relative;
 }
 
@@ -1400,23 +1400,28 @@ button.danger:hover:not(:disabled),
   z-index: 2;
 }
 
+.recommendation-node:hover,
+.recommendation-node:focus-within {
+  z-index: 20;
+}
+
 .recommendation-node-link {
-  align-items: center;
-  background: rgba(255, 255, 255, 0.92);
-  border: 1px solid var(--line);
-  border-radius: 8px;
-  box-shadow: var(--shadow-sm);
+  align-items: flex-start;
+  background: transparent;
+  border: 0;
   color: var(--ink);
   display: flex;
-  gap: 10px;
-  min-width: 190px;
-  padding: 10px;
+  gap: 8px;
+  max-width: 260px;
+  min-width: 0;
+  padding: 0;
+  text-shadow:
+    0 1px 0 #ffffff,
+    0 0 10px rgba(255, 255, 255, 0.92);
 }
 
 .recommendation-node:hover .recommendation-node-link,
 .recommendation-node:focus-within .recommendation-node-link {
-  border-color: rgba(15, 118, 110, 0.35);
-  box-shadow: var(--shadow-card);
   transform: translateY(-2px);
 }
 
@@ -1455,8 +1460,7 @@ button.danger:hover:not(:disabled),
 }
 
 .recommendation-node.node-lg .recommendation-node-link {
-  min-width: 230px;
-  padding: 13px;
+  max-width: 300px;
 }
 
 .recommendation-node.node-lg .recommendation-title {
@@ -1464,14 +1468,15 @@ button.danger:hover:not(:disabled),
 }
 
 .recommendation-node.node-sm .recommendation-node-link {
-  min-width: 162px;
+  max-width: 220px;
 }
 
 .recommendation-popover {
+  --popover-gap: 2px;
   background: var(--surface);
   border: 1px solid var(--line);
   border-radius: 8px;
-  bottom: calc(100% + 12px);
+  bottom: calc(100% + var(--popover-gap));
   box-shadow: var(--shadow-strong);
   left: 50%;
   opacity: 0;
@@ -1484,10 +1489,24 @@ button.danger:hover:not(:disabled),
   z-index: 5;
 }
 
+.recommendation-popover::before {
+  content: "";
+  inset: -12px;
+  position: absolute;
+  z-index: -1;
+}
+
 .recommendation-node.popover-down .recommendation-popover,
 .recommendation-node.popover-down-left .recommendation-popover {
   bottom: auto;
-  top: calc(100% + 12px);
+  top: calc(100% + var(--popover-gap));
+}
+
+.recommendation-node.popover-up .recommendation-popover,
+.recommendation-node.popover-down .recommendation-popover {
+  left: 0;
+  right: auto;
+  transform: translate(0, 8px);
 }
 
 .recommendation-node.popover-up-left .recommendation-popover,
@@ -1508,6 +1527,13 @@ button.danger:hover:not(:disabled),
 .recommendation-node.popover-up-left:focus-within .recommendation-popover,
 .recommendation-node.popover-down-left:hover .recommendation-popover,
 .recommendation-node.popover-down-left:focus-within .recommendation-popover {
+  transform: translate(0, 0);
+}
+
+.recommendation-node.popover-up:hover .recommendation-popover,
+.recommendation-node.popover-up:focus-within .recommendation-popover,
+.recommendation-node.popover-down:hover .recommendation-popover,
+.recommendation-node.popover-down:focus-within .recommendation-popover {
   transform: translate(0, 0);
 }
 
@@ -1578,23 +1604,27 @@ button.danger:hover:not(:disabled),
   align-items: center;
   display: grid;
   gap: 24px;
-  grid-template-columns: minmax(300px, 0.8fr) minmax(260px, 1fr);
+  grid-template-columns: minmax(300px, 0.95fr) minmax(260px, 1fr);
 }
 
 .summary-radar-visual,
 .riasec-radar-visual {
+  align-items: center;
   background: var(--surface-soft);
   border: 1px solid var(--line);
   border-radius: 8px;
-  min-height: 320px;
-  padding: 14px;
+  display: flex;
+  justify-content: center;
+  min-height: 300px;
+  padding: 18px;
 }
 
 .summary-radar-visual svg,
 .riasec-radar-visual svg {
   display: block;
   height: auto;
-  width: 100%;
+  max-width: 100%;
+  width: clamp(260px, 34vw, 430px);
 }
 
 .summary-radar-grid,
@@ -1690,6 +1720,12 @@ button.danger:hover:not(:disabled),
   padding: 16px;
 }
 
+.core-top-item {
+  display: grid;
+  gap: 6px;
+  min-width: 0;
+}
+
 .summary-riasec-list span,
 .summary-cluster-name small,
 .summary-core-info span,
@@ -1709,6 +1745,49 @@ button.danger:hover:not(:disabled),
 .industry-bar-label strong,
 .core-top-item strong {
   color: var(--ink);
+}
+
+.core-top-item span,
+.core-top-item strong,
+.core-top-item em {
+  display: block;
+  line-height: 1.35;
+}
+
+.summary-cluster-name {
+  align-items: baseline;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 8px;
+  min-width: 0;
+}
+
+.summary-cluster-name strong {
+  line-height: 1.35;
+}
+
+.summary-cluster-name small {
+  flex: 0 0 auto;
+  line-height: 1.35;
+  white-space: nowrap;
+}
+
+.summary-core-info,
+.summary-riasec-list article {
+  display: grid;
+  gap: 5px;
+  min-width: 0;
+}
+
+.summary-core-info strong,
+.summary-riasec-list strong {
+  line-height: 1.35;
+}
+
+.summary-core-info span,
+.summary-riasec-list span,
+.summary-riasec-list small {
+  line-height: 1.35;
 }
 
 .summary-cluster-row,
@@ -2433,14 +2512,15 @@ button.danger:hover:not(:disabled),
 }
 
 .riasec-radar-panel {
+  align-items: center;
   display: grid;
-  gap: 22px;
-  grid-template-columns: minmax(260px, 0.7fr) minmax(300px, 1fr);
+  gap: 28px;
+  grid-template-columns: minmax(280px, 1fr) minmax(320px, 0.82fr);
 }
 
 .riasec-radar-copy h3 {
   color: var(--ink);
-  font-size: 24px;
+  font-size: 26px;
   line-height: 1.25;
   margin: 8px 0 12px;
 }

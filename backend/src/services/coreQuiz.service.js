@@ -7,8 +7,8 @@ const use_data_from_mongo = true;
 
 const QUESTION_COUNTS = {
   ability: 9,
-  workstyle: 7,
-  transferable_skill: 6,
+  workstyle: 9,
+  transferable_skill: 4,
   knowledge: 5,
   essential_skill: 3,
 };
