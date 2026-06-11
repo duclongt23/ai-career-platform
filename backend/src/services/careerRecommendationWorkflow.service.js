@@ -4,6 +4,7 @@ const {
   DEFAULT_RECOMMENDATION_LIMIT,
   RECOMMENDATION_ALGORITHM_VERSION,
   createElementScoresFingerprint,
+  createRecommendationProfileFingerprint,
   rankCareerRecommendations,
 } = require("./careerRecommendation.service");
 const {
@@ -32,7 +33,7 @@ async function getCareerDataFingerprint() {
 async function getCareerRecommendationsForUser(userId) {
   const profile = await StudentProfile.findOne({ userId })
     .select(
-      "elementScores elementScoreVersion coreQuizAnswers aiDiscoveries careerRecommendationSnapshot"
+      "elementScores elementScoreVersion coreQuizAnswers aiDiscoveries riasecCode careerRecommendationSnapshot"
     )
     .lean();
 
@@ -50,12 +51,18 @@ async function getCareerRecommendationsForUser(userId) {
   }
 
   const elementScoresFingerprint = createElementScoresFingerprint(elementScores);
+  const profileRecommendationFingerprint = createRecommendationProfileFingerprint({
+    elementScores,
+    riasecCode: profile.riasecCode,
+  });
   const careerDataFingerprint = await getCareerDataFingerprint();
   const snapshot = profile.careerRecommendationSnapshot;
   const canReuseSnapshot =
     snapshot?.algorithmVersion === RECOMMENDATION_ALGORITHM_VERSION &&
     snapshot.recommendationLimit === DEFAULT_RECOMMENDATION_LIMIT &&
     snapshot.elementScoresFingerprint === elementScoresFingerprint &&
+    snapshot.profileRecommendationFingerprint ===
+      profileRecommendationFingerprint &&
     snapshot.careerDataFingerprint === careerDataFingerprint &&
     Array.isArray(snapshot.recommendations);
 
@@ -79,6 +86,9 @@ async function getCareerRecommendationsForUser(userId) {
     elementScores,
     careers,
     limit: DEFAULT_RECOMMENDATION_LIMIT,
+    profile: {
+      riasecCode: profile.riasecCode,
+    },
   });
   const generatedAt = new Date();
 
@@ -90,6 +100,7 @@ async function getCareerRecommendationsForUser(userId) {
           algorithmVersion: RECOMMENDATION_ALGORITHM_VERSION,
           recommendationLimit: DEFAULT_RECOMMENDATION_LIMIT,
           elementScoresFingerprint,
+          profileRecommendationFingerprint,
           careerDataFingerprint,
           recommendations,
           generatedAt,

@@ -1,8 +1,11 @@
 const express = require("express");
 const careerController = require("../controllers/career.controller");
 const {
+  deleteCareerExploreChatSession,
   exploreCareerChat,
   listCareerExploreChats,
+  submitCareerExploreChatFeedback,
+  updateCareerExploreChatTitle,
 } = require("../controllers/careerExploreChat.controller");
 const { protect, adminOnly } = require("../middleware/auth.middleware");
 const {
@@ -25,6 +28,21 @@ router.post(
   exploreCareerChat
 );
 router.get("/explore-chats/me", protect, listCareerExploreChats);
+router.patch(
+  "/:id/explore-chat/session",
+  protect,
+  updateCareerExploreChatTitle
+);
+router.delete(
+  "/:id/explore-chat/session",
+  protect,
+  deleteCareerExploreChatSession
+);
+router.post(
+  "/:id/explore-chat/feedback",
+  protect,
+  submitCareerExploreChatFeedback
+);
 
 router.get(
   "/admin/elements",

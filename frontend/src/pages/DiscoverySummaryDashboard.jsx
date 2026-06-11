@@ -102,6 +102,10 @@ function DiscoverySummaryDashboard() {
       .slice(0, 5);
   }, [recommendations]);
   const hasCareerClusters = careerClusterSummary.length > 0;
+  const maxClusterCount = Math.max(
+    ...careerClusterSummary.map((item) => item.count),
+    1
+  );
 
   if (isLoading) {
     return (
@@ -142,14 +146,21 @@ function DiscoverySummaryDashboard() {
         </div>
 
         {hasCareerClusters ? (
-          <div className="summary-cluster-list">
+          <div className="summary-cluster-chart" aria-label="Biểu đồ nhóm ngành nổi bật">
             {careerClusterSummary.map((item, index) => (
-              <article key={item.cluster}>
-                <div>
-                  <span>Top {index + 1}</span>
+              <article className="summary-cluster-row" key={item.cluster}>
+                <span className="summary-cluster-rank">#{index + 1}</span>
+                <div className="summary-cluster-name">
                   <strong>{item.cluster}</strong>
+                  <small>{item.count} nghề gợi ý</small>
                 </div>
-                <em>{item.count} nghề</em>
+                <div className="summary-cluster-track">
+                  <div
+                    className="summary-cluster-fill"
+                    style={{ width: `${Math.max((item.count / maxClusterCount) * 100, 8)}%` }}
+                  />
+                </div>
+                <em>{item.count}</em>
               </article>
             ))}
           </div>

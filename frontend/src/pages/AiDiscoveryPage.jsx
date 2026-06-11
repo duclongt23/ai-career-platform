@@ -241,7 +241,7 @@ function AiDiscoveryPage() {
       setError(
         getApiErrorMessage(
           err,
-          "Chưa thể bắt đầu lại cuộc trò chuyện. Vui lòng thử lại sau."
+          "Chưa thể quay lại menu chọn câu bắt đầu. Vui lòng thử lại sau."
         )
       );
       setShowResetConfirm(false);
@@ -446,7 +446,7 @@ function AiDiscoveryPage() {
                 isSelectingOpening
               }
             >
-              {isResetting ? "Đang bắt đầu lại..." : "Bắt đầu lại"}
+              {isResetting ? "Đang quay lại menu..." : "Quay lại menu"}
             </button>
           </div>
         </div>
@@ -520,9 +520,9 @@ function AiDiscoveryPage() {
               i
             </div>
             <div>
-              <p className="ai-discovery-eyebrow">Bắt đầu lại</p>
+              <p className="ai-discovery-eyebrow">Quay lại menu</p>
               <h2 id="ai-discovery-reset-title">
-                Tạo cuộc trò chuyện mới?
+                Quay lại menu chọn câu bắt đầu?
               </h2>
               <p>
                 Nội dung trò chuyện hiện tại sẽ được thay bằng một phiên khám phá mới.
@@ -543,7 +543,7 @@ function AiDiscoveryPage() {
                 onClick={resetSession}
                 disabled={isResetting}
               >
-                {isResetting ? "Đang tạo..." : "Bắt đầu lại"}
+                {isResetting ? "Đang mở menu..." : "Quay lại menu"}
               </button>
             </div>
           </section>
@@ -614,7 +614,22 @@ function AiDiscoveryPage() {
             </span>
             {status === "confirmed" ? (
               <div className="ai-discovery-confirmed-actions">
-                <strong>Đã lưu vào hồ sơ</strong>
+                <div className="ai-discovery-confirmed-guidance">
+                  <strong>Đã lưu vào hồ sơ</strong>
+                  <p>
+                    Một cuộc trò chuyện là mức tối thiểu. Em nên làm thêm 1-2
+                    cuộc trò chuyện với câu bắt đầu khác để AI nhận diện được
+                    nhiều yếu tố hơn trước khi xem gợi ý nghề nghiệp.
+                  </p>
+                </div>
+                <button
+                  className="secondary"
+                  type="button"
+                  onClick={resetSession}
+                  disabled={isResetting}
+                >
+                  {isResetting ? "Đang mở menu..." : "Chọn câu bắt đầu khác"}
+                </button>
                 <Link
                   className="workflow-next-action"
                   to="/discovery/dashboard"

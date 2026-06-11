@@ -1,6 +1,8 @@
 const MAX_CHAT_HISTORY_MESSAGES = 10;
 const MAX_CHAT_MESSAGE_LENGTH = 1200;
 const MAX_SUGGESTED_QUESTIONS = 4;
+const MAX_CHAT_SESSION_TITLE_LENGTH = 120;
+const MAX_FEEDBACK_REASON_LENGTH = 500;
 
 function stripMarkdownFence(value) {
   return String(value || "")
@@ -80,6 +82,43 @@ function parseCareerExploreChatResponse(rawResponse) {
   };
 }
 
+function normalizeSessionTitle(value = "") {
+  const title = String(value || "").trim();
+
+  if (!title) {
+    const error = new Error("title is required");
+    error.statusCode = 400;
+    throw error;
+  }
+
+  return title.slice(0, MAX_CHAT_SESSION_TITLE_LENGTH);
+}
+
+function normalizeMessageIndex(value) {
+  const messageIndex = Number(value);
+
+  if (!Number.isInteger(messageIndex) || messageIndex < 0) {
+    const error = new Error("messageIndex must be a non-negative integer");
+    error.statusCode = 400;
+    throw error;
+  }
+
+  return messageIndex;
+}
+
+function normalizeFeedback({ rating, reason } = {}) {
+  if (!["helpful", "not_helpful"].includes(rating)) {
+    const error = new Error("rating must be helpful or not_helpful");
+    error.statusCode = 400;
+    throw error;
+  }
+
+  return {
+    rating,
+    reason: String(reason || "").trim().slice(0, MAX_FEEDBACK_REASON_LENGTH),
+  };
+}
+
 function shouldSearchVietnamJobMarket(question = "") {
   const normalizedQuestion = String(question).toLocaleLowerCase("vi");
   const marketKeywords = [
@@ -101,6 +140,9 @@ function shouldSearchVietnamJobMarket(question = "") {
 
 module.exports = {
   normalizeConversation,
+  normalizeFeedback,
+  normalizeMessageIndex,
+  normalizeSessionTitle,
   parseCareerExploreChatResponse,
   shouldSearchVietnamJobMarket,
 };

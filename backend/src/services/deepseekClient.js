@@ -32,7 +32,7 @@ async function callDeepSeek(messages) {
     stream: false,
     // Controller cần JSON ổn định để quyết định hỏi tiếp hay chuyển sang xác nhận.
     response_format: { type: "json_object" },
-    max_tokens: 2000,
+    max_tokens: 10000,
   });
 
   const choice = completion.choices[0];

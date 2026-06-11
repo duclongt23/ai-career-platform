@@ -132,6 +132,10 @@ const careerRecommendationSnapshotSchema = new mongoose.Schema(
       type: String,
       required: true,
     },
+    profileRecommendationFingerprint: {
+      type: String,
+      default: "",
+    },
     careerDataFingerprint: {
       type: String,
       required: true,
@@ -245,6 +249,23 @@ const careerExploreChatMessageSchema = new mongoose.Schema(
       default: "",
       trim: true,
     },
+    feedback: {
+      rating: {
+        type: String,
+        enum: ["helpful", "not_helpful", ""],
+        default: "",
+      },
+      reason: {
+        type: String,
+        default: "",
+        trim: true,
+        maxlength: 500,
+      },
+      updatedAt: {
+        type: Date,
+        default: null,
+      },
+    },
     createdAt: {
       type: Date,
       default: Date.now,
@@ -259,6 +280,12 @@ const careerExploreChatSessionSchema = new mongoose.Schema(
       type: mongoose.Schema.Types.ObjectId,
       ref: "Career",
       required: true,
+    },
+    title: {
+      type: String,
+      default: "",
+      trim: true,
+      maxlength: 120,
     },
     messages: {
       type: [careerExploreChatMessageSchema],

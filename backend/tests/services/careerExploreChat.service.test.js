@@ -2,6 +2,9 @@ const test = require("node:test");
 const assert = require("node:assert/strict");
 const {
   normalizeConversation,
+  normalizeFeedback,
+  normalizeMessageIndex,
+  normalizeSessionTitle,
   parseCareerExploreChatResponse,
   shouldSearchVietnamJobMarket,
 } = require("../../src/services/careerExploreChat.service");
@@ -58,6 +61,32 @@ test("normalizeConversation keeps only recent valid messages", () => {
 
   assert.equal(normalizedConversation.length, 10);
   assert.equal(normalizedConversation[0].content, "Tin nhắn 2");
+});
+
+test("normalizeFeedback accepts valid ratings and trims reason", () => {
+  assert.deepEqual(
+    normalizeFeedback({
+      rating: "not_helpful",
+      reason: "  Cần cụ thể hơn  ",
+    }),
+    {
+      rating: "not_helpful",
+      reason: "Cần cụ thể hơn",
+    }
+  );
+});
+
+test("normalizeFeedback rejects invalid ratings", () => {
+  assert.throws(() => normalizeFeedback({ rating: "neutral" }), /rating/);
+});
+
+test("normalizeMessageIndex accepts only non-negative integers", () => {
+  assert.equal(normalizeMessageIndex(3), 3);
+  assert.throws(() => normalizeMessageIndex(-1), /messageIndex/);
+});
+
+test("normalizeSessionTitle trims a valid custom title", () => {
+  assert.equal(normalizeSessionTitle("  Nghề phần mềm  "), "Nghề phần mềm");
 });
 
 test("shouldSearchVietnamJobMarket detects questions that need current market data", () => {

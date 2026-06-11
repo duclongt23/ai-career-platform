@@ -31,6 +31,7 @@ const NODE_LAYOUT = [
   { top: 86, left: 15, size: "sm", placement: "up" },
   { top: 89, left: 88, size: "sm", placement: "up-left" },
 ];
+const INITIAL_RANK_TABLE_LIMIT = 15;
 
 function formatElementCode(code) {
   return String(code || "")
@@ -39,6 +40,10 @@ function formatElementCode(code) {
 }
 
 function getMatchScore(career) {
+  if (Number.isFinite(career.displayMatchScore)) {
+    return Math.round(career.displayMatchScore);
+  }
+
   if (Number.isFinite(career.matchPercentage)) {
     return Math.round(career.matchPercentage);
   }
@@ -134,12 +139,112 @@ function RecommendationNode({ career, index }) {
   );
 }
 
+function RecommendationRankTable({ recommendations = [] }) {
+  const [showAll, setShowAll] = useState(false);
+  const visibleRecommendations = showAll
+    ? recommendations
+    : recommendations.slice(0, INITIAL_RANK_TABLE_LIMIT);
+  const canToggleMore = recommendations.length > INITIAL_RANK_TABLE_LIMIT;
+
+  return (
+    <section
+      className="recommendation-rank-table-section"
+      aria-labelledby="recommendation-rank-table-title"
+    >
+      <div className="recommendation-rank-table-heading">
+        <div>
+          <span className="recommendation-eyebrow">Bảng xếp hạng</span>
+          <h2 id="recommendation-rank-table-title">Danh sách nghề gợi ý theo mức độ phù hợp</h2>
+        </div>
+        <span>{visibleRecommendations.length}/{recommendations.length} nghề</span>
+      </div>
+
+      <div className="recommendation-rank-table-wrap">
+        <table className="recommendation-rank-table">
+          <colgroup>
+            <col className="recommendation-rank-col" />
+            <col className="recommendation-career-col" />
+            <col className="recommendation-cluster-col" />
+            <col className="recommendation-score-col" />
+            <col className="recommendation-action-col" />
+          </colgroup>
+          <thead>
+            <tr>
+              <th>Rank</th>
+              <th>Nghề gợi ý</th>
+              <th>Nhóm nghề</th>
+              <th>Điểm phù hợp</th>
+              <th />
+            </tr>
+          </thead>
+          <tbody>
+            {visibleRecommendations.map((career, index) => {
+              const title = career.title_vi || career.title_en;
+              const clusters = normalizeCareerClusters(career.careerCluster);
+              const matchScore = getMatchScore(career);
+
+              return (
+                <tr key={career._id || `${career.onetCode}-${index}`}>
+                  <td>
+                    <span className={`recommendation-table-rank ${getTier(index)}`}>
+                      #{index + 1}
+                    </span>
+                  </td>
+                  <td>
+                    <Link className="recommendation-table-title" to={`/careers/${career._id}`}>
+                      {title}
+                    </Link>
+                    {career.title_vi && (
+                      <span className="recommendation-table-subtitle">{career.title_en}</span>
+                    )}
+                  </td>
+                  <td>
+                    <div className="recommendation-table-tags">
+                      {(clusters.length ? clusters : ["Chưa phân nhóm"])
+                        .slice(0, 2)
+                        .map((cluster) => (
+                          <span className="tag" key={cluster}>
+                            {cluster}
+                          </span>
+                        ))}
+                    </div>
+                  </td>
+                  <td>
+                    <div className="recommendation-table-score">
+                      <strong>{matchScore !== null ? `${matchScore}%` : "-"}</strong>
+                      <span>phù hợp</span>
+                    </div>
+                  </td>
+                  <td>
+                    <Link className="recommendation-table-action" to={`/careers/${career._id}`}>
+                      Chi tiết
+                    </Link>
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
+
+      {canToggleMore && (
+        <div className="recommendation-rank-table-footer">
+          <button type="button" onClick={() => setShowAll((current) => !current)}>
+            {showAll ? "Thu gọn" : `Xem thêm ${recommendations.length - INITIAL_RANK_TABLE_LIMIT} nghề`}
+          </button>
+        </div>
+      )}
+    </section>
+  );
+}
+
 function CareerRecommendations() {
   const token = localStorage.getItem("token");
   const [recommendations, setRecommendations] = useState([]);
   const [loading, setLoading] = useState(Boolean(token));
   const [error, setError] = useState("");
   const [needsProfiling, setNeedsProfiling] = useState(false);
+  const [viewMode, setViewMode] = useState("node");
 
   useEffect(() => {
     if (!token) {
@@ -239,21 +344,50 @@ function CareerRecommendations() {
       {recommendations.length > 0 && (
         <>
           <div className="recommendation-summary">
-            <strong>{recommendations.length} nghề được đề xuất</strong>
-            <span>Hover vào từng node để xem thông tin nhanh</span>
-          </div>
-
-          <section className="recommendation-map" aria-label="Bản đồ nghề nghiệp gợi ý">
-            <div className="recommendation-map-legend" aria-label="Phân tầng gợi ý">
-              <span><i className="tier-best" /> Best Matches</span>
-              <span><i className="tier-strong" /> Strong Recommendations</span>
-              <span><i className="tier-explore" /> Explore More</span>
+            <div>
+              <strong>{recommendations.length} nghề được đề xuất</strong>
+              <span>
+                {viewMode === "node"
+                  ? "Hover vào từng node để xem thông tin nhanh"
+                  : "Bảng rank giữ nguyên thứ tự và điểm phù hợp từ hệ thống"}
+              </span>
             </div>
 
-            {recommendations.slice(0, DEFAULT_RECOMMENDATION_LIMIT).map((career, index) => (
-              <RecommendationNode career={career} index={index} key={career._id} />
-            ))}
-          </section>
+            <div className="recommendation-view-toggle" aria-label="Chọn kiểu hiển thị gợi ý">
+              <button
+                className={viewMode === "node" ? "active" : ""}
+                type="button"
+                aria-pressed={viewMode === "node"}
+                onClick={() => setViewMode("node")}
+              >
+                Sơ đồ
+              </button>
+              <button
+                className={viewMode === "table" ? "active" : ""}
+                type="button"
+                aria-pressed={viewMode === "table"}
+                onClick={() => setViewMode("table")}
+              >
+                Bảng xếp hạng
+              </button>
+            </div>
+          </div>
+
+          {viewMode === "table" ? (
+            <RecommendationRankTable recommendations={recommendations} />
+          ) : (
+            <section className="recommendation-map" aria-label="Bản đồ nghề nghiệp gợi ý">
+              <div className="recommendation-map-legend" aria-label="Phân tầng gợi ý">
+                <span><i className="tier-best" /> Phù hợp nhất</span>
+                <span><i className="tier-strong" /> Gợi ý mạnh</span>
+                <span><i className="tier-explore" /> Khám phá thêm</span>
+              </div>
+
+              {recommendations.slice(0, DEFAULT_RECOMMENDATION_LIMIT).map((career, index) => (
+                <RecommendationNode career={career} index={index} key={career._id} />
+              ))}
+            </section>
+          )}
         </>
       )}
     </div>

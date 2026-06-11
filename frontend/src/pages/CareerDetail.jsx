@@ -52,9 +52,30 @@ const CAREER_DAY_NODE_TYPES = {
   careerDayActivity: CareerDayActivityNode,
 };
 const CAREER_EXPLORE_CHAT_STORAGE_PREFIX = "careerExploreChat:v1:";
+const MARKET_QUESTION_KEYWORDS = [
+  "lương",
+  "thu nhập",
+  "tuyển dụng",
+  "việc làm",
+  "thị trường",
+  "nhu cầu",
+  "cơ hội nghề",
+  "xu hướng",
+  "doanh nghiệp",
+  "job",
+  "salary",
+];
 
 function getCareerExploreChatStorageKey(careerId) {
   return `${CAREER_EXPLORE_CHAT_STORAGE_PREFIX}${careerId}`;
+}
+
+function shouldShowWebSearchStatus(question = "") {
+  const normalizedQuestion = String(question).toLocaleLowerCase("vi");
+
+  return MARKET_QUESTION_KEYWORDS.some((keyword) =>
+    normalizedQuestion.includes(keyword)
+  );
 }
 
 function getRiasecCodeDescription(code = "") {
@@ -378,7 +399,12 @@ function CareerDayInLifeSection({ careerId, title }) {
   );
 }
 
-export function CareerExploreChatSection({ careerId, title, onSessionChange }) {
+export function CareerExploreChatSection({
+  careerId,
+  title,
+  onSessionChange,
+  onSessionDelete,
+}) {
   const storageKey = useMemo(
     () => getCareerExploreChatStorageKey(careerId),
     [careerId]
@@ -388,6 +414,7 @@ export function CareerExploreChatSection({ careerId, title, onSessionChange }) {
   const [question, setQuestion] = useState("");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [requestStatus, setRequestStatus] = useState("Đang chuẩn bị câu trả lời...");
   const messagesEndRef = useRef(null);
 
   const addAssistantResponse = useCallback((response) => {
@@ -463,6 +490,11 @@ export function CareerExploreChatSection({ careerId, title, onSessionChange }) {
         return;
       }
 
+      setRequestStatus(
+        shouldShowWebSearchStatus(trimmedQuestion)
+          ? "Đang kiểm tra nguồn web liên quan..."
+          : "Đang chuẩn bị câu trả lời..."
+      );
       const nextMessages = [
         ...messages.map(({ role, content }) => ({ role, content })),
         { role: "user", content: trimmedQuestion },
@@ -494,6 +526,108 @@ export function CareerExploreChatSection({ careerId, title, onSessionChange }) {
     [addAssistantResponse, careerId, loading, messages]
   );
 
+  const handleCopyMessage = async (content) => {
+    try {
+      await navigator.clipboard.writeText(content);
+    } catch {
+      setError("Không thể sao chép nội dung trong trình duyệt hiện tại.");
+    }
+  };
+
+  const handleFeedback = async (messageIndex, rating) => {
+    const reason =
+      rating === "not_helpful"
+        ? window.prompt("Bạn muốn AI cải thiện điều gì ở câu trả lời này?") || ""
+        : "";
+
+    try {
+      await api.post(`/careers/${careerId}/explore-chat/feedback`, {
+        messageIndex,
+        rating,
+        reason,
+      });
+      setMessages((currentMessages) =>
+        currentMessages.map((message, index) =>
+          index === messageIndex
+            ? {
+                ...message,
+                feedback: {
+                  rating,
+                  reason,
+                },
+              }
+            : message
+        )
+      );
+    } catch (requestError) {
+      setError(
+        requestError.response?.data?.message ||
+          "Không thể lưu đánh giá lúc này. Vui lòng thử lại."
+      );
+    }
+  };
+
+  const handleRegenerateLastAnswer = async () => {
+    const lastAssistantIndex = [...messages]
+      .map((message, index) => ({ message, index }))
+      .reverse()
+      .find(({ message }) => message.role === "assistant")?.index;
+
+    if (lastAssistantIndex == null || loading) {
+      return;
+    }
+
+    const lastUserMessage = [...messages]
+      .slice(0, lastAssistantIndex)
+      .reverse()
+      .find((message) => message.role === "user");
+
+    setRequestStatus(
+      shouldShowWebSearchStatus(lastUserMessage?.content)
+        ? "Đang kiểm tra lại nguồn web liên quan..."
+        : "Đang tạo lại câu trả lời..."
+    );
+    setLoading(true);
+    setError("");
+
+    try {
+      const response = await api.post(`/careers/${careerId}/explore-chat`, {
+        messages: messages.map(({ role, content }) => ({ role, content })),
+        regenerate: true,
+      });
+      addAssistantResponse(response.data);
+    } catch (requestError) {
+      setError(
+        requestError.response?.data?.message ||
+          "Không thể tạo lại câu trả lời lúc này. Vui lòng thử lại."
+      );
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleDeleteConversation = async () => {
+    if (!window.confirm("Xóa hội thoại này khỏi lịch sử?")) {
+      return;
+    }
+
+    try {
+      await api.delete(`/careers/${careerId}/explore-chat/session`);
+      localStorage.removeItem(storageKey);
+      setMessages([]);
+      setSuggestedQuestions([]);
+      setQuestion("");
+      setError("");
+      onSessionChange?.();
+      onSessionDelete?.();
+    } catch (requestError) {
+      setError(
+        requestError.response?.data?.message ||
+          "Không thể xóa hội thoại lúc này. Vui lòng thử lại."
+      );
+    }
+  };
+
   const handleSubmit = (event) => {
     event.preventDefault();
     sendQuestion(question);
@@ -505,6 +639,7 @@ export function CareerExploreChatSection({ careerId, title, onSessionChange }) {
     setSuggestedQuestions([]);
     setQuestion("");
     setError("");
+    setRequestStatus("Đang chuẩn bị câu trả lời...");
     setLoading(true);
     api
       .post(`/careers/${careerId}/explore-chat`, {
@@ -515,7 +650,7 @@ export function CareerExploreChatSection({ careerId, title, onSessionChange }) {
       .catch((requestError) => {
         setError(
           requestError.response?.data?.message ||
-            "KhÃ´ng thá»ƒ má»Ÿ cuá»™c trÃ² chuyá»‡n lÃºc nÃ y. Vui lÃ²ng thá»­ láº¡i."
+            "Không thể mở cuộc trò chuyện lúc này. Vui lòng thử lại."
         );
       })
       .finally(() => setLoading(false));
@@ -537,6 +672,13 @@ export function CareerExploreChatSection({ careerId, title, onSessionChange }) {
             type="button"
           >
             Tạo trò chuyện mới
+          </button>
+          <button
+            disabled={loading || messages.length === 0}
+            onClick={handleDeleteConversation}
+            type="button"
+          >
+            Xóa
           </button>
         </div>
       </div>
@@ -565,13 +707,45 @@ export function CareerExploreChatSection({ careerId, title, onSessionChange }) {
                 trường cập nhật.
               </small>
             )}
+            {message.role === "assistant" && (
+              <div className="career-explore-chat-message-actions">
+                <button type="button" onClick={() => handleCopyMessage(message.content)}>
+                  Sao chép
+                </button>
+                {index === messages.length - 1 && (
+                  <button
+                    disabled={loading}
+                    type="button"
+                    onClick={handleRegenerateLastAnswer}
+                  >
+                    Tạo lại
+                  </button>
+                )}
+                <button
+                  className={message.feedback?.rating === "helpful" ? "selected" : ""}
+                  type="button"
+                  onClick={() => handleFeedback(index, "helpful")}
+                >
+                  Hữu ích
+                </button>
+                <button
+                  className={
+                    message.feedback?.rating === "not_helpful" ? "selected" : ""
+                  }
+                  type="button"
+                  onClick={() => handleFeedback(index, "not_helpful")}
+                >
+                  Chưa tốt
+                </button>
+              </div>
+            )}
           </div>
         ))}
 
         {loading && (
           <div className="career-explore-chat-message assistant pending">
             <strong>AI cố vấn</strong>
-            <p>Đang chuẩn bị câu trả lời...</p>
+            <p>{requestStatus}</p>
           </div>
         )}
         <div ref={messagesEndRef} />
@@ -684,6 +858,7 @@ function CareerDetail() {
   const firstSectionId =
     (career.riasecCode && "career-riasec") ||
     (token && "career-fit") ||
+    (token && "career-day") ||
     (importantElements.length > 0 && "career-elements") ||
     "";
 
@@ -696,10 +871,10 @@ function CareerDetail() {
         {token && elements.length > 0 && (
           <a href="#career-match" aria-label="So sánh hồ sơ" />
         )}
+        {token && <a href="#career-day" aria-label="Một ngày làm việc" />}
         {importantElements.length > 0 && (
           <a href="#career-elements" aria-label="Kỹ năng quan trọng" />
         )}
-        {token && <a href="#career-day" aria-label="Một ngày làm việc" />}
       </aside>
 
       <section className="career-detail-hero" id="career-overview">
@@ -776,6 +951,12 @@ function CareerDetail() {
           </div>
         )}
 
+        {token && (
+          <div id="career-day">
+            <CareerDayInLifeSection careerId={id} title={title} />
+          </div>
+        )}
+
         {importantElements.length > 0 && (
           <section className="career-elements-section" id="career-elements">
             <div className="career-elements-heading">
@@ -827,12 +1008,6 @@ function CareerDetail() {
               })}
             </div>
           </section>
-        )}
-
-        {token && (
-          <div id="career-day">
-            <CareerDayInLifeSection careerId={id} title={title} />
-          </div>
         )}
 
         {career.requiredSubjects?.length > 0 && (

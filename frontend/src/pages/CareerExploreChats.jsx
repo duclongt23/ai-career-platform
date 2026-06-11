@@ -25,6 +25,8 @@ function CareerExploreChats() {
   const [loadingChats, setLoadingChats] = useState(Boolean(token));
   const [loadingCareer, setLoadingCareer] = useState(Boolean(id));
   const [error, setError] = useState("");
+  const [editingTitleCareerId, setEditingTitleCareerId] = useState("");
+  const [titleDraft, setTitleDraft] = useState("");
 
   const selectedChat = useMemo(
     () => chats.find((chat) => chat.careerId === id),
@@ -113,6 +115,29 @@ function CareerExploreChats() {
     };
   }, [id]);
 
+  const handleRenameSession = async (event) => {
+    event.preventDefault();
+
+    const nextTitle = titleDraft.trim();
+
+    if (!id || !nextTitle) {
+      return;
+    }
+
+    try {
+      await api.patch(`/careers/${id}/explore-chat/session`, {
+        title: nextTitle,
+      });
+      setEditingTitleCareerId("");
+      await loadChats();
+    } catch (requestError) {
+      setError(
+        requestError.response?.data?.message ||
+          "Không thể đổi tên hội thoại. Vui lòng thử lại."
+      );
+    }
+  };
+
   if (!token) {
     return <Navigate to="/login" replace state={{ from: "/career-explore-chats" }} />;
   }
@@ -190,14 +215,45 @@ function CareerExploreChats() {
           <>
             <div className="career-chat-context">
               <Link to={`/careers/${id}`}>← Xem chi tiết nghề</Link>
-              <span>
-                {selectedChat?.title || `Tìm hiểu về ngành ${title}`}
-              </span>
+              {editingTitleCareerId === id ? (
+                <form className="career-chat-title-form" onSubmit={handleRenameSession}>
+                  <input
+                    maxLength={120}
+                    onChange={(event) => setTitleDraft(event.target.value)}
+                    value={titleDraft}
+                  />
+                  <button disabled={!titleDraft.trim()} type="submit">
+                    Lưu
+                  </button>
+                  <button type="button" onClick={() => setEditingTitleCareerId("")}>
+                    Hủy
+                  </button>
+                </form>
+              ) : (
+                <div className="career-chat-title-row">
+                  <span>
+                    {selectedChat?.title || `Tìm hiểu về ngành ${title}`}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setTitleDraft(selectedChat?.title || `Tìm hiểu về ngành ${title}`);
+                      setEditingTitleCareerId(id);
+                    }}
+                  >
+                    Đổi tên
+                  </button>
+                </div>
+              )}
             </div>
             <CareerExploreChatSection
               careerId={id}
               key={id}
               onSessionChange={loadChats}
+              onSessionDelete={() => {
+                loadChats();
+                navigate("/career-explore-chats", { replace: true });
+              }}
               title={title}
             />
           </>

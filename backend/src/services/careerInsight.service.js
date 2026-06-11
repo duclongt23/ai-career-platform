@@ -71,7 +71,7 @@ async function getCareerFitExplanation({
   const elementScores = await getCurrentElementScores(profile);
   const similarity = calculateSimilarity(
     toWeightMap(elementScores, "finalScore"),
-    toWeightMap(career.elements, "importance")
+    career.elements
   );
   const strengthCodes = similarity.topMatchedElements.map(
     (element) => element.code
