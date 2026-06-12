@@ -187,10 +187,10 @@ function App() {
     <div>
       {!isLandingPage && (
         <nav className="navbar">
-          <Link to="/" className="landing-logo app-logo" aria-label="Career Dreamer">
+          <Link to="/" className="landing-logo app-logo" aria-label="Career Guidance">
             <img src={logoIcon} alt="" aria-hidden="true" />
             <span>career</span>
-            <strong>dreamer</strong>
+            <strong>guidance</strong>
           </Link>
 
           <div className="nav-links">

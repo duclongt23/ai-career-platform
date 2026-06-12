@@ -126,10 +126,10 @@ function LandingPage() {
   return (
     <div className="landing-page">
       <header className="landing-nav">
-        <Link to="/" className="landing-logo" aria-label="Career Dreamer">
+        <Link to="/" className="landing-logo" aria-label="Career Guidance">
           <img src={logoIcon} alt="" aria-hidden="true" />
           <span>career</span>
-          <strong>dreamer</strong>
+          <strong>guidance</strong>
         </Link>
 
         <div className="landing-nav-actions">
@@ -143,7 +143,7 @@ function LandingPage() {
         <div className="landing-hero-copy">
           <p className="landing-eyebrow">AI career discovery</p>
           <h1>
-            career <span>dreamer</span>
+            career <span>guidance</span>
           </h1>
           <p className="landing-subtitle">
             Một cách nhẹ nhàng để khám phá bản thân, nhìn thấy khả năng tương

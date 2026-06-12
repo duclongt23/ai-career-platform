@@ -3652,6 +3652,10 @@ button.danger:hover:not(:disabled),
   line-height: 1.7;
 }
 
+.landing-hero .landing-subtitle {
+  color: #ffffff;
+}
+
 .summary-growth-card p,
 .summary-competency-copy span,
 .career-explore-chat-message p,
