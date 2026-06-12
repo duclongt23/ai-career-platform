@@ -1271,13 +1271,63 @@ button.danger:hover:not(:disabled),
 
 .recommendation-map {
   background:
-    linear-gradient(rgba(15, 118, 110, 0.08) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(15, 118, 110, 0.08) 1px, transparent 1px),
-    linear-gradient(135deg, #ffffff, #f1f7f4);
-  background-size: 42px 42px, 42px 42px, auto;
+    radial-gradient(ellipse at 39% 20%, rgba(217, 119, 6, 0.15), transparent 28%),
+    radial-gradient(ellipse at 60% 43%, rgba(15, 118, 110, 0.13), transparent 30%),
+    radial-gradient(ellipse at 83% 33%, rgba(99, 86, 201, 0.12), transparent 24%),
+    radial-gradient(ellipse at 18% 78%, rgba(99, 86, 201, 0.09), transparent 26%),
+    linear-gradient(135deg, #fffdf6 0%, #fbfaf2 48%, #f5fbf8 100%);
+  box-shadow:
+    var(--shadow-card),
+    inset 0 1px 0 rgba(255, 255, 255, 0.9),
+    inset 0 0 90px rgba(15, 118, 110, 0.06);
+  isolation: isolate;
   min-height: 760px;
   overflow: visible;
   position: relative;
+}
+
+.recommendation-map::before,
+.recommendation-map::after {
+  border-radius: inherit;
+  content: "";
+  inset: 0;
+  pointer-events: none;
+  position: absolute;
+}
+
+.recommendation-map::before {
+  background:
+    linear-gradient(rgba(15, 118, 110, 0.045) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(15, 118, 110, 0.045) 1px, transparent 1px);
+  background-size: 42px 42px;
+  z-index: 0;
+}
+
+.recommendation-map::after {
+  background-image:
+    radial-gradient(circle at 1px 1px, rgba(23, 32, 38, 0.12) 1px, transparent 0);
+  background-size: 9px 9px;
+  mix-blend-mode: multiply;
+  opacity: 0.12;
+  z-index: 1;
+}
+
+.recommendation-map-contours {
+  color: rgba(15, 118, 110, 0.16);
+  height: 100%;
+  inset: 0;
+  pointer-events: none;
+  position: absolute;
+  width: 100%;
+  z-index: 1;
+}
+
+.recommendation-map-contours path {
+  fill: none;
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-width: 1.2;
+  vector-effect: non-scaling-stroke;
 }
 
 .recommendation-map-legend {

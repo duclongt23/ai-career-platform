@@ -397,6 +397,19 @@ function CareerRecommendations() {
             <RecommendationRankTable recommendations={recommendations} />
           ) : (
             <section className="recommendation-map" aria-label="Bản đồ nghề nghiệp gợi ý">
+              <svg
+                className="recommendation-map-contours"
+                aria-hidden="true"
+                viewBox="0 0 1200 720"
+                preserveAspectRatio="none"
+              >
+                <path d="M-40 126C118 76 244 92 372 146C526 211 642 201 774 141C916 76 1049 80 1240 154" />
+                <path d="M-28 295C126 242 269 255 424 321C569 383 712 374 856 314C1002 253 1114 263 1232 337" />
+                <path d="M-42 472C102 427 236 430 386 486C542 544 677 541 828 482C988 419 1112 426 1242 494" />
+                <path d="M92 694C225 610 365 601 511 647C654 692 780 678 914 618C1040 562 1134 572 1234 642" />
+                <path d="M292 18C361 85 386 152 360 221C329 304 360 372 441 425C537 488 561 559 511 722" />
+              </svg>
+
               <div className="recommendation-map-legend" aria-label="Phân tầng gợi ý">
                 <span><i className="tier-best" /> Phù hợp nhất</span>
                 <span><i className="tier-strong" /> Gợi ý mạnh</span>
