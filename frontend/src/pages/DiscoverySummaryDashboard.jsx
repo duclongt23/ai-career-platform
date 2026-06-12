@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { Brain, Compass, Lightbulb, Sparkles, Target } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import api from "../api/axios";
+import CompetencyGroupsChart from "../components/analytics/CompetencyGroupsChart";
 import ProfileRadarChart from "../components/analytics/ProfileRadarChart";
 import TopElementsBarChart from "../components/analytics/TopElementsBarChart";
 import { buildRiasecResults } from "../components/analytics/chartUtils";
@@ -61,15 +62,6 @@ const DEVELOPMENT_PRIORITY_COLORS = [
   "#be123c",
 ];
 
-const COMPETENCY_COLORS = [
-  "#7c3aed",
-  "#0d9488",
-  "#d97706",
-  "#2563eb",
-  "#be123c",
-  "#15803d",
-];
-
 const CLUSTER_COLORS = [
   "#0f766e",
   "#d97706",
@@ -111,14 +103,6 @@ const INSIGHT_VISUALS = [
     glow: "rgba(37, 99, 235, 0.18)",
   },
 ];
-
-function getScorePercent(score) {
-  if (score == null) {
-    return 0;
-  }
-
-  return Math.max(0, Math.min(100, Math.round(Number(score || 0) * 100)));
-}
 
 function buildClusterConicGradient(items, total) {
   if (!items.length || total <= 0) {
@@ -492,58 +476,25 @@ function DiscoverySummaryDashboard() {
       </section>
 
       <section className="card summary-dashboard-card">
-        <div className="summary-section-heading">
-          <div>
-            <p className="summary-dashboard-eyebrow">Nhóm năng lực</p>
-            <h2>Gauge chart nhóm năng lực</h2>
-          </div>
-          <span>{competencyGroups.length} nhóm</span>
-        </div>
-
         {hasCoreScores ? (
-          <div className="summary-competency-grid">
-            {competencyGroups.map((group, index) => {
-              const scorePercent = getScorePercent(group.score);
-              const gaugeColor =
-                COMPETENCY_COLORS[index % COMPETENCY_COLORS.length];
-
-              return (
-                <article
-                  className="summary-competency-card"
-                  key={group.id}
-                  style={{
-                    "--competency-angle": `${scorePercent * 3.6}deg`,
-                    "--competency-color": gaugeColor,
-                  }}
-                >
-                  <div
-                    className="summary-competency-gauge"
-                    aria-label={`${group.label}: ${group.scoreLabel}`}
-                  >
-                    <strong>{group.score == null ? "N/A" : group.scoreLabel}</strong>
-                  </div>
-                  <div className="summary-competency-copy">
-                    <strong>{group.label}</strong>
-                    <span>{group.description}</span>
-                    <small>
-                      {group.matchedElements.length > 0
-                        ? `Dựa trên: ${group.matchedElements
-                            .map((element) => getSummaryElementName(element))
-                            .join(", ")}`
-                        : group.scoreLabel}
-                    </small>
-                  </div>
-                </article>
-              );
-            })}
-          </div>
+          <CompetencyGroupsChart groups={competencyGroups} />
         ) : (
-          <div className="summary-empty-state">
-            <p>Chưa có kết quả Core Quiz để nhóm năng lực.</p>
-            <Link className="workflow-next-action" to="/discovery/core-quiz">
-              Làm Core Quiz
-            </Link>
-          </div>
+          <>
+            <div className="summary-section-heading">
+              <div>
+                <p className="summary-dashboard-eyebrow">Nhóm năng lực</p>
+                <h2>Dashboard nhóm năng lực</h2>
+              </div>
+              <span>{competencyGroups.length} nhóm</span>
+            </div>
+
+            <div className="summary-empty-state">
+              <p>Chưa có kết quả Core Quiz để nhóm năng lực.</p>
+              <Link className="workflow-next-action" to="/discovery/core-quiz">
+                Làm Core Quiz
+              </Link>
+            </div>
+          </>
         )}
       </section>
 
@@ -568,6 +519,7 @@ function DiscoverySummaryDashboard() {
                   <strong>
                     {item.code} - {item.label}
                   </strong>
+                  <p>{item.description}</p>
                   <small>{item.percent}%</small>
                 </article>
               ))}

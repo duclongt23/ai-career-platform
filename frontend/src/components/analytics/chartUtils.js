@@ -8,12 +8,42 @@ export const RIASEC_TYPES = [
 ];
 
 const RIASEC_INFO = {
-  REALISTIC: { code: "R", label: "Kỹ thuật" },
-  INVESTIGATIVE: { code: "I", label: "Nghiên cứu" },
-  ARTISTIC: { code: "A", label: "Nghệ thuật" },
-  SOCIAL: { code: "S", label: "Xã hội" },
-  ENTERPRISING: { code: "E", label: "Quản lý" },
-  CONVENTIONAL: { code: "C", label: "Nghiệp vụ" },
+  REALISTIC: {
+    code: "R",
+    label: "Kỹ thuật",
+    description:
+      "Thích thao tác với công cụ, máy móc, vật thể hoặc các hoạt động thực tế.",
+  },
+  INVESTIGATIVE: {
+    code: "I",
+    label: "Nghiên cứu",
+    description:
+      "Thích quan sát, phân tích và giải quyết vấn đề bằng dữ liệu hoặc lập luận.",
+  },
+  ARTISTIC: {
+    code: "A",
+    label: "Nghệ thuật",
+    description:
+      "Thích sáng tạo, diễn đạt ý tưởng và làm việc trong môi trường linh hoạt.",
+  },
+  SOCIAL: {
+    code: "S",
+    label: "Xã hội",
+    description:
+      "Thích hỗ trợ, hướng dẫn, chăm sóc hoặc làm việc trực tiếp với con người.",
+  },
+  ENTERPRISING: {
+    code: "E",
+    label: "Quản lý",
+    description:
+      "Thích thuyết phục, lãnh đạo, tổ chức nguồn lực và tạo ảnh hưởng.",
+  },
+  CONVENTIONAL: {
+    code: "C",
+    label: "Nghiệp vụ",
+    description:
+      "Thích quy trình rõ ràng, dữ liệu, con số và các nhiệm vụ cần chính xác.",
+  },
 };
 
 export const CORE_TYPE_LABELS = {

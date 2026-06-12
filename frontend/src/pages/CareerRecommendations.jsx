@@ -75,7 +75,6 @@ function RecommendationNode({ career, index }) {
   const title = career.title_vi || career.title_en;
   const clusters = normalizeCareerClusters(career.careerCluster).slice(0, 2);
   const matchedElements = career.topMatchedElements?.slice(0, 3) || [];
-  const matchScore = getMatchScore(career);
   const layout = NODE_LAYOUT[index] || NODE_LAYOUT[NODE_LAYOUT.length - 1];
   const tier = getTier(index);
 
@@ -87,11 +86,7 @@ function RecommendationNode({ career, index }) {
       <Link className="recommendation-node-link" to={`/careers/${career._id}`}>
         <span className="recommendation-node-dot" aria-hidden="true" />
         <span className="recommendation-node-copy">
-          <span className="recommendation-rank">#{index + 1}</span>
           <span className="recommendation-title">{title}</span>
-          {matchScore !== null && (
-            <span className="recommendation-score">{matchScore}% match</span>
-          )}
         </span>
       </Link>
 

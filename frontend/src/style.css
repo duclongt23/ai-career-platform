@@ -1317,7 +1317,7 @@ button.danger:hover:not(:disabled),
 }
 
 .recommendation-node-link {
-  align-items: flex-start;
+  align-items: center;
   background: transparent;
   border: 0;
   color: var(--ink);
@@ -1360,7 +1360,7 @@ button.danger:hover:not(:disabled),
   color: var(--ink);
   font-size: 14px;
   font-weight: 900;
-  line-height: 1.2;
+  line-height: 1.25;
 }
 
 .recommendation-score {
@@ -1512,8 +1512,6 @@ button.danger:hover:not(:disabled),
 }
 
 .summary-dashboard-card.summary-insight-section {
-  justify-self: center;
-  max-width: 980px;
   width: 100%;
 }
 
@@ -1736,8 +1734,7 @@ button.danger:hover:not(:disabled),
   width: 54px;
 }
 
-.summary-growth-card-heading strong,
-.summary-competency-copy strong {
+.summary-growth-card-heading strong {
   color: var(--ink);
   font-size: 16px;
   line-height: 1.35;
@@ -1746,9 +1743,7 @@ button.danger:hover:not(:disabled),
 }
 
 .summary-growth-card p,
-.summary-growth-card small,
-.summary-competency-copy span,
-.summary-competency-copy small {
+.summary-growth-card small {
   color: var(--muted);
   font-size: 13px;
   line-height: 1.5;
@@ -1842,72 +1837,6 @@ button.danger:hover:not(:disabled),
 .summary-growth-card-heading {
   display: grid;
   gap: 5px;
-}
-
-.summary-competency-grid {
-  display: grid;
-  gap: 12px;
-  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
-}
-
-.summary-competency-card {
-  --competency-angle: 0deg;
-  --competency-color: var(--violet);
-  align-items: center;
-  background: var(--surface-soft);
-  border: 1px solid var(--line);
-  border-radius: 8px;
-  display: grid;
-  gap: 14px;
-  grid-template-columns: 96px minmax(0, 1fr);
-  min-height: 156px;
-  padding: 16px;
-}
-
-.summary-competency-card:hover {
-  border-color: color-mix(in srgb, var(--competency-color) 34%, var(--line));
-  box-shadow: var(--shadow-sm);
-}
-
-.summary-competency-gauge {
-  align-items: center;
-  background: conic-gradient(
-    var(--competency-color) 0deg var(--competency-angle),
-    #e2ebe0 var(--competency-angle) 360deg
-  );
-  border-radius: 50%;
-  display: flex;
-  height: 88px;
-  justify-content: center;
-  justify-self: center;
-  position: relative;
-  width: 88px;
-}
-
-.summary-competency-gauge::after {
-  background: var(--surface);
-  border-radius: 50%;
-  content: "";
-  inset: 11px;
-  position: absolute;
-}
-
-.summary-competency-gauge strong {
-  color: var(--ink);
-  font-size: 15px;
-  font-weight: 950;
-  line-height: 1.1;
-  max-width: 58px;
-  overflow-wrap: anywhere;
-  position: relative;
-  text-align: center;
-  z-index: 1;
-}
-
-.summary-competency-copy {
-  display: grid;
-  gap: 5px;
-  min-width: 0;
 }
 
 .summary-radar-layout {
@@ -2038,6 +1967,7 @@ button.danger:hover:not(:disabled),
 }
 
 .summary-riasec-list span,
+.summary-riasec-list p,
 .summary-cluster-legend-copy small,
 .summary-core-info span,
 .summary-core-score,
@@ -2079,8 +2009,16 @@ button.danger:hover:not(:disabled),
 
 .summary-core-info span,
 .summary-riasec-list span,
+.summary-riasec-list p,
 .summary-riasec-list small {
   line-height: 1.35;
+}
+
+.summary-riasec-list p {
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 650;
+  margin: 0;
 }
 
 .summary-cluster-donut-layout {
@@ -2388,6 +2326,30 @@ button.danger:hover:not(:disabled),
   font-style: normal;
   font-weight: 950;
   line-height: 1;
+}
+
+.summary-competency-dashboard .summary-core-chart-frame {
+  height: 360px;
+  min-width: min(680px, 100%);
+}
+
+.summary-competency-tooltip {
+  max-width: 320px;
+}
+
+.summary-competency-tooltip p,
+.summary-competency-tooltip small {
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1.45;
+  margin: 0;
+}
+
+.summary-competency-tooltip p {
+  color: var(--ink-soft);
+  font-size: 13px;
+  margin-top: 4px;
 }
 
 .summary-core-dashboard .summary-core-legend {
@@ -4219,8 +4181,6 @@ button.danger:hover:not(:disabled),
 .profile-empty,
 .summary-growth-card p,
 .summary-growth-card small,
-.summary-competency-copy span,
-.summary-competency-copy small,
 .summary-core-info span,
 .summary-riasec-list span,
 .summary-riasec-list small,
@@ -4255,7 +4215,6 @@ button.danger:hover:not(:disabled),
 }
 
 .summary-growth-card p,
-.summary-competency-copy span,
 .career-explore-chat-message p,
 .ai-discovery-message p,
 .core-option-text,
@@ -4265,7 +4224,6 @@ button.danger:hover:not(:disabled),
 }
 
 .summary-growth-card-heading strong,
-.summary-competency-copy strong,
 .summary-core-info strong,
 .summary-riasec-list strong,
 .career-element-list span,
@@ -4496,7 +4454,6 @@ button.danger:hover:not(:disabled),
   .career-grid,
   .summary-cluster-donut-layout,
   .summary-core-row,
-  .summary-competency-card,
   .industry-bar-row,
   .career-match-row,
   .riasec-bar-row,
@@ -4892,14 +4849,12 @@ button.danger:hover:not(:disabled),
     width: 46px;
   }
 
-  .summary-growth-card,
-  .summary-competency-card {
+  .summary-growth-card {
     grid-template-columns: 1fr;
     min-height: 0;
   }
 
-  .summary-growth-ring,
-  .summary-competency-gauge {
+  .summary-growth-ring {
     justify-self: start;
   }
 
@@ -4917,7 +4872,6 @@ button.danger:hover:not(:disabled),
 
   .summary-cluster-donut-layout,
   .summary-core-row,
-  .summary-competency-card,
   .industry-bar-row,
   .career-match-row,
   .riasec-bar-row {
