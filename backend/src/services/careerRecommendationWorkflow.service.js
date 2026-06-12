@@ -1,4 +1,5 @@
 const Career = require("../models/Career");
+const Element = require("../models/Element");
 const StudentProfile = require("../models/StudentProfile");
 const {
   DEFAULT_RECOMMENDATION_LIMIT,
@@ -13,6 +14,43 @@ const {
 const { getCurrentElementScores } = require("./profileElementSnapshot.service");
 const { RECOMMENDABLE_CAREER_FILTER } = require("./career.service");
 const { createHttpError } = require("../utils/httpError");
+
+async function addElementNamesToRecommendations(recommendations) {
+  const elementCodes = [
+    ...new Set(
+      recommendations.flatMap((career) => [
+        ...(career.topMatchedElements || []).map((element) => element.code),
+        ...(career.growthElements || []).map((element) => element.code),
+      ])
+    ),
+  ].filter(Boolean);
+
+  if (!elementCodes.length) {
+    return recommendations;
+  }
+
+  const elements = await Element.find({ code: { $in: elementCodes } })
+    .select("code name_vi name_en")
+    .lean();
+  const elementNameMap = new Map(
+    elements.map((element) => [element.code, element])
+  );
+  const attachName = (element) => {
+    const namedElement = elementNameMap.get(element.code);
+
+    return {
+      ...element,
+      name_vi: namedElement?.name_vi || "",
+      name_en: namedElement?.name_en || "",
+    };
+  };
+
+  return recommendations.map((career) => ({
+    ...career,
+    topMatchedElements: (career.topMatchedElements || []).map(attachName),
+    growthElements: (career.growthElements || []).map(attachName),
+  }));
+}
 
 async function getCareerDataFingerprint() {
   const [careerCount, latestCareer] = await Promise.all([
@@ -82,7 +120,7 @@ async function getCareerRecommendationsForUser(userId) {
       "onetCode title_en title_vi aliases description_vi careerCluster riasecCode vietnam_relevance elements"
     )
     .lean();
-  const recommendations = rankCareerRecommendations({
+  const rankedRecommendations = rankCareerRecommendations({
     elementScores,
     careers,
     limit: DEFAULT_RECOMMENDATION_LIMIT,
@@ -90,6 +128,9 @@ async function getCareerRecommendationsForUser(userId) {
       riasecCode: profile.riasecCode,
     },
   });
+  const recommendations = await addElementNamesToRecommendations(
+    rankedRecommendations
+  );
   const generatedAt = new Date();
 
   await StudentProfile.updateOne(

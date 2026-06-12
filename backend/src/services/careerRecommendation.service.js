@@ -4,8 +4,12 @@ const {
   MAX_RECOMMENDATION_LIMIT,
 } = require("../constants/recommendations");
 
-const RECOMMENDATION_ALGORITHM_VERSION = 3;
+const RECOMMENDATION_ALGORITHM_VERSION = 4;
 const TOP_MATCHED_ELEMENT_LIMIT = 5;
+const TOP_GROWTH_ELEMENT_LIMIT = 8;
+const GROWTH_PROFILE_SCORE_MAX = 0.58;
+const GROWTH_CAREER_IMPORTANCE_MIN = 0.55;
+const GROWTH_GAP_MIN = 0.18;
 const TYPE_FIT_COSINE_WEIGHT = 0.65;
 const TYPE_FIT_WEIGHTED_JACCARD_WEIGHT = 0.35;
 const ELEMENT_FIT_WEIGHT = 0.45;
@@ -288,6 +292,36 @@ function calculateMatchedElements(profileWeights, careerCoreElements) {
     );
 }
 
+function calculateGrowthElements(profileWeights, careerCoreElements) {
+  return careerCoreElements
+    .map((element) => {
+      const profileScore = profileWeights.get(element.code) || 0;
+      const gap = Math.max(element.importance - profileScore, 0);
+
+      return {
+        code: element.code,
+        type: element.type,
+        profileScore: roundScore(profileScore),
+        careerImportance: roundScore(element.importance),
+        gap: roundScore(gap),
+      };
+    })
+    // Growth areas should be tied to real career demand, not simply the
+    // student's lowest scores. This keeps the advice connected to recommended jobs.
+    .filter(
+      (element) =>
+        element.careerImportance >= GROWTH_CAREER_IMPORTANCE_MIN &&
+        element.profileScore <= GROWTH_PROFILE_SCORE_MAX &&
+        element.gap >= GROWTH_GAP_MIN
+    )
+    .sort(
+      (a, b) =>
+        b.gap - a.gap ||
+        b.careerImportance - a.careerImportance ||
+        a.code.localeCompare(b.code)
+    );
+}
+
 function calculateCareerCoverage(matchedElements, careerCoreElements) {
   const totalCareerWeight = careerCoreElements.reduce(
     (sum, element) => sum + element.importance,
@@ -320,6 +354,10 @@ function calculateSimilarity(profileWeights, careerElements, profile = {}) {
     profileWeights,
     careerCoreElements
   );
+  const growthElements = calculateGrowthElements(
+    profileWeights,
+    careerCoreElements
+  );
   const careerCoverage = calculateCareerCoverage(
     matchedElements,
     careerCoreElements
@@ -340,6 +378,7 @@ function calculateSimilarity(profileWeights, careerElements, profile = {}) {
     careerCoreElementCount: careerCoreElements.length,
     typeFits,
     topMatchedElements: matchedElements.slice(0, TOP_MATCHED_ELEMENT_LIMIT),
+    growthElements: growthElements.slice(0, TOP_GROWTH_ELEMENT_LIMIT),
   };
 }
 
@@ -365,6 +404,7 @@ function toRecommendation(career, profileWeights, profile) {
     matchedElementCount: similarity.matchedElementCount,
     careerCoreElementCount: similarity.careerCoreElementCount,
     topMatchedElements: similarity.topMatchedElements,
+    growthElements: similarity.growthElements,
   };
 }
 

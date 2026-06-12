@@ -1507,6 +1507,229 @@ button.danger:hover:not(:disabled),
   gap: 18px;
 }
 
+.summary-growth-grid {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+}
+
+.summary-growth-card {
+  background: var(--surface-soft);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  display: grid;
+  gap: 12px;
+  padding: 16px;
+}
+
+.summary-insight-carousel {
+  background:
+    linear-gradient(135deg, rgba(15, 118, 110, 0.1), rgba(217, 119, 6, 0.08)),
+    var(--surface);
+  border: 1px solid rgba(15, 118, 110, 0.22);
+  border-radius: 8px;
+  display: grid;
+  gap: 16px;
+  overflow: hidden;
+  padding: 20px;
+}
+
+.summary-insight-stage {
+  min-height: 230px;
+}
+
+.summary-insight-card {
+  align-items: start;
+  background: rgba(255, 255, 255, 0.9);
+  border: 1px solid rgba(15, 118, 110, 0.24);
+  border-radius: 8px;
+  box-shadow: 0 18px 44px rgba(23, 32, 38, 0.08);
+  display: grid;
+  gap: 18px;
+  grid-template-columns: auto minmax(0, 1fr);
+  min-height: 230px;
+  padding: 28px;
+}
+
+.summary-insight-number,
+.summary-growth-card-heading span {
+  color: var(--primary-hover);
+  font-size: 12px;
+  font-weight: 900;
+  letter-spacing: 0;
+  text-transform: uppercase;
+}
+
+.summary-insight-number {
+  align-items: center;
+  background: var(--primary);
+  border: 1px solid rgba(15, 118, 110, 0.2);
+  border-radius: 8px;
+  color: #ffffff;
+  display: inline-flex;
+  font-size: 14px;
+  height: 48px;
+  justify-content: center;
+  width: 54px;
+}
+
+.summary-growth-card strong,
+.summary-competency-copy strong {
+  color: var(--ink);
+  font-size: 16px;
+  line-height: 1.35;
+  margin: 0;
+}
+
+.summary-growth-card p,
+.summary-growth-card small,
+.summary-competency-copy span,
+.summary-competency-copy small {
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.5;
+  margin: 0;
+}
+
+.summary-insight-card h3 {
+  color: var(--ink);
+  font-size: 28px;
+  line-height: 1.18;
+  margin: 0 0 12px;
+  max-width: 840px;
+}
+
+.summary-insight-card p {
+  color: var(--ink-soft);
+  font-size: 18px;
+  font-weight: 650;
+  line-height: 1.65;
+  margin: 0;
+  max-width: 900px;
+}
+
+.summary-insight-controls {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  justify-content: center;
+}
+
+.summary-insight-nav {
+  background: var(--ink);
+  border-color: rgba(23, 32, 38, 0.12);
+  color: #ffffff;
+  font-size: 22px;
+  height: 44px;
+  min-height: 44px;
+  padding: 0;
+  width: 48px;
+}
+
+.summary-insight-nav:disabled {
+  background: #aeb8b2;
+}
+
+.summary-insight-progress {
+  align-items: center;
+  background: rgba(255, 255, 255, 0.78);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  display: flex;
+  gap: 8px;
+  min-height: 44px;
+  padding: 0 12px;
+}
+
+.summary-insight-progress button {
+  background: #c8d6ce;
+  border: 0;
+  border-radius: 999px;
+  height: 10px;
+  min-height: 10px;
+  padding: 0;
+  width: 10px;
+}
+
+.summary-insight-progress button.active {
+  background: var(--primary);
+  width: 28px;
+}
+
+.summary-insight-count {
+  color: var(--primary-hover);
+  font-size: 13px;
+  font-weight: 900;
+  min-width: 42px;
+  text-align: center;
+}
+
+.summary-insight-status {
+  background: var(--surface-soft);
+  border: 1px dashed var(--line-strong);
+  border-radius: 8px;
+  color: var(--primary-hover);
+  font-weight: 800;
+  margin: 0;
+  padding: 16px;
+}
+
+.summary-growth-card-heading {
+  display: grid;
+  gap: 5px;
+}
+
+.summary-competency-score {
+  background: var(--surface-tint);
+  border: 1px solid rgba(15, 118, 110, 0.18);
+  border-radius: 6px;
+  color: var(--primary-hover);
+  font-size: 12px;
+  font-weight: 850;
+  padding: 6px 8px;
+}
+
+.summary-competency-list {
+  display: grid;
+  gap: 12px;
+}
+
+.summary-competency-row {
+  align-items: center;
+  background: var(--surface-soft);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  display: grid;
+  gap: 14px;
+  grid-template-columns: minmax(220px, 0.85fr) minmax(180px, 1fr) auto;
+  padding: 16px;
+}
+
+.summary-competency-copy {
+  display: grid;
+  gap: 5px;
+  min-width: 0;
+}
+
+.summary-competency-track {
+  background: #e2ebe0;
+  border-radius: 8px;
+  height: 12px;
+  overflow: hidden;
+}
+
+.summary-competency-track div {
+  background: linear-gradient(90deg, var(--violet), var(--primary));
+  border-radius: inherit;
+  height: 100%;
+}
+
+.summary-competency-score {
+  text-align: center;
+  white-space: nowrap;
+}
+
 .summary-radar-layout {
   align-items: center;
   display: grid;
@@ -3126,6 +3349,7 @@ button.danger:hover:not(:disabled),
   .career-grid,
   .summary-cluster-row,
   .summary-core-row,
+  .summary-competency-row,
   .industry-bar-row,
   .career-match-row,
   .riasec-bar-row,
@@ -3480,8 +3704,33 @@ button.danger:hover:not(:disabled),
     width: 100%;
   }
 
+  .summary-insight-carousel {
+    padding: 14px;
+  }
+
+  .summary-insight-card {
+    grid-template-columns: 1fr;
+    min-height: 0;
+    padding: 22px;
+  }
+
+  .summary-insight-card h3 {
+    font-size: 24px;
+  }
+
+  .summary-insight-card p {
+    font-size: 16px;
+    line-height: 1.6;
+  }
+
+  .summary-insight-number {
+    height: 42px;
+    width: 48px;
+  }
+
   .summary-cluster-row,
   .summary-core-row,
+  .summary-competency-row,
   .industry-bar-row,
   .career-match-row,
   .riasec-bar-row {
@@ -3672,6 +3921,24 @@ button.danger:hover:not(:disabled),
   .ai-discovery-candidate-heading h2,
   .career-explore-chat-heading h3 {
     font-size: 20px;
+  }
+
+  .summary-insight-card {
+    padding: 18px;
+  }
+
+  .summary-insight-card h3 {
+    font-size: 22px;
+  }
+
+  .summary-insight-controls {
+    justify-content: space-between;
+  }
+
+  .summary-insight-progress {
+    order: 3;
+    width: 100%;
+    justify-content: center;
   }
 
   .auth-tabs {

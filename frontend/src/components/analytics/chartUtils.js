@@ -8,20 +8,20 @@ export const RIASEC_TYPES = [
 ];
 
 const RIASEC_INFO = {
-  REALISTIC: { code: "R", label: "Ky thuat" },
-  INVESTIGATIVE: { code: "I", label: "Nghien cuu" },
-  ARTISTIC: { code: "A", label: "Nghe thuat" },
-  SOCIAL: { code: "S", label: "Xa hoi" },
-  ENTERPRISING: { code: "E", label: "Quan ly" },
-  CONVENTIONAL: { code: "C", label: "Nghiep vu" },
+  REALISTIC: { code: "R", label: "Kỹ thuật" },
+  INVESTIGATIVE: { code: "I", label: "Nghiên cứu" },
+  ARTISTIC: { code: "A", label: "Nghệ thuật" },
+  SOCIAL: { code: "S", label: "Xã hội" },
+  ENTERPRISING: { code: "E", label: "Quản lý" },
+  CONVENTIONAL: { code: "C", label: "Nghiệp vụ" },
 };
 
 export const CORE_TYPE_LABELS = {
-  ability: "Nang luc",
-  workstyle: "Phong cach",
-  essential_skill: "Ky nang nen tang",
-  transferable_skill: "Ky nang chuyen doi",
-  knowledge: "Kien thuc",
+  ability: "Năng lực",
+  workstyle: "Phong cách",
+  essential_skill: "Kỹ năng nền tảng",
+  transferable_skill: "Kỹ năng chuyển đổi",
+  knowledge: "Kiến thức",
 };
 
 export const CORE_TYPE_COLORS = {

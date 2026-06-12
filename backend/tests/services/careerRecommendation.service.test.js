@@ -76,6 +76,24 @@ test("calculateRiasecFit uses weighted intersection of Holland codes", () => {
   assert.equal(calculateRiasecFit("RIA", "IRS") > 0, true);
 });
 
+test("calculateSimilarity surfaces career-linked growth elements", () => {
+  const similarity = calculateSimilarity(
+    toProfileWeights([
+      { code: "analysis", type: "ability", finalScore: 0.9 },
+      { code: "presentation", type: "transferable_skill", finalScore: 0.2 },
+    ]),
+    [
+      { code: "analysis", type: "ability", importance: 0.9 },
+      { code: "presentation", type: "transferable_skill", importance: 0.85 },
+    ],
+    { riasecCode: "RIA", careerRiasecCode: "RIA" }
+  );
+
+  assert.equal(similarity.growthElements.length, 1);
+  assert.equal(similarity.growthElements[0].code, "presentation");
+  assert.equal(similarity.growthElements[0].gap, 0.65);
+});
+
 test("rankCareerRecommendations ranks by raw score, excludes no-overlap careers, and calibrates display scores", () => {
   const recommendations = rankCareerRecommendations({
     elementScores: completeProfileScores,
@@ -165,5 +183,6 @@ test("rankCareerRecommendations omits full career elements from cached payloads"
 
   assert.equal(recommendation.elements, undefined);
   assert.equal(recommendation.topMatchedElements.length, 5);
+  assert.equal(Array.isArray(recommendation.growthElements), true);
   assert.equal(Number.isFinite(recommendation.displayMatchScore), true);
 });

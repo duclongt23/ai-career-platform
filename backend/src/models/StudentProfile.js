@@ -152,6 +152,52 @@ const careerRecommendationSnapshotSchema = new mongoose.Schema(
   { _id: false }
 );
 
+const profileSummaryInsightItemSchema = new mongoose.Schema(
+  {
+    title: {
+      type: String,
+      required: true,
+      trim: true,
+      maxlength: 120,
+    },
+    description: {
+      type: String,
+      required: true,
+      trim: true,
+      maxlength: 420,
+    },
+  },
+  { _id: false }
+);
+
+const profileSummaryInsightSchema = new mongoose.Schema(
+  {
+    version: {
+      type: Number,
+      required: true,
+      min: 1,
+    },
+    fingerprint: {
+      type: String,
+      required: true,
+    },
+    insights: {
+      type: [profileSummaryInsightItemSchema],
+      default: [],
+    },
+    source: {
+      type: String,
+      enum: ["ai", "fallback"],
+      default: "fallback",
+    },
+    generatedAt: {
+      type: Date,
+      default: Date.now,
+    },
+  },
+  { _id: false }
+);
+
 const careerFitExplanationSchema = new mongoose.Schema(
   {
     careerId: {
@@ -392,6 +438,11 @@ const studentProfileSchema = new mongoose.Schema(
     // either the student's scores or the career dataset changes.
     careerRecommendationSnapshot: {
       type: careerRecommendationSnapshotSchema,
+      default: null,
+    },
+
+    profileSummaryInsight: {
+      type: profileSummaryInsightSchema,
       default: null,
     },
 

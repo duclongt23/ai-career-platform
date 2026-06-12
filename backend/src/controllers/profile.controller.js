@@ -4,6 +4,9 @@ const {
   updateProfile,
   updateRiasecResult,
 } = require("../services/profile.service");
+const {
+  getProfileSummaryInsights,
+} = require("../services/profileSummaryInsight.service");
 
 function sendProfileError(res, error) {
   return res.status(error.statusCode || 500).json({
@@ -15,6 +18,20 @@ function sendProfileError(res, error) {
 async function getMyProfile(req, res) {
   try {
     return res.json(await getProfile(req.user._id));
+  } catch (error) {
+    return sendProfileError(res, error);
+  }
+}
+
+async function getMySummaryInsights(req, res) {
+  try {
+    return res.json(
+      await getProfileSummaryInsights({
+        userId: req.user._id,
+        regenerate:
+          req.query?.regenerate === "true" || req.query?.regenerate === "1",
+      })
+    );
   } catch (error) {
     return sendProfileError(res, error);
   }
@@ -62,6 +79,7 @@ async function updateMyProfile(req, res) {
 module.exports = {
   createMyProfile,
   getMyProfile,
+  getMySummaryInsights,
   updateMyProfile,
   updateMyRiasec,
 };

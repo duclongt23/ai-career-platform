@@ -9,6 +9,23 @@ import {
   CORE_TYPE_LABELS,
 } from "../components/analytics/chartUtils";
 import { normalizeCareerClusters } from "../utils/careerCluster";
+import {
+  buildCompetencyGroups,
+  buildDevelopmentAreas,
+  getSummaryElementName,
+} from "../utils/profileSummary";
+
+function getInsightSourceLabel(source) {
+  if (source === "ai") {
+    return "AI insight";
+  }
+
+  if (source === "fallback") {
+    return "Dự phòng theo dữ liệu";
+  }
+
+  return "Đang phân tích";
+}
 
 function DiscoverySummaryDashboard() {
   const navigate = useNavigate();
@@ -17,6 +34,9 @@ function DiscoverySummaryDashboard() {
   const [coreResult, setCoreResult] = useState(null);
   const [recommendations, setRecommendations] = useState([]);
   const [questions, setQuestions] = useState([]);
+  const [profileInsights, setProfileInsights] = useState(null);
+  const [insightIndex, setInsightIndex] = useState(0);
+  const [isInsightLoading, setIsInsightLoading] = useState(Boolean(token));
   const [isLoading, setIsLoading] = useState(Boolean(token));
   const [error, setError] = useState("");
 
@@ -24,7 +44,7 @@ function DiscoverySummaryDashboard() {
     if (!token) {
       navigate("/login", {
         state: {
-          message: "Yeu cau dang nhap de xem dashboard tong ket",
+          message: "Yêu cầu đăng nhập để xem dashboard tổng kết",
           from: "/discovery/dashboard",
         },
       });
@@ -39,30 +59,53 @@ function DiscoverySummaryDashboard() {
       api.get("/careers/recommendations/me"),
       api.get("/riasec/questions"),
     ])
-      .then(([profileResponse, coreResponse, recommendationsResponse, questionsResponse]) => {
-        if (!isMounted) return;
+      .then(
+        ([profileResponse, coreResponse, recommendationsResponse, questionsResponse]) => {
+          if (!isMounted) return;
 
-        if (profileResponse.status === "fulfilled") {
-          setProfile(profileResponse.value.data);
-        } else {
-          setError("Khong tai duoc ho so tong ket. Vui long thu lai sau.");
+          if (profileResponse.status === "fulfilled") {
+            setProfile(profileResponse.value.data);
+          } else {
+            setError("Không tải được hồ sơ tổng kết. Vui lòng thử lại sau.");
+          }
+
+          if (coreResponse.status === "fulfilled") {
+            setCoreResult(coreResponse.value.data);
+          }
+
+          if (recommendationsResponse.status === "fulfilled") {
+            setRecommendations(
+              recommendationsResponse.value.data.recommendations || []
+            );
+          }
+
+          if (questionsResponse.status === "fulfilled") {
+            setQuestions(questionsResponse.value.data || []);
+          }
         }
-
-        if (coreResponse.status === "fulfilled") {
-          setCoreResult(coreResponse.value.data);
+      )
+      .finally(() => {
+        if (isMounted) {
+          setIsLoading(false);
         }
+      });
 
-        if (recommendationsResponse.status === "fulfilled") {
-          setRecommendations(recommendationsResponse.value.data.recommendations || []);
+    // Insight AI có thể chậm hơn các biểu đồ, nên tách request để dashboard vẫn mở nhanh.
+    api
+      .get("/profile/summary-insights")
+      .then((response) => {
+        if (isMounted) {
+          setProfileInsights(response.data);
         }
-
-        if (questionsResponse.status === "fulfilled") {
-          setQuestions(questionsResponse.value.data || []);
+      })
+      .catch(() => {
+        if (isMounted) {
+          setProfileInsights(null);
         }
       })
       .finally(() => {
         if (isMounted) {
-          setIsLoading(false);
+          setIsInsightLoading(false);
         }
       });
 
@@ -78,10 +121,19 @@ function DiscoverySummaryDashboard() {
   const topRiasec = riasecResults.slice(0, 3);
   const coreScores = useMemo(() => {
     const scores = coreResult?.elementScores || profile?.elementScores || [];
+
     return [...scores].sort(
       (a, b) => Number(b.finalScore || 0) - Number(a.finalScore || 0)
     );
   }, [coreResult, profile]);
+  const competencyGroups = useMemo(
+    () => buildCompetencyGroups(coreScores),
+    [coreScores]
+  );
+  const developmentAreas = useMemo(
+    () => buildDevelopmentAreas({ recommendations }),
+    [recommendations]
+  );
   const hasRiasec = Boolean(profile?.riasecScores || profile?.riasecCode);
   const hasCoreScores = coreScores.length > 0;
   const careerClusterSummary = useMemo(() => {
@@ -106,11 +158,28 @@ function DiscoverySummaryDashboard() {
     ...careerClusterSummary.map((item) => item.count),
     1
   );
+  const insights = profileInsights?.insights || [];
+  const activeInsightIndex =
+    insights.length > 0 ? Math.min(insightIndex, insights.length - 1) : 0;
+  const activeInsight = insights[activeInsightIndex];
+  const canNavigateInsights = insights.length > 1;
+  const goToPreviousInsight = () => {
+    if (!canNavigateInsights) return;
+
+    setInsightIndex((currentIndex) =>
+      currentIndex === 0 ? insights.length - 1 : currentIndex - 1
+    );
+  };
+  const goToNextInsight = () => {
+    if (!canNavigateInsights) return;
+
+    setInsightIndex((currentIndex) => (currentIndex + 1) % insights.length);
+  };
 
   if (isLoading) {
     return (
       <section className="card summary-dashboard-card">
-        <p className="muted">Dang tai dashboard tong ket...</p>
+        <p className="muted">Đang tải dashboard tổng kết...</p>
       </section>
     );
   }
@@ -129,9 +198,211 @@ function DiscoverySummaryDashboard() {
         <p className="summary-dashboard-eyebrow">Tổng kết hồ sơ</p>
         <h1>Nhìn lại hồ sơ khám phá bản thân trước khi xem nghề</h1>
         <p>
-          Dashboard gom hai lớp dữ liệu quan trọng: sở thích Holland Code và
-          các yếu tố năng lực cốt lõi có điểm cao nhất.
+          Dashboard gom dữ liệu RIASEC, năng lực cốt lõi và nghề gợi ý để học
+          sinh hiểu nhanh mình đang nổi bật ở đâu, nên phát triển gì và nên đọc
+          nhóm nghề nào trước.
         </p>
+      </section>
+
+      <section className="card summary-dashboard-card">
+        <div className="summary-section-heading">
+          <div>
+            <p className="summary-dashboard-eyebrow">Tổng quan hồ sơ</p>
+            <h2>3-5 insight chính về học sinh</h2>
+          </div>
+          <span>{getInsightSourceLabel(profileInsights?.source)}</span>
+        </div>
+
+        {isInsightLoading && insights.length === 0 ? (
+          <p className="summary-insight-status">
+            AI đang viết phần tổng quan từ dữ liệu hồ sơ...
+          </p>
+        ) : activeInsight ? (
+          <div className="summary-insight-carousel">
+            <div className="summary-insight-stage" aria-live="polite">
+              {/* Mỗi lần chỉ nổi bật một insight để học sinh đọc nhanh, không bị ngợp bởi nhiều đoạn chữ cùng lúc. */}
+              <article className="summary-insight-card" key={`${activeInsight.title}-${activeInsightIndex}`}>
+                <span className="summary-insight-number">
+                  {String(activeInsightIndex + 1).padStart(2, "0")}
+                </span>
+                <div>
+                  <h3>{activeInsight.title}</h3>
+                  <p>{activeInsight.description}</p>
+                </div>
+              </article>
+            </div>
+
+            <div className="summary-insight-controls">
+              <button
+                aria-label="Xem insight trước"
+                className="summary-insight-nav"
+                disabled={!canNavigateInsights}
+                onClick={goToPreviousInsight}
+                type="button"
+              >
+                ←
+              </button>
+              <div className="summary-insight-progress" aria-label="Vị trí insight">
+                {insights.map((insight, index) => (
+                  <button
+                    aria-label={`Xem insight ${index + 1}`}
+                    aria-pressed={index === activeInsightIndex}
+                    className={index === activeInsightIndex ? "active" : ""}
+                    key={`${insight.title}-${index}`}
+                    onClick={() => setInsightIndex(index)}
+                    type="button"
+                  />
+                ))}
+              </div>
+              <button
+                aria-label="Xem insight tiếp theo"
+                className="summary-insight-nav"
+                disabled={!canNavigateInsights}
+                onClick={goToNextInsight}
+                type="button"
+              >
+                →
+              </button>
+              <span className="summary-insight-count">
+                {activeInsightIndex + 1}/{insights.length}
+              </span>
+            </div>
+          </div>
+        ) : (
+          <div className="summary-empty-state">
+            <p>Chưa có đủ dữ liệu để tạo tổng quan hồ sơ.</p>
+            <Link className="workflow-next-action" to="/discovery/core-quiz">
+              Bổ sung dữ liệu hồ sơ
+            </Link>
+          </div>
+        )}
+      </section>
+
+      <section className="card summary-dashboard-card">
+        <div className="summary-section-heading">
+          <div>
+            <p className="summary-dashboard-eyebrow">Vùng có thể phát triển</p>
+            <h2>Ưu tiên rèn luyện theo nghề được gợi ý</h2>
+          </div>
+          <span>{developmentAreas.length} vùng ưu tiên</span>
+        </div>
+
+        {developmentAreas.length > 0 ? (
+          <div className="summary-growth-grid">
+            {developmentAreas.map((area, index) => (
+              <article className="summary-growth-card" key={area.code}>
+                <div className="summary-growth-card-heading">
+                  <span>Ưu tiên #{index + 1}</span>
+                  <strong>{getSummaryElementName(area)}</strong>
+                </div>
+                <p>
+                  Nên rèn luyện yếu tố này vì nó xuất hiện trong {area.count}{" "}
+                  nghề gợi ý và có ảnh hưởng rõ tới mức độ sẵn sàng cho các
+                  hướng nghề liên quan.
+                </p>
+                {area.careerTitles.length > 0 && (
+                  <small>
+                    Gặp trong: {area.careerTitles.join(", ")}
+                  </small>
+                )}
+              </article>
+            ))}
+          </div>
+        ) : (
+          <div className="summary-empty-state">
+            <p>
+              Chưa có vùng phát triển rõ từ danh sách nghề gợi ý hiện tại.
+            </p>
+            <Link className="workflow-next-action" to="/discovery/recommendations">
+              Xem gợi ý nghề
+            </Link>
+          </div>
+        )}
+      </section>
+
+      <section className="card summary-dashboard-card">
+        <div className="summary-section-heading">
+          <div>
+            <p className="summary-dashboard-eyebrow">Nhóm năng lực</p>
+            <h2>Biểu đồ nhóm năng lực dễ đọc</h2>
+          </div>
+          <span>{competencyGroups.length} nhóm</span>
+        </div>
+
+        {hasCoreScores ? (
+          <div className="summary-competency-list">
+            {competencyGroups.map((group) => (
+              <article className="summary-competency-row" key={group.id}>
+                <div className="summary-competency-copy">
+                  <strong>{group.label}</strong>
+                  <span>{group.description}</span>
+                  {group.matchedElements.length > 0 && (
+                    <small>
+                      Dựa trên:{" "}
+                      {group.matchedElements
+                        .map((element) => getSummaryElementName(element))
+                        .join(", ")}
+                    </small>
+                  )}
+                </div>
+                <div className="summary-competency-track">
+                  <div
+                    style={{
+                      width:
+                        group.score == null
+                          ? "0%"
+                          : `${Math.max(Math.round(group.score * 100), 8)}%`,
+                    }}
+                  />
+                </div>
+                <span className="summary-competency-score">{group.scoreLabel}</span>
+              </article>
+            ))}
+          </div>
+        ) : (
+          <div className="summary-empty-state">
+            <p>Chưa có kết quả Core Quiz để nhóm năng lực.</p>
+            <Link className="workflow-next-action" to="/discovery/core-quiz">
+              Làm Core Quiz
+            </Link>
+          </div>
+        )}
+      </section>
+
+      <section className="card summary-dashboard-card">
+        <div className="summary-section-heading">
+          <div>
+            <p className="summary-dashboard-eyebrow">Radar Chart - Holland Codes</p>
+            <h2>Mạng nhện sở thích RIASEC</h2>
+          </div>
+          {topRiasec.length > 0 && (
+            <strong>{topRiasec.map((item) => item.code).join("")}</strong>
+          )}
+        </div>
+
+        {hasRiasec ? (
+          <div className="summary-radar-layout">
+            <ProfileRadarChart results={riasecResults} />
+            <div className="summary-riasec-list">
+              {topRiasec.map((item, index) => (
+                <article key={item.type}>
+                  <span>Top {index + 1}</span>
+                  <strong>
+                    {item.code} - {item.label}
+                  </strong>
+                  <small>{item.percent}%</small>
+                </article>
+              ))}
+            </div>
+          </div>
+        ) : (
+          <div className="summary-empty-state">
+            <p>Chưa có điểm RIASEC để hiển thị radar.</p>
+            <Link className="workflow-next-action" to="/discovery/riasec">
+              Làm bài RIASEC
+            </Link>
+          </div>
+        )}
       </section>
 
       <section className="card summary-dashboard-card">
@@ -177,42 +448,6 @@ function DiscoverySummaryDashboard() {
       <section className="card summary-dashboard-card">
         <div className="summary-section-heading">
           <div>
-            <p className="summary-dashboard-eyebrow">Radar Chart - Holland Codes</p>
-            <h2>Mạng nhện sở thích RIASEC</h2>
-          </div>
-          {topRiasec.length > 0 && (
-            <strong>{topRiasec.map((item) => item.code).join("")}</strong>
-          )}
-        </div>
-
-        {hasRiasec ? (
-          <div className="summary-radar-layout">
-            <ProfileRadarChart results={riasecResults} />
-            <div className="summary-riasec-list">
-              {topRiasec.map((item, index) => (
-                <article key={item.type}>
-                  <span>Top {index + 1}</span>
-                  <strong>
-                    {item.code} - {item.label}
-                  </strong>
-                  <small>{item.percent}%</small>
-                </article>
-              ))}
-            </div>
-          </div>
-        ) : (
-          <div className="summary-empty-state">
-            <p>Chua co diem RIASEC de hien thi radar.</p>
-            <Link className="workflow-next-action" to="/discovery/riasec">
-              Lam bai RIASEC
-            </Link>
-          </div>
-        )}
-      </section>
-
-      <section className="card summary-dashboard-card">
-        <div className="summary-section-heading">
-          <div>
             <p className="summary-dashboard-eyebrow">Horizontal Bar Chart</p>
             <h2>Top 10 yếu tố năng lực cốt lõi</h2>
           </div>
@@ -233,9 +468,9 @@ function DiscoverySummaryDashboard() {
           </>
         ) : (
           <div className="summary-empty-state">
-            <p>Chua co ket qua Core Quiz de hien thi top 10 yeu to.</p>
+            <p>Chưa có kết quả Core Quiz để hiển thị top 10 yếu tố.</p>
             <Link className="workflow-next-action" to="/discovery/core-quiz">
-              Lam Core Quiz
+              Làm Core Quiz
             </Link>
           </div>
         )}
@@ -243,10 +478,10 @@ function DiscoverySummaryDashboard() {
 
       <div className="summary-dashboard-actions">
         <Link className="recommendation-action secondary" to="/discovery/ai-discovery">
-          Quay lai AI Discovery
+          Quay lại AI Discovery
         </Link>
         <Link className="recommendation-action" to="/discovery/recommendations">
-          Xem goi y nghe
+          Xem gợi ý nghề
         </Link>
       </div>
     </div>

@@ -37,9 +37,9 @@ function ProfileRadarChart({ results = [] }) {
   }
 
   return (
-    <div className="summary-radar-visual" aria-label="Bieu do mang nhen RIASEC">
+    <div className="summary-radar-visual" aria-label="Biểu đồ mạng nhện RIASEC">
       <svg viewBox="0 0 300 300" role="img">
-        <title>Bieu do radar RIASEC</title>
+        <title>Biểu đồ radar RIASEC</title>
         {levels.map((level) => (
           <polygon
             key={level}

@@ -24,6 +24,11 @@ router.post(
   aiDiscoveryController.confirmCandidates
 );
 
+router.get(
+  "/summary-insights",
+  protect,
+  profileController.getMySummaryInsights
+);
 router.get("/", protect, profileController.getMyProfile);
 router.post("/", protect, profileController.createMyProfile);
 router.put("/riasec", protect, profileController.updateMyRiasec);
