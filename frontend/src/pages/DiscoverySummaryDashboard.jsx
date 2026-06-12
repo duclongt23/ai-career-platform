@@ -1,13 +1,10 @@
 import { useEffect, useMemo, useState } from "react";
+import { Brain, Compass, Lightbulb, Sparkles, Target } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import api from "../api/axios";
 import ProfileRadarChart from "../components/analytics/ProfileRadarChart";
 import TopElementsBarChart from "../components/analytics/TopElementsBarChart";
-import {
-  buildRiasecResults,
-  CORE_TYPE_COLORS,
-  CORE_TYPE_LABELS,
-} from "../components/analytics/chartUtils";
+import { buildRiasecResults } from "../components/analytics/chartUtils";
 import { normalizeCareerClusters } from "../utils/careerCluster";
 import {
   buildCompetencyGroups,
@@ -80,6 +77,39 @@ const CLUSTER_COLORS = [
   "#2563eb",
   "#be123c",
   "#15803d",
+];
+
+const INSIGHT_VISUALS = [
+  {
+    icon: Sparkles,
+    color: "#7c3aed",
+    soft: "#f0ebff",
+    glow: "rgba(124, 58, 237, 0.2)",
+  },
+  {
+    icon: Brain,
+    color: "#0d9488",
+    soft: "#dff7f3",
+    glow: "rgba(13, 148, 136, 0.2)",
+  },
+  {
+    icon: Target,
+    color: "#d97706",
+    soft: "#fff0d6",
+    glow: "rgba(217, 119, 6, 0.22)",
+  },
+  {
+    icon: Lightbulb,
+    color: "#be123c",
+    soft: "#ffe4ec",
+    glow: "rgba(190, 18, 60, 0.18)",
+  },
+  {
+    icon: Compass,
+    color: "#2563eb",
+    soft: "#e5eeff",
+    glow: "rgba(37, 99, 235, 0.18)",
+  },
 ];
 
 function getScorePercent(score) {
@@ -256,6 +286,9 @@ function DiscoverySummaryDashboard() {
   const activeInsightIndex =
     insights.length > 0 ? Math.min(insightIndex, insights.length - 1) : 0;
   const activeInsight = insights[activeInsightIndex];
+  const insightVisual =
+    INSIGHT_VISUALS[activeInsightIndex % INSIGHT_VISUALS.length];
+  const InsightIcon = insightVisual.icon;
   const canNavigateInsights = insights.length > 1;
   const goToPreviousInsight = () => {
     if (!canNavigateInsights) return;
@@ -298,7 +331,7 @@ function DiscoverySummaryDashboard() {
         </p>
       </section>
 
-      <section className="card summary-dashboard-card">
+      <section className="card summary-dashboard-card summary-insight-section">
         <div className="summary-section-heading">
           <div>
             <p className="summary-dashboard-eyebrow">Tổng quan hồ sơ</p>
@@ -315,11 +348,24 @@ function DiscoverySummaryDashboard() {
           <div className="summary-insight-carousel">
             <div className="summary-insight-stage" aria-live="polite">
               {/* Mỗi lần chỉ nổi bật một insight để học sinh đọc nhanh, không bị ngợp bởi nhiều đoạn chữ cùng lúc. */}
-              <article className="summary-insight-card" key={`${activeInsight.title}-${activeInsightIndex}`}>
-                <span className="summary-insight-number">
-                  {String(activeInsightIndex + 1).padStart(2, "0")}
-                </span>
-                <div>
+              <article
+                className="summary-insight-card"
+                key={`${activeInsight.title}-${activeInsightIndex}`}
+                style={{
+                  "--summary-insight-color": insightVisual.color,
+                  "--summary-insight-soft": insightVisual.soft,
+                  "--summary-insight-glow": insightVisual.glow,
+                }}
+              >
+                <div className="summary-insight-visual">
+                  <span className="summary-insight-icon">
+                    <InsightIcon aria-hidden="true" size={28} strokeWidth={2.35} />
+                  </span>
+                  <span className="summary-insight-number">
+                    {String(activeInsightIndex + 1).padStart(2, "0")}
+                  </span>
+                </div>
+                <div className="summary-insight-copy">
                   <h3>{activeInsight.title}</h3>
                   <p>{activeInsight.description}</p>
                 </div>
@@ -596,33 +642,25 @@ function DiscoverySummaryDashboard() {
       </section>
 
       <section className="card summary-dashboard-card">
-        <div className="summary-section-heading">
-          <div>
-            <p className="summary-dashboard-eyebrow">Bar Chart xếp hạng</p>
-            <h2>Top 10 yếu tố năng lực cốt lõi</h2>
-          </div>
-          <span>{coreScores.length} yếu tố đã chấm điểm</span>
-        </div>
-
         {hasCoreScores ? (
-          <>
-            <div className="summary-core-legend">
-              {Object.entries(CORE_TYPE_LABELS).map(([type, label]) => (
-                <span key={type}>
-                  <i style={{ backgroundColor: CORE_TYPE_COLORS[type] }} />
-                  {label}
-                </span>
-              ))}
-            </div>
-            <TopElementsBarChart scores={coreScores} />
-          </>
+          <TopElementsBarChart scores={coreScores} />
         ) : (
-          <div className="summary-empty-state">
-            <p>Chưa có kết quả Core Quiz để hiển thị top 10 yếu tố.</p>
-            <Link className="workflow-next-action" to="/discovery/core-quiz">
-              Làm Core Quiz
-            </Link>
-          </div>
+          <>
+            <div className="summary-section-heading">
+              <div>
+                <p className="summary-dashboard-eyebrow">Năng lực cốt lõi</p>
+                <h2>Top 10 yếu tố năng lực cốt lõi</h2>
+              </div>
+              <span>{coreScores.length} yếu tố đã chấm điểm</span>
+            </div>
+
+            <div className="summary-empty-state">
+              <p>Chưa có kết quả Core Quiz để hiển thị top 10 yếu tố.</p>
+              <Link className="workflow-next-action" to="/discovery/core-quiz">
+                Làm Core Quiz
+              </Link>
+            </div>
+          </>
         )}
       </section>
 
