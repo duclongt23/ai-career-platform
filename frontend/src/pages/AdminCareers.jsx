@@ -115,7 +115,7 @@ function buildPayload(form) {
 function formatElementLabel(element) {
   const name = element.name_vi || element.name_en;
 
-  return name ? `${element.code} - ${name}` : element.code || "Chua chon";
+  return name ? `${element.code} - ${name}` : element.code || "Chưa chọn";
 }
 
 function AdminCareers() {
@@ -169,7 +169,7 @@ function AdminCareers() {
         );
       } catch (err) {
         setError(
-          err.response?.data?.message || "Khong tai duoc danh sach career."
+          err.response?.data?.message || "Không tải được danh sách career."
         );
       } finally {
         setLoading(false);
@@ -292,7 +292,7 @@ function AdminCareers() {
           query,
           loading: false,
           results: [],
-          error: err.response?.data?.message || "Khong tim duoc element.",
+          error: err.response?.data?.message || "Không tìm được element.",
         },
       }));
     }
@@ -334,21 +334,21 @@ function AdminCareers() {
       const payload = buildPayload(form);
 
       if (!payload.onetCode || !payload.title_en) {
-        setError("Can nhap O*NET code va ten tieng Anh.");
+        setError("Cần nhập O*NET code và tên tiếng Anh.");
         return;
       }
 
       if (payload.riasecCode && !/^[RIASEC]{1,6}$/.test(payload.riasecCode)) {
-        setError("RIASEC chi duoc gom cac ky tu R, I, A, S, E, C.");
+        setError("RIASEC chỉ được gồm các ký tự R, I, A, S, E, C.");
         return;
       }
 
       if (editingId) {
         await api.put(`/careers/${editingId}`, payload);
-        setMessage("Cap nhat career thanh cong.");
+        setMessage("Cập nhật career thành công.");
       } else {
         await api.post("/careers", payload);
-        setMessage("Them career thanh cong.");
+        setMessage("Thêm career thành công.");
       }
 
       setForm(emptyForm);
@@ -356,7 +356,7 @@ function AdminCareers() {
       setClusterDropdownOpen(false);
       await fetchCareers(pagination.page, filters);
     } catch (err) {
-      setError(err.response?.data?.error || err.response?.data?.message || "Luu career that bai.");
+      setError(err.response?.data?.error || err.response?.data?.message || "Lưu career thất bại.");
     } finally {
       setSaving(false);
     }
@@ -371,7 +371,7 @@ function AdminCareers() {
   };
 
   const handleDelete = async (id) => {
-    const confirmDelete = window.confirm("Ban co chac muon xoa career nay?");
+    const confirmDelete = window.confirm("Bạn có chắc muốn xóa career này?");
 
     if (!confirmDelete) return;
 
@@ -380,10 +380,10 @@ function AdminCareers() {
 
     try {
       await api.delete(`/careers/${id}`);
-      setMessage("Xoa career thanh cong.");
+      setMessage("Xóa career thành công.");
       await fetchCareers(pagination.page, filters);
     } catch (err) {
-      setError(err.response?.data?.message || "Xoa career that bai.");
+      setError(err.response?.data?.message || "Xóa career thất bại.");
     }
   };
 
@@ -585,11 +585,11 @@ function AdminCareers() {
                         onFocus={(event) =>
                           searchElements(index, event.target.value, element.type)
                         }
-                        placeholder="Tim theo code hoac ten"
+                        placeholder="Tìm theo code hoặc tên"
                       />
                     </label>
 
-                    {searchState.loading && <small className="muted">Dang tim...</small>}
+                    {searchState.loading && <small className="muted">Đang tìm...</small>}
                     {searchState.error && <small className="error">{searchState.error}</small>}
                     {searchState.results?.length > 0 && (
                       <div className="admin-element-results">
@@ -642,7 +642,7 @@ function AdminCareers() {
                     className="danger"
                     onClick={() => removeElementRow(index)}
                   >
-                    Xoa
+                    Xóa
                   </button>
                 </div>
               );
@@ -668,7 +668,7 @@ function AdminCareers() {
             onChange={(event) =>
               setFilters((current) => ({ ...current, search: event.target.value }))
             }
-            placeholder="Tim theo tên, O*NET code, alias, nhóm nghề"
+            placeholder="Tìm theo tên, O*NET code, alias, nhóm nghề"
           />
 
           <select
@@ -690,24 +690,24 @@ function AdminCareers() {
 
       <section className="admin-table-wrapper card">
         <div className="admin-table-heading">
-          <h2>Danh sach career</h2>
+          <h2>Danh sách career</h2>
           <span>
             {pagination.total} career, trang {pagination.page}/{pagination.totalPages || 1}
           </span>
         </div>
 
         {loading ? (
-          <p className="muted">Dang tai danh sach career...</p>
+          <p className="muted">Đang tải danh sách career...</p>
         ) : (
           <table className="admin-table">
             <thead>
               <tr>
                 <th>Career</th>
-                <th>Nhom</th>
+                <th>Nhóm</th>
                 <th>RIASEC</th>
                 <th>Element</th>
-                <th>Trang thai</th>
-                <th>Hanh dong</th>
+                <th>Trạng thái</th>
+                <th>Hành động</th>
               </tr>
             </thead>
 

@@ -26,10 +26,10 @@ const emptyForm = {
 };
 
 const statusOptions = [
-  { value: "", label: "Tat ca trang thai" },
-  { value: "active", label: "Dang kich hoat" },
-  { value: "inactive", label: "Da an" },
-  { value: "student_suitable", label: "Phu hop hoc sinh" },
+  { value: "", label: "Tất cả trạng thái" },
+  { value: "active", label: "Đang kích hoạt" },
+  { value: "inactive", label: "Đã ẩn" },
+  { value: "student_suitable", label: "Phù hợp học sinh" },
 ];
 
 function parseTags(value) {
@@ -150,7 +150,7 @@ function AdminElements() {
           }
         );
       } catch (err) {
-        setError(err.response?.data?.message || "Khong tai duoc danh sach element.");
+        setError(err.response?.data?.message || "Không tải được danh sách element.");
       } finally {
         setLoading(false);
       }
@@ -190,21 +190,21 @@ function AdminElements() {
       const payload = buildPayload(form, editingId);
 
       if (!editingId && !payload.code) {
-        setError("Can nhap element code.");
+        setError("Cần nhập element code.");
         return;
       }
 
       if (!payload.name_vi || !payload.name_en) {
-        setError("Can nhap ten tieng Viet va tieng Anh.");
+        setError("Cần nhập tên tiếng Việt và tiếng Anh.");
         return;
       }
 
       if (editingId) {
         await api.put(`/admin/elements/${editingId}`, payload);
-        setMessage("Cap nhat element thanh cong.");
+        setMessage("Cập nhật element thành công.");
       } else {
         await api.post("/admin/elements", payload);
-        setMessage("Them element thanh cong.");
+        setMessage("Thêm element thành công.");
       }
 
       resetForm();
@@ -213,7 +213,7 @@ function AdminElements() {
       setError(
         err.response?.data?.error ||
           err.response?.data?.message ||
-          "Luu element that bai."
+          "Lưu element thất bại."
       );
     } finally {
       setSaving(false);
@@ -229,7 +229,7 @@ function AdminElements() {
   };
 
   const handleDelete = async (element) => {
-    const confirmed = window.confirm(`Ban co chac muon xoa element ${element.code}?`);
+    const confirmed = window.confirm(`Bạn có chắc muốn xóa element ${element.code}?`);
 
     if (!confirmed) return;
 
@@ -238,7 +238,7 @@ function AdminElements() {
 
     try {
       await api.delete(`/admin/elements/${element._id}`);
-      setMessage("Xoa element thanh cong.");
+      setMessage("Xóa element thành công.");
       await fetchElements(pagination.page, filters);
     } catch (err) {
       const references = err.response?.data?.references;
@@ -246,7 +246,7 @@ function AdminElements() {
         ? ` Career: ${references.careerCount}, Core Quiz: ${references.questionCount}.`
         : "";
       setError(
-        `${err.response?.data?.message || "Xoa element that bai."}${referenceText}`
+        `${err.response?.data?.message || "Xóa element thất bại."}${referenceText}`
       );
     }
   };
@@ -259,15 +259,15 @@ function AdminElements() {
   return (
     <div className="admin-elements-page">
       <div className="page-header">
-        <h1>Quan ly Element</h1>
-        <p>Quan tri bo nang luc, ky nang, kien thuc va workstyle dung cho quiz va career.</p>
+        <h1>Quản lý Element</h1>
+        <p>Quản trị bộ năng lực, kỹ năng, kiến thức và workstyle dùng cho quiz và career.</p>
       </div>
 
       {message && <p className="success">{message}</p>}
       {error && <p className="error">{error}</p>}
 
       <section className="card admin-form">
-        <h2>{editingId ? "Cap nhat element" : "Them element moi"}</h2>
+        <h2>{editingId ? "Cập nhật element" : "Thêm element mới"}</h2>
         <form onSubmit={handleSubmit}>
           <div className="admin-career-grid">
             <label>
@@ -296,7 +296,7 @@ function AdminElements() {
             </label>
 
             <label>
-              Ten tieng Viet
+              Tên tiếng Việt
               <input
                 value={form.name_vi}
                 onChange={(event) => updateFormField("name_vi", event.target.value)}
@@ -305,7 +305,7 @@ function AdminElements() {
             </label>
 
             <label>
-              Ten tieng Anh
+              Tên tiếng Anh
               <input
                 value={form.name_en}
                 onChange={(event) => updateFormField("name_en", event.target.value)}
@@ -315,7 +315,7 @@ function AdminElements() {
           </div>
 
           <label>
-            Mo ta tieng Viet
+            Mô tả tiếng Việt
             <textarea
               rows="3"
               value={form.description_vi}
@@ -326,7 +326,7 @@ function AdminElements() {
           </label>
 
           <label>
-            Mo ta than thien voi hoc sinh
+            Mô tả thân thiện với học sinh
             <textarea
               rows="3"
               value={form.student_friendly_description}
@@ -372,7 +372,7 @@ function AdminElements() {
                   updateFormField("is_active", event.target.checked)
                 }
               />
-              Dang kich hoat
+              Đang kích hoạt
             </label>
 
             <label className="admin-toggle">
@@ -383,17 +383,17 @@ function AdminElements() {
                   updateFormField("student_suitable", event.target.checked)
                 }
               />
-              Phu hop hoc sinh
+              Phù hợp học sinh
             </label>
           </div>
 
           <div className="form-actions">
             <button disabled={saving}>
-              {editingId ? "Cap nhat" : "Them element"}
+              {editingId ? "Cập nhật" : "Thêm element"}
             </button>
             {editingId && (
               <button type="button" className="secondary" onClick={resetForm}>
-                Huy sua
+                Hủy sửa
               </button>
             )}
           </div>
@@ -407,7 +407,7 @@ function AdminElements() {
             onChange={(event) =>
               setFilters((current) => ({ ...current, search: event.target.value }))
             }
-            placeholder="Tim theo code, ten tieng Viet, ten tieng Anh"
+            placeholder="Tìm theo code, tên tiếng Việt, tên tiếng Anh"
           />
 
           <select
@@ -416,7 +416,7 @@ function AdminElements() {
               setFilters((current) => ({ ...current, type: event.target.value }))
             }
           >
-            <option value="">Tat ca type</option>
+            <option value="">Tất cả type</option>
             {elementTypes.map((type) => (
               <option key={type} value={type}>
                 {type}
@@ -437,13 +437,13 @@ function AdminElements() {
             ))}
           </select>
 
-          <button>Loc</button>
+          <button>Lọc</button>
         </form>
       </section>
 
       <section className="admin-table-wrapper card">
         <div className="admin-table-heading">
-          <h2>Danh sach element</h2>
+          <h2>Danh sách element</h2>
           <span>
             {pagination.total} element, trang {pagination.page}/
             {pagination.totalPages || 1}
@@ -451,7 +451,7 @@ function AdminElements() {
         </div>
 
         {loading ? (
-          <p className="muted">Dang tai danh sach element...</p>
+          <p className="muted">Đang tải danh sách element...</p>
         ) : (
           <table className="admin-table">
             <thead>
@@ -459,8 +459,8 @@ function AdminElements() {
                 <th>Element</th>
                 <th>Type</th>
                 <th>RIASEC</th>
-                <th>Trang thai</th>
-                <th>Hanh dong</th>
+                <th>Trạng thái</th>
+                <th>Hành động</th>
               </tr>
             </thead>
             <tbody>
@@ -475,25 +475,25 @@ function AdminElements() {
                   <td>{(element.riasec_tags || []).join(", ") || "-"}</td>
                   <td>
                     <div className="admin-status-list">
-                      <span>{element.is_active ? "Dang kich hoat" : "Da an"}</span>
+                      <span>{element.is_active ? "Đang kích hoạt" : "Đã ẩn"}</span>
                       <span>
                         {element.student_suitable
-                          ? "Phu hop hoc sinh"
-                          : "Khong uu tien hoc sinh"}
+                          ? "Phù hợp học sinh"
+                          : "Không ưu tiên học sinh"}
                       </span>
                     </div>
                   </td>
                   <td>
                     <div className="table-actions">
                       <button type="button" onClick={() => handleEdit(element)}>
-                        Sua
+                        Sửa
                       </button>
                       <button
                         type="button"
                         className="danger"
                         onClick={() => handleDelete(element)}
                       >
-                        Xoa
+                        Xóa
                       </button>
                     </div>
                   </td>
@@ -502,7 +502,7 @@ function AdminElements() {
 
               {elements.length === 0 && (
                 <tr>
-                  <td colSpan="5">Chua co element phu hop voi bo loc.</td>
+                  <td colSpan="5">Chưa có element phù hợp với bộ lọc.</td>
                 </tr>
               )}
             </tbody>
@@ -516,7 +516,7 @@ function AdminElements() {
               disabled={pagination.page <= 1}
               onClick={() => fetchElements(pagination.page - 1, filters)}
             >
-              Trang truoc
+              Trang trước
             </button>
             <span>{pagination.page}</span>
             <button

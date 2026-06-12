@@ -102,7 +102,7 @@ function CoreQuizPage() {
           } catch {
             if (!isMounted) return;
 
-            setError("Khong tai duoc bo cau hoi. Vui long thu lai sau.");
+            setError("Không tải được bộ câu hỏi. Vui lòng thử lại sau.");
           }
 
           return;
@@ -248,7 +248,7 @@ function CoreQuizPage() {
     } catch (err) {
       setError(
         err.response?.data?.message ||
-          "Chua the bat dau lam lai quiz. Vui long thu lai sau."
+          "Chưa thể bắt đầu làm lại quiz. Vui lòng thử lại sau."
       );
     } finally {
       setIsResetting(false);

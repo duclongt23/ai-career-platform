@@ -35,7 +35,7 @@ function Profile() {
 
   const handleProfileLoadError = (err) => {
     if (err.response?.status === 404) {
-      console.log("Chua co profile, nguoi dung can tao moi");
+      console.log("Chưa có profile, người dùng cần tạo mới");
       setForm(emptyProfileForm);
       setIsEditing(true);
       setError("");
@@ -45,7 +45,7 @@ function Profile() {
     if (err.response?.status !== 401) {
       setError(
         err.response?.data?.message ||
-          "Khong tai duoc ho so. Vui long thu lai."
+          "Không tải được hồ sơ. Vui lòng thử lại."
       );
     }
   };
@@ -113,10 +113,10 @@ function Profile() {
       const res = await api.get("/profile");
       setForm(profileToForm(res.data));
 
-      setMessage("Luu ho so thanh cong");
+      setMessage("Lưu hồ sơ thành công");
       setIsEditing(false);
     } catch (err) {
-      setError(err.response?.data?.message || "Luu ho so that bai");
+      setError(err.response?.data?.message || "Lưu hồ sơ thất bại");
     }
   };
 
@@ -143,7 +143,7 @@ function Profile() {
   if (isLoading) {
     return (
       <section className="card profile-card">
-        <p className="muted">Dang tai ho so...</p>
+        <p className="muted">Đang tải hồ sơ...</p>
       </section>
     );
   }
@@ -159,8 +159,8 @@ function Profile() {
           </div>
 
           <div className="profile-title">
-            <h1>{user.name || "Ho so hoc sinh"}</h1>
-            <p>{user.email || "Cap nhat thong tin ca nhan cua ban"}</p>
+            <h1>{user.name || "Hồ sơ học sinh"}</h1>
+            <p>{user.email || "Cập nhật thông tin cá nhân của bạn"}</p>
           </div>
 
           {!isEditing && (
@@ -177,7 +177,7 @@ function Profile() {
       {!isEditing ? (
         <div className="profile-grid">
           <section className="card profile-card profile-summary">
-            <h2>Thong tin hoc tap</h2>
+            <h2>Thông tin học tập</h2>
             <div className="profile-stat">
               <span>Lớp hiện tại</span>
               <strong>Lớp {form.grade}</strong>
@@ -187,10 +187,10 @@ function Profile() {
               <p>{form.goal || "Chưa cập nhật mục tiêu học tập."}</p>
             </div>
             <div className="profile-stat">
-              <span>Ma RIASEC</span>
-              <strong>{form.riasecCode || "Chua lam test"}</strong>
+              <span>Mã RIASEC</span>
+              <strong>{form.riasecCode || "Chưa làm test"}</strong>
               {riasecDate ? (
-                <p>Cap nhat ngay {riasecDate}</p>
+                <p>Cập nhật ngày {riasecDate}</p>
               ) : (
                 <p>Làm bài test RIASEC để nhận gợi ý nghề nghiệp phù hợp.</p>
               )}
@@ -208,13 +208,13 @@ function Profile() {
             <h2>Môn học yêu thích</h2>
             {renderTags(
               form.favoriteSubjects,
-              "Chua co mon hoc yeu thich."
+              "Chưa có môn học yêu thích."
             )}
           </section>
 
           <section className="card profile-card">
             <h2>Môn học học tốt</h2>
-            {renderTags(form.strongSubjects, "Chua co mon hoc noi bat.")}
+            {renderTags(form.strongSubjects, "Chưa có môn học nổi bật.")}
           </section>
         </div>
       ) : (

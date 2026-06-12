@@ -6,7 +6,7 @@ function formatScore(score) {
 
 function AdminCoreQuizAnswerScores({ scores = [] }) {
   if (scores.length === 0) {
-    return <small className="core-admin-answer-scores">Khong co mapping diem</small>;
+    return <small className="core-admin-answer-scores">Không có mapping điểm</small>;
   }
 
   return (

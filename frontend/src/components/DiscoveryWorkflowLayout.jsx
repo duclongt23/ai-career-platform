@@ -30,8 +30,8 @@ const STEPS = [
   {
     key: "dashboard",
     number: "04",
-    label: "Tong ket",
-    description: "Ho so ban than",
+    label: "Tổng kết",
+    description: "Hồ sơ bản thân",
     to: "/discovery/dashboard",
   },
   {

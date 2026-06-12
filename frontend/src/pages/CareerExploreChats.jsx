@@ -3,18 +3,6 @@ import { Link, Navigate, useNavigate, useParams } from "react-router-dom";
 import api from "../api/axios";
 import { CareerExploreChatSection } from "./CareerDetail";
 import { DEFAULT_RECOMMENDATION_LIMIT } from "../constants/recommendations";
-import { formatCareerClusters } from "../utils/careerCluster";
-
-function formatUpdatedAt(value) {
-  if (!value) {
-    return "Chưa cập nhật";
-  }
-
-  return new Intl.DateTimeFormat("vi-VN", {
-    dateStyle: "medium",
-    timeStyle: "short",
-  }).format(new Date(value));
-}
 
 function CareerExploreChats() {
   const token = localStorage.getItem("token");
@@ -174,13 +162,6 @@ function CareerExploreChats() {
               to={`/career-explore-chats/${chat.careerId}`}
             >
               <strong>{chat.title}</strong>
-              {formatCareerClusters(chat.careerCluster) && (
-                <span>{formatCareerClusters(chat.careerCluster)}</span>
-              )}
-              {chat.lastMessage && <p>{chat.lastMessage}</p>}
-              <small>
-                {chat.messageCount} tin nhắn · {formatUpdatedAt(chat.updatedAt)}
-              </small>
             </Link>
           ))}
         </div>

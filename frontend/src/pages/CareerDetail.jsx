@@ -63,6 +63,23 @@ const CAREER_ROADMAP_EDGE_COLORS = [
   "#0369a1",
   "#9333ea",
 ];
+const CAREER_DAY_PHASES = [
+  { time: "08:00", label: "Khởi động", tone: "start" },
+  { time: "09:30", label: "Tập trung", tone: "focus" },
+  { time: "11:00", label: "Phối hợp", tone: "collab" },
+  { time: "13:30", label: "Thực hiện", tone: "build" },
+  { time: "15:30", label: "Kiểm tra", tone: "review" },
+  { time: "16:30", label: "Chốt ngày", tone: "wrap" },
+  { time: "17:30", label: "Chuẩn bị", tone: "plan" },
+];
+const CAREER_DAY_EDGE_COLORS = [
+  "#0f766e",
+  "#2563eb",
+  "#c2410c",
+  "#7c3aed",
+  "#15803d",
+  "#be123c",
+];
 const CAREER_DAY_NODE_TYPES = {
   careerDayActivity: CareerDayActivityNode,
 };
@@ -128,15 +145,27 @@ function writeCareerExploreChatSession(
 
 function CareerDayActivityNode({ data }) {
   return (
-    <article className="career-day-node">
-      <Handle className="career-day-handle" type="target" position={Position.Top} />
-      <span>{String(data.step).padStart(2, "0")}</span>
+    <article className={`career-day-node tone-${data.tone}`}>
+      {data.step > 1 && (
+        <Handle
+          className="career-day-handle"
+          type="target"
+          position={data.targetPosition}
+        />
+      )}
+      <div className="career-day-node-top">
+        <span>{String(data.step).padStart(2, "0")}</span>
+        <small>{data.time}</small>
+      </div>
+      <strong>{data.label}</strong>
       <p>{data.activity}</p>
-      <Handle
-        className="career-day-handle"
-        type="source"
-        position={Position.Bottom}
-      />
+      {!data.isLast && (
+        <Handle
+          className="career-day-handle"
+          type="source"
+          position={data.sourcePosition}
+        />
+      )}
     </article>
   );
 }
@@ -181,6 +210,49 @@ function formatElementCode(code) {
   return String(code || "")
     .replaceAll("_", " ")
     .replace(/\b\w/g, (character) => character.toUpperCase());
+}
+
+function getCareerDayNodePosition(index) {
+  const row = Math.floor(index / 3);
+  const offset = index % 3;
+  const column = row % 2 === 0 ? offset : 2 - offset;
+
+  return {
+    x: 48 + column * 330,
+    y: 44 + row * 224,
+  };
+}
+
+function getCareerDaySourcePosition(currentPosition, nextPosition) {
+  if (!nextPosition) {
+    return Position.Right;
+  }
+
+  if (nextPosition.y > currentPosition.y) {
+    return Position.Bottom;
+  }
+
+  if (nextPosition.y < currentPosition.y) {
+    return Position.Top;
+  }
+
+  return nextPosition.x > currentPosition.x ? Position.Right : Position.Left;
+}
+
+function getCareerDayTargetPosition(currentPosition, previousPosition) {
+  if (!previousPosition) {
+    return Position.Left;
+  }
+
+  if (previousPosition.y < currentPosition.y) {
+    return Position.Top;
+  }
+
+  if (previousPosition.y > currentPosition.y) {
+    return Position.Bottom;
+  }
+
+  return previousPosition.x < currentPosition.x ? Position.Left : Position.Right;
 }
 
 function CareerFitSection({ careerId, title }) {
@@ -317,18 +389,29 @@ function CareerDayInLifeSection({ careerId, title }) {
   const [error, setError] = useState("");
   const dayInLifeDiagram = useMemo(() => {
     const activities = dayInLife?.activities || [];
+    const positions = activities.map((_, index) =>
+      getCareerDayNodePosition(index)
+    );
 
     return {
       nodes: activities.map((activity, index) => ({
         id: `activity-${index}`,
         type: "careerDayActivity",
-        position: {
-          x: index % 2 === 0 ? 36 : 440,
-          y: index * 132,
-        },
+        position: positions[index],
         data: {
           activity,
+          isLast: index === activities.length - 1,
+          targetPosition: getCareerDayTargetPosition(
+            positions[index],
+            positions[index - 1]
+          ),
+          sourcePosition: getCareerDaySourcePosition(
+            positions[index],
+            positions[index + 1]
+          ),
           step: index + 1,
+          ...(CAREER_DAY_PHASES[index] ||
+            CAREER_DAY_PHASES[CAREER_DAY_PHASES.length - 1]),
         },
       })),
       edges: activities.slice(0, -1).map((_, index) => ({
@@ -339,11 +422,11 @@ function CareerDayInLifeSection({ careerId, title }) {
         animated: true,
         markerEnd: {
           type: MarkerType.ArrowClosed,
-          color: "#0f766e",
+          color: CAREER_DAY_EDGE_COLORS[index % CAREER_DAY_EDGE_COLORS.length],
         },
         style: {
-          stroke: "#0f766e",
-          strokeWidth: 2.5,
+          stroke: CAREER_DAY_EDGE_COLORS[index % CAREER_DAY_EDGE_COLORS.length],
+          strokeWidth: 3,
         },
       })),
     };
@@ -434,16 +517,16 @@ function CareerDayInLifeSection({ careerId, title }) {
               edges={dayInLifeDiagram.edges}
               nodeTypes={CAREER_DAY_NODE_TYPES}
               fitView
-              fitViewOptions={{ padding: 0.12 }}
-              minZoom={0.55}
-              maxZoom={1.35}
+              fitViewOptions={{ padding: 0.16 }}
+              minZoom={0.42}
+              maxZoom={1.15}
               nodesDraggable={false}
               nodesConnectable={false}
               elementsSelectable={false}
               panOnScroll
               preventScrolling={false}
             >
-              <Background color="#cbd5e1" gap={22} size={1} />
+              <Background color="#cbd5e1" gap={28} size={1} />
               <Controls showInteractive={false} />
             </ReactFlow>
           </div>

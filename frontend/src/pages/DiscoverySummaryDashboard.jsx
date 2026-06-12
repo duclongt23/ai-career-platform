@@ -27,6 +27,88 @@ function getInsightSourceLabel(source) {
   return "Đang phân tích";
 }
 
+function getDevelopmentPriorityScore(area, maxCount) {
+  const countScore = maxCount > 0 ? Number(area.count || 0) / maxCount : 0;
+  const gapScore = Math.min(Math.max(Number(area.averageGap || 0), 0), 1);
+  const importanceScore = Math.min(
+    Math.max(Number(area.averageImportance || 0), 0),
+    1
+  );
+
+  return Math.max(
+    12,
+    Math.min(
+      100,
+      Math.round(countScore * 58 + gapScore * 28 + importanceScore * 14)
+    )
+  );
+}
+
+function getDevelopmentPriorityLabel(score) {
+  if (score >= 78) {
+    return "Ưu tiên cao";
+  }
+
+  if (score >= 52) {
+    return "Nên rèn luyện";
+  }
+
+  return "Theo dõi thêm";
+}
+
+const DEVELOPMENT_PRIORITY_COLORS = [
+  "#d97706",
+  "#0d9488",
+  "#7c3aed",
+  "#2563eb",
+  "#be123c",
+];
+
+const COMPETENCY_COLORS = [
+  "#7c3aed",
+  "#0d9488",
+  "#d97706",
+  "#2563eb",
+  "#be123c",
+  "#15803d",
+];
+
+const CLUSTER_COLORS = [
+  "#0f766e",
+  "#d97706",
+  "#7c3aed",
+  "#2563eb",
+  "#be123c",
+  "#15803d",
+];
+
+function getScorePercent(score) {
+  if (score == null) {
+    return 0;
+  }
+
+  return Math.max(0, Math.min(100, Math.round(Number(score || 0) * 100)));
+}
+
+function buildClusterConicGradient(items, total) {
+  if (!items.length || total <= 0) {
+    return "#e2ebe0";
+  }
+
+  let start = 0;
+  const segments = items.map((item, index) => {
+    const size = (Number(item.count || 0) / total) * 100;
+    const end = start + size;
+    const color = CLUSTER_COLORS[index % CLUSTER_COLORS.length];
+    const segment = `${color} ${start.toFixed(2)}% ${end.toFixed(2)}%`;
+    start = end;
+
+    return segment;
+  });
+
+  return `conic-gradient(${segments.join(", ")})`;
+}
+
 function DiscoverySummaryDashboard() {
   const navigate = useNavigate();
   const token = localStorage.getItem("token");
@@ -134,6 +216,10 @@ function DiscoverySummaryDashboard() {
     () => buildDevelopmentAreas({ recommendations }),
     [recommendations]
   );
+  const maxDevelopmentCount = Math.max(
+    ...developmentAreas.map((area) => area.count),
+    1
+  );
   const hasRiasec = Boolean(profile?.riasecScores || profile?.riasecCode);
   const hasCoreScores = coreScores.length > 0;
   const careerClusterSummary = useMemo(() => {
@@ -154,9 +240,17 @@ function DiscoverySummaryDashboard() {
       .slice(0, 5);
   }, [recommendations]);
   const hasCareerClusters = careerClusterSummary.length > 0;
-  const maxClusterCount = Math.max(
-    ...careerClusterSummary.map((item) => item.count),
-    1
+  const careerClusterTotal = useMemo(
+    () =>
+      careerClusterSummary.reduce(
+        (total, item) => total + Number(item.count || 0),
+        0
+      ),
+    [careerClusterSummary]
+  );
+  const careerClusterGradient = useMemo(
+    () => buildClusterConicGradient(careerClusterSummary, careerClusterTotal),
+    [careerClusterSummary, careerClusterTotal]
   );
   const insights = profileInsights?.insights || [];
   const activeInsightIndex =
@@ -289,24 +383,55 @@ function DiscoverySummaryDashboard() {
 
         {developmentAreas.length > 0 ? (
           <div className="summary-growth-grid">
-            {developmentAreas.map((area, index) => (
-              <article className="summary-growth-card" key={area.code}>
-                <div className="summary-growth-card-heading">
-                  <span>Ưu tiên #{index + 1}</span>
-                  <strong>{getSummaryElementName(area)}</strong>
-                </div>
-                <p>
-                  Nên rèn luyện yếu tố này vì nó xuất hiện trong {area.count}{" "}
-                  nghề gợi ý và có ảnh hưởng rõ tới mức độ sẵn sàng cho các
-                  hướng nghề liên quan.
-                </p>
-                {area.careerTitles.length > 0 && (
-                  <small>
-                    Gặp trong: {area.careerTitles.join(", ")}
-                  </small>
-                )}
-              </article>
-            ))}
+            {developmentAreas.map((area, index) => {
+              const priorityScore = getDevelopmentPriorityScore(
+                area,
+                maxDevelopmentCount
+              );
+              const priorityColor =
+                DEVELOPMENT_PRIORITY_COLORS[
+                  index % DEVELOPMENT_PRIORITY_COLORS.length
+                ];
+
+              return (
+                <article
+                  className="summary-growth-card"
+                  key={area.code}
+                  style={{
+                    "--summary-ring-angle": `${priorityScore * 3.6}deg`,
+                    "--summary-ring-color": priorityColor,
+                  }}
+                >
+                  <div
+                    className="summary-growth-ring"
+                    aria-label={`Mức ưu tiên ${getSummaryElementName(area)}: ${priorityScore}/100`}
+                  >
+                    <strong>{priorityScore}</strong>
+                    <span>/100</span>
+                  </div>
+                  <div className="summary-growth-card-body">
+                    <div className="summary-growth-card-heading">
+                      <span>Ưu tiên #{index + 1}</span>
+                      <strong>{getSummaryElementName(area)}</strong>
+                    </div>
+                    <div className="summary-growth-meta">
+                      <span>{area.count} nghề</span>
+                      <strong>{getDevelopmentPriorityLabel(priorityScore)}</strong>
+                    </div>
+                    {area.careerTitles.length > 0 && (
+                      <div className="summary-growth-careers">
+                        {area.careerTitles.slice(0, 2).map((title) => (
+                          <span key={title}>{title}</span>
+                        ))}
+                        {area.careerTitles.length > 2 && (
+                          <span>+{area.careerTitles.length - 2}</span>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                </article>
+              );
+            })}
           </div>
         ) : (
           <div className="summary-empty-state">
@@ -324,40 +449,47 @@ function DiscoverySummaryDashboard() {
         <div className="summary-section-heading">
           <div>
             <p className="summary-dashboard-eyebrow">Nhóm năng lực</p>
-            <h2>Biểu đồ nhóm năng lực dễ đọc</h2>
+            <h2>Gauge chart nhóm năng lực</h2>
           </div>
           <span>{competencyGroups.length} nhóm</span>
         </div>
 
         {hasCoreScores ? (
-          <div className="summary-competency-list">
-            {competencyGroups.map((group) => (
-              <article className="summary-competency-row" key={group.id}>
-                <div className="summary-competency-copy">
-                  <strong>{group.label}</strong>
-                  <span>{group.description}</span>
-                  {group.matchedElements.length > 0 && (
-                    <small>
-                      Dựa trên:{" "}
-                      {group.matchedElements
-                        .map((element) => getSummaryElementName(element))
-                        .join(", ")}
-                    </small>
-                  )}
-                </div>
-                <div className="summary-competency-track">
+          <div className="summary-competency-grid">
+            {competencyGroups.map((group, index) => {
+              const scorePercent = getScorePercent(group.score);
+              const gaugeColor =
+                COMPETENCY_COLORS[index % COMPETENCY_COLORS.length];
+
+              return (
+                <article
+                  className="summary-competency-card"
+                  key={group.id}
+                  style={{
+                    "--competency-angle": `${scorePercent * 3.6}deg`,
+                    "--competency-color": gaugeColor,
+                  }}
+                >
                   <div
-                    style={{
-                      width:
-                        group.score == null
-                          ? "0%"
-                          : `${Math.max(Math.round(group.score * 100), 8)}%`,
-                    }}
-                  />
-                </div>
-                <span className="summary-competency-score">{group.scoreLabel}</span>
-              </article>
-            ))}
+                    className="summary-competency-gauge"
+                    aria-label={`${group.label}: ${group.scoreLabel}`}
+                  >
+                    <strong>{group.score == null ? "N/A" : group.scoreLabel}</strong>
+                  </div>
+                  <div className="summary-competency-copy">
+                    <strong>{group.label}</strong>
+                    <span>{group.description}</span>
+                    <small>
+                      {group.matchedElements.length > 0
+                        ? `Dựa trên: ${group.matchedElements
+                            .map((element) => getSummaryElementName(element))
+                            .join(", ")}`
+                        : group.scoreLabel}
+                    </small>
+                  </div>
+                </article>
+              );
+            })}
           </div>
         ) : (
           <div className="summary-empty-state">
@@ -417,23 +549,41 @@ function DiscoverySummaryDashboard() {
         </div>
 
         {hasCareerClusters ? (
-          <div className="summary-cluster-chart" aria-label="Biểu đồ nhóm ngành nổi bật">
-            {careerClusterSummary.map((item, index) => (
-              <article className="summary-cluster-row" key={item.cluster}>
-                <span className="summary-cluster-rank">#{index + 1}</span>
-                <div className="summary-cluster-name">
-                  <strong>{item.cluster}</strong>
-                  <small>{item.count} nghề gợi ý</small>
-                </div>
-                <div className="summary-cluster-track">
-                  <div
-                    className="summary-cluster-fill"
-                    style={{ width: `${Math.max((item.count / maxClusterCount) * 100, 8)}%` }}
-                  />
-                </div>
-                <em>{item.count}</em>
-              </article>
-            ))}
+          <div className="summary-cluster-donut-layout">
+            <div
+              className="summary-cluster-donut"
+              style={{ background: careerClusterGradient }}
+              aria-label="Donut chart nhóm ngành nổi bật"
+            >
+              <div>
+                <strong>{careerClusterTotal}</strong>
+                <span>nghề</span>
+              </div>
+            </div>
+            <div className="summary-cluster-legend">
+              {careerClusterSummary.map((item, index) => {
+                const sharePercent =
+                  careerClusterTotal > 0
+                    ? Math.round((Number(item.count || 0) / careerClusterTotal) * 100)
+                    : 0;
+                const segmentColor =
+                  CLUSTER_COLORS[index % CLUSTER_COLORS.length];
+
+                return (
+                  <article
+                    className="summary-cluster-legend-item"
+                    key={item.cluster}
+                  >
+                    <i style={{ backgroundColor: segmentColor }} />
+                    <div className="summary-cluster-legend-copy">
+                      <strong>{item.cluster}</strong>
+                      <small>{sharePercent}% trong nhóm nổi bật</small>
+                    </div>
+                    <em>{item.count}</em>
+                  </article>
+                );
+              })}
+            </div>
           </div>
         ) : (
           <div className="summary-empty-state">
@@ -448,7 +598,7 @@ function DiscoverySummaryDashboard() {
       <section className="card summary-dashboard-card">
         <div className="summary-section-heading">
           <div>
-            <p className="summary-dashboard-eyebrow">Horizontal Bar Chart</p>
+            <p className="summary-dashboard-eyebrow">Bar Chart xếp hạng</p>
             <h2>Top 10 yếu tố năng lực cốt lõi</h2>
           </div>
           <span>{coreScores.length} yếu tố đã chấm điểm</span>

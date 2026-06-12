@@ -252,7 +252,7 @@ function AdminCoreQuiz() {
       setCurrentPage(1);
     } catch (err) {
       setError(
-        err.response?.data?.message || "Khong tai duoc danh sach cau hoi."
+        err.response?.data?.message || "Không tải được danh sách câu hỏi."
       );
     } finally {
       setLoading(false);
@@ -351,7 +351,7 @@ function AdminCoreQuiz() {
           results: [],
           loading: false,
           error:
-            err.response?.data?.message || "Khong tim duoc element phu hop.",
+            err.response?.data?.message || "Không tìm được element phù hợp.",
         },
       }));
     }
@@ -525,14 +525,14 @@ function AdminCoreQuiz() {
       updateQuestion(question._id, () => normalizeQuestion(res.data.question));
       setMessage(
         question._isNew
-          ? `Da them cau hoi ${res.data.question.question_id}.`
-          : `Da luu cau hoi ${res.data.question.question_id}.`
+          ? `Đã thêm câu hỏi ${res.data.question.question_id}.`
+          : `Đã lưu câu hỏi ${res.data.question.question_id}.`
       );
     } catch (err) {
       setError(
         err.response?.data?.error ||
           err.response?.data?.message ||
-          "Luu cau hoi that bai."
+          "Lưu câu hỏi thất bại."
       );
     } finally {
       setSavingIds((current) => ({ ...current, [question._id]: false }));
@@ -548,7 +548,7 @@ function AdminCoreQuiz() {
     }
 
     const confirmed = window.confirm(
-      `Ban co chac muon xoa cau hoi ${question.question_id}?`
+      `Bạn có chắc muốn xóa câu hỏi ${question.question_id}?`
     );
 
     if (!confirmed) return;
@@ -564,13 +564,13 @@ function AdminCoreQuiz() {
         current.filter((currentQuestion) => currentQuestion._id !== question._id)
       );
       setMessage(
-        `Da xoa cau hoi ${question.question_id}. Cap nhat ${res.data.affectedProfiles || 0} ho so hoc sinh.`
+        `Đã xóa câu hỏi ${question.question_id}. Cập nhật ${res.data.affectedProfiles || 0} hồ sơ học sinh.`
       );
     } catch (err) {
       setError(
         err.response?.data?.error ||
           err.response?.data?.message ||
-          "Xoa cau hoi that bai."
+          "Xóa câu hỏi thất bại."
       );
     } finally {
       setSavingIds((current) => ({ ...current, [question._id]: false }));
@@ -586,13 +586,13 @@ function AdminCoreQuiz() {
   const renderPaginationControls = () => (
     <div className="admin-pagination">
       <div className="admin-pagination-meta">
-        Hien thi {questions.length === 0 ? 0 : pageStart + 1}-{pageEnd} /{" "}
-        {questions.length} cau hoi
+        Hiển thị {questions.length === 0 ? 0 : pageStart + 1}-{pageEnd} /{" "}
+        {questions.length} câu hỏi
       </div>
 
       <div className="admin-pagination-actions">
         <label>
-          Moi trang
+          Mỗi trang
           <select
             value={pageSize}
             onChange={(e) => {
@@ -614,7 +614,7 @@ function AdminCoreQuiz() {
           disabled={currentPage === 1}
           onClick={() => goToPage(currentPage - 1)}
         >
-          Truoc
+          Trước
         </button>
 
         <span>
@@ -636,9 +636,9 @@ function AdminCoreQuiz() {
   return (
     <div className="admin-core-quiz-page">
       <div className="page-header">
-        <h1>Kiem duyet Core Quiz</h1>
+        <h1>Kiểm duyệt Core Quiz</h1>
         <p>
-          Xem va chinh sua cau hoi, dap an, target elements va mapping diem tu
+          Xem và chỉnh sửa câu hỏi, đáp án, target elements và mapping điểm từ
           MongoDB.
         </p>
       </div>
@@ -648,21 +648,21 @@ function AdminCoreQuiz() {
 
       <div className="admin-core-toolbar">
         <div>
-          <strong>{questions.length} cau hoi</strong>
-          <p className="muted">Dang xem trang {currentPage}</p>
+          <strong>{questions.length} câu hỏi</strong>
+          <p className="muted">Đang xem trang {currentPage}</p>
         </div>
 
         <div className="admin-core-toolbar-actions">
           <button type="button" onClick={addQuestion}>
-            Them cau hoi
+            Thêm câu hỏi
           </button>
           <button type="button" className="secondary" onClick={fetchQuestions}>
-            Tai lai
+            Tải lại
           </button>
         </div>
       </div>
 
-      {loading && <div className="card">Dang tai danh sach cau hoi...</div>}
+      {loading && <div className="card">Đang tải danh sách câu hỏi...</div>}
 
       {!loading && questions.length > 0 && renderPaginationControls()}
 
@@ -671,8 +671,8 @@ function AdminCoreQuiz() {
           <section className="admin-question-card card" key={question._id}>
             <div className="admin-question-heading">
               <div>
-                <span>Cau {pageStart + visibleQuestionIndex + 1}</span>
-                <h2>{question.question_id || "Cau hoi moi"}</h2>
+                <span>Câu {pageStart + visibleQuestionIndex + 1}</span>
+                <h2>{question.question_id || "Câu hỏi mới"}</h2>
               </div>
 
               <div className="admin-core-toolbar-actions">
@@ -697,7 +697,7 @@ function AdminCoreQuiz() {
                   disabled={Boolean(savingIds[question._id])}
                   onClick={() => deleteQuestion(question)}
                 >
-                  Xoa cau hoi
+                  Xóa câu hỏi
                 </button>
               </div>
             </div>
@@ -799,7 +799,7 @@ function AdminCoreQuiz() {
             </div>
 
             <label>
-              Muc dich cau hoi
+              Mục đích câu hỏi
               <textarea
                 rows="2"
                 value={question.question_purpose || ""}
@@ -814,7 +814,7 @@ function AdminCoreQuiz() {
             </label>
 
             <label>
-              Noi dung cau hoi
+              Nội dung câu hỏi
               <textarea
                 rows="3"
                 value={question.question || ""}
@@ -832,7 +832,7 @@ function AdminCoreQuiz() {
                   className="secondary"
                   onClick={() => addTargetElement(question._id)}
                 >
-                  Them element
+                  Thêm element
                 </button>
               </div>
 
@@ -842,8 +842,8 @@ function AdminCoreQuiz() {
                     <input
                       placeholder={
                         element.code
-                          ? "Tim element khac theo code hoac name_vi"
-                          : "Tim theo code hoac name_vi"
+                          ? "Tìm element khác theo code hoặc name_vi"
+                          : "Tìm theo code hoặc name_vi"
                       }
                       value={
                         elementSearches[
@@ -871,7 +871,7 @@ function AdminCoreQuiz() {
 
                     {elementSearches[
                       elementSearchKey(question._id, elementIndex)
-                    ]?.loading && <p className="muted">Dang tim...</p>}
+                    ]?.loading && <p className="muted">Đang tìm...</p>}
 
                     {elementSearches[
                       elementSearchKey(question._id, elementIndex)
@@ -913,8 +913,8 @@ function AdminCoreQuiz() {
                   </div>
 
                   <div className="admin-selected-element">
-                    <span>{element.code || "Chua chon code"}</span>
-                    <strong>{element.name_vi || "Chua chon element"}</strong>
+                    <span>{element.code || "Chưa chọn code"}</span>
+                    <strong>{element.name_vi || "Chưa chọn element"}</strong>
                     {element.name_en && <small>{element.name_en}</small>}
                   </div>
 
@@ -925,7 +925,7 @@ function AdminCoreQuiz() {
                       removeTargetElement(question._id, elementIndex)
                     }
                   >
-                    Xoa
+                    Xóa
                   </button>
                 </div>
               ))}
@@ -933,31 +933,31 @@ function AdminCoreQuiz() {
 
             <div className="admin-nested-section">
               <div className="admin-section-title">
-                <h3>Dap an va mapping</h3>
+                <h3>Đáp án và mapping</h3>
                 <button
                   type="button"
                   className="secondary"
                   onClick={() => addAnswer(question._id)}
                 >
-                  Them dap an
+                  Thêm đáp án
                 </button>
               </div>
 
               {question.answers.map((answer, answerIndex) => (
                 <div className="admin-answer-block" key={answerIndex}>
                   <div className="admin-answer-heading">
-                    <strong>Dap an {answerIndex + 1}</strong>
+                    <strong>Đáp án {answerIndex + 1}</strong>
                     <button
                       type="button"
                       className="danger"
                       onClick={() => removeAnswer(question._id, answerIndex)}
                     >
-                      Xoa dap an
+                      Xóa đáp án
                     </button>
                   </div>
 
                   <label>
-                    Noi dung dap an
+                    Nội dung đáp án
                     <textarea
                       rows="2"
                       value={answer.text}
@@ -973,7 +973,7 @@ function AdminCoreQuiz() {
                   </label>
 
                   <label>
-                    Ly do mapping
+                    Lý do mapping
                     <textarea
                       rows="2"
                       value={answer.mapping_reason}
@@ -989,7 +989,7 @@ function AdminCoreQuiz() {
                   </label>
 
                   <div className="admin-mapping-header">
-                    <span>Mapping cua dap an</span>
+                    <span>Mapping của đáp án</span>
                     <button
                       type="button"
                       className="secondary"
@@ -1000,7 +1000,7 @@ function AdminCoreQuiz() {
                       }
                       onClick={() => addMapping(question._id, answerIndex)}
                     >
-                      Them mapping
+                      Thêm mapping
                     </button>
                   </div>
 
@@ -1027,8 +1027,8 @@ function AdminCoreQuiz() {
                           <input
                             placeholder={
                               currentMappingElement
-                                ? "Tim target element khac"
-                                : "Tim target element"
+                                ? "Tìm target element khác"
+                                : "Tìm target element"
                             }
                             value={mappingQuery}
                             title={formatElementOption(currentMappingElement)}
@@ -1074,11 +1074,11 @@ function AdminCoreQuiz() {
 
                           <div className="admin-selected-element admin-selected-element-compact">
                             <span>
-                              {currentMappingElement?.code || "Chua chon code"}
+                              {currentMappingElement?.code || "Chưa chọn code"}
                             </span>
                             <strong>
                               {currentMappingElement?.name_vi ||
-                                "Chua chon target element"}
+                                "Chưa chọn target element"}
                             </strong>
                           </div>
                         </div>
@@ -1128,14 +1128,14 @@ function AdminCoreQuiz() {
                             )
                           }
                         >
-                          Xoa
+                          Xóa
                         </button>
                       </div>
                     );
                   })}
 
                   {answer.mappings.length === 0 && (
-                    <p className="muted">Dap an nay chua co mapping diem.</p>
+                    <p className="muted">Đáp án này chưa có mapping điểm.</p>
                   )}
                 </div>
               ))}
@@ -1147,7 +1147,7 @@ function AdminCoreQuiz() {
                 disabled={Boolean(savingIds[question._id])}
                 onClick={() => saveQuestion(question)}
               >
-                {savingIds[question._id] ? "Dang luu..." : "Luu cau hoi"}
+                {savingIds[question._id] ? "Đang lưu..." : "Lưu câu hỏi"}
               </button>
             </div>
           </section>

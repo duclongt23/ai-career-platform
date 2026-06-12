@@ -96,7 +96,7 @@ function BasicProfileGate({ children }) {
 
         setError(
           err.response?.data?.message ||
-            "Khong kiem tra duoc ho so. Vui long thu lai."
+            "Không kiểm tra được hồ sơ. Vui lòng thử lại."
         );
         setStatus("error");
       });
@@ -109,7 +109,7 @@ function BasicProfileGate({ children }) {
   if (status === "loading") {
     return (
       <section className="card profile-card">
-        <p className="muted">Dang kiem tra ho so...</p>
+        <p className="muted">Đang kiểm tra hồ sơ...</p>
       </section>
     );
   }
