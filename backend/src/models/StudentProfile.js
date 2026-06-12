@@ -255,6 +255,82 @@ const careerDayInLifeSchema = new mongoose.Schema(
   { _id: false }
 );
 
+const careerRoadmapPhaseSchema = new mongoose.Schema(
+  {
+    id: {
+      type: String,
+      required: true,
+      trim: true,
+      maxlength: 48,
+    },
+    title: {
+      type: String,
+      required: true,
+      trim: true,
+      maxlength: 48,
+    },
+    timeframe: {
+      type: String,
+      required: true,
+      trim: true,
+      maxlength: 32,
+    },
+    focus: {
+      type: String,
+      required: true,
+      trim: true,
+      maxlength: 120,
+    },
+    actions: {
+      type: [
+        {
+          type: String,
+          required: true,
+          trim: true,
+          maxlength: 90,
+        },
+      ],
+      default: [],
+    },
+    checkpoint: {
+      type: String,
+      required: true,
+      trim: true,
+      maxlength: 110,
+    },
+  },
+  { _id: false }
+);
+
+const careerRoadmapSchema = new mongoose.Schema(
+  {
+    careerId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Career",
+      required: true,
+    },
+    careerUpdatedAt: {
+      type: Date,
+      required: true,
+    },
+    summary: {
+      type: String,
+      required: true,
+      trim: true,
+      maxlength: 180,
+    },
+    phases: {
+      type: [careerRoadmapPhaseSchema],
+      default: [],
+    },
+    generatedAt: {
+      type: Date,
+      default: Date.now,
+    },
+  },
+  { _id: false }
+);
+
 const careerExploreChatSourceSchema = new mongoose.Schema(
   {
     title: {
@@ -453,6 +529,11 @@ const studentProfileSchema = new mongoose.Schema(
 
     careerDayInLifeEntries: {
       type: [careerDayInLifeSchema],
+      default: [],
+    },
+
+    careerRoadmapEntries: {
+      type: [careerRoadmapSchema],
       default: [],
     },
 

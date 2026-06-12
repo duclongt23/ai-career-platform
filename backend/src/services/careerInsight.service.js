@@ -8,6 +8,9 @@ const {
   buildCareerFitExplanationMessages,
 } = require("../prompts/careerFitExplanationPrompt");
 const {
+  buildCareerRoadmapMessages,
+} = require("../prompts/careerRoadmapPrompt");
+const {
   calculateSimilarity,
   createElementScoresFingerprint,
 } = require("./careerRecommendation.service");
@@ -22,6 +25,11 @@ const {
   parseCareerFitExplanations,
   selectCareerStrength,
 } = require("./careerFitExplanation.service");
+const {
+  findCachedCareerRoadmap,
+  MAX_CACHED_CAREER_ROADMAP_ENTRIES,
+  parseCareerRoadmap,
+} = require("./careerRoadmap.service");
 const { callDeepSeek } = require("./deepseekClient");
 const { getCurrentElementScores } = require("./profileElementSnapshot.service");
 const { createHttpError } = require("../utils/httpError");
@@ -41,6 +49,32 @@ function toWeightMap(elements, scoreField) {
   });
 
   return weights;
+}
+
+async function getCareerRoadmapKeyElements(careerElements = []) {
+  const rankedElements = [...careerElements]
+    .filter((element) => element.code)
+    .sort((a, b) => Number(b.importance || 0) - Number(a.importance || 0))
+    .slice(0, 8);
+
+  if (!rankedElements.length) {
+    return [];
+  }
+
+  const elements = await Element.find({
+    code: { $in: rankedElements.map((element) => element.code) },
+  })
+    .select("code name_vi name_en")
+    .lean();
+  const elementNameMap = new Map(
+    elements.map((element) => [element.code, element])
+  );
+
+  return rankedElements.map((element) => ({
+    ...element,
+    name_vi: elementNameMap.get(element.code)?.name_vi || element.code,
+    name_en: elementNameMap.get(element.code)?.name_en || element.code,
+  }));
 }
 
 async function getCareerFitExplanation({
@@ -226,7 +260,72 @@ async function getCareerDayInLife({ userId, careerId, regenerate }) {
   };
 }
 
+async function getCareerRoadmap({ userId, careerId, regenerate }) {
+  const [profile, career] = await Promise.all([
+    StudentProfile.findOne({ userId }).select("careerRoadmapEntries").lean(),
+    Career.findById(careerId)
+      .select(
+        "title_en title_vi description_vi careerCluster riasecCode elements updatedAt"
+      )
+      .lean(),
+  ]);
+
+  if (!profile) {
+    throw createHttpError(404, "Profile not found");
+  }
+
+  if (!career) {
+    throw createHttpError(404, "Career not found");
+  }
+
+  const cachedEntry = findCachedCareerRoadmap(profile.careerRoadmapEntries, {
+    careerId: career._id,
+    careerUpdatedAt: career.updatedAt,
+  });
+
+  if (cachedEntry && regenerate !== true) {
+    return {
+      summary: cachedEntry.summary,
+      phases: cachedEntry.phases,
+      cached: true,
+    };
+  }
+
+  const keyElements = await getCareerRoadmapKeyElements(career.elements);
+  const rawRoadmap = await callDeepSeek(
+    buildCareerRoadmapMessages({ career, keyElements })
+  );
+  const roadmap = parseCareerRoadmap(rawRoadmap);
+
+  await StudentProfile.updateOne(
+    { _id: profile._id },
+    {
+      $push: {
+        careerRoadmapEntries: {
+          $each: [
+            {
+              careerId: career._id,
+              careerUpdatedAt: career.updatedAt,
+              summary: roadmap.summary,
+              phases: roadmap.phases,
+              generatedAt: new Date(),
+            },
+          ],
+          $slice: -MAX_CACHED_CAREER_ROADMAP_ENTRIES,
+        },
+      },
+    },
+    { runValidators: true }
+  );
+
+  return {
+    ...roadmap,
+    cached: false,
+  };
+}
+
 module.exports = {
   getCareerDayInLife,
   getCareerFitExplanation,
+  getCareerRoadmap,
 };

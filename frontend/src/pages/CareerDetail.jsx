@@ -48,8 +48,26 @@ const ELEMENT_GROUPS = [
   { type: "ability", label: "Năng lực" },
   { type: "workstyle", label: "Phong cách làm việc" },
 ];
+const CAREER_ROADMAP_PHASE_TONES = [
+  "spark",
+  "focus",
+  "build",
+  "field",
+  "portfolio",
+  "launch",
+];
+const CAREER_ROADMAP_EDGE_COLORS = [
+  "#0f766e",
+  "#4f46e5",
+  "#c2410c",
+  "#0369a1",
+  "#9333ea",
+];
 const CAREER_DAY_NODE_TYPES = {
   careerDayActivity: CareerDayActivityNode,
+};
+const CAREER_ROADMAP_NODE_TYPES = {
+  careerRoadmapPhase: CareerRoadmapPhaseNode,
 };
 const CAREER_EXPLORE_CHAT_STORAGE_PREFIX = "careerExploreChat:v1:";
 const MARKET_QUESTION_KEYWORDS = [
@@ -119,6 +137,42 @@ function CareerDayActivityNode({ data }) {
         type="source"
         position={Position.Bottom}
       />
+    </article>
+  );
+}
+
+function CareerRoadmapPhaseNode({ data }) {
+  return (
+    <article className={`career-roadmap-node tone-${data.tone}`}>
+      {data.step > 1 && (
+        <Handle
+          className="career-roadmap-handle"
+          type="target"
+          position={Position.Left}
+        />
+      )}
+      <div className="career-roadmap-node-top">
+        <span>{String(data.step).padStart(2, "0")}</span>
+        <small>{data.timeframe}</small>
+      </div>
+      <h4>{data.title}</h4>
+      <p>{data.focus}</p>
+      <ul>
+        {(data.actions || []).map((action, index) => (
+          <li key={`${data.step}-action-${index}`}>{action}</li>
+        ))}
+      </ul>
+      <div className="career-roadmap-checkpoint">
+        <strong>Checkpoint</strong>
+        <span>{data.checkpoint}</span>
+      </div>
+      {!data.isLast && (
+        <Handle
+          className="career-roadmap-handle"
+          type="source"
+          position={Position.Right}
+        />
+      )}
     </article>
   );
 }
@@ -390,6 +444,175 @@ function CareerDayInLifeSection({ careerId, title }) {
               preventScrolling={false}
             >
               <Background color="#cbd5e1" gap={22} size={1} />
+              <Controls showInteractive={false} />
+            </ReactFlow>
+          </div>
+        </>
+      )}
+    </section>
+  );
+}
+
+function CareerRoadmapSection({ careerId, title }) {
+  const [roadmap, setRoadmap] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+  const roadmapDiagram = useMemo(() => {
+    const phases = roadmap?.phases || [];
+    const nodes = phases.map((phase, index) => ({
+      id: `roadmap-phase-${index}`,
+      type: "careerRoadmapPhase",
+      position: {
+        x: index * 336,
+        y: index % 2 === 0 ? 34 : 276,
+      },
+      data: {
+        ...phase,
+        step: index + 1,
+        isLast: index === phases.length - 1,
+        tone:
+          CAREER_ROADMAP_PHASE_TONES[
+            index % CAREER_ROADMAP_PHASE_TONES.length
+          ],
+      },
+    }));
+
+    return {
+      nodes,
+      edges: nodes.slice(0, -1).map((node, index) => {
+        const color =
+          CAREER_ROADMAP_EDGE_COLORS[
+            index % CAREER_ROADMAP_EDGE_COLORS.length
+          ];
+
+        return {
+          id: `roadmap-edge-${index}`,
+          source: node.id,
+          target: nodes[index + 1].id,
+          type: "smoothstep",
+          animated: true,
+          markerEnd: {
+            type: MarkerType.ArrowClosed,
+            color,
+          },
+          style: {
+            stroke: color,
+            strokeWidth: 3,
+          },
+        };
+      }),
+    };
+  }, [roadmap]);
+
+  useEffect(() => {
+    let ignore = false;
+
+    api
+      .post(`/careers/${careerId}/roadmap`)
+      .then((response) => {
+        if (!ignore) {
+          setRoadmap(response.data);
+        }
+      })
+      .catch((requestError) => {
+        if (!ignore) {
+          setError(
+            requestError.response?.data?.message ||
+              "Không thể tạo roadmap học tập lúc này. Vui lòng thử lại."
+          );
+        }
+      })
+      .finally(() => {
+        if (!ignore) {
+          setLoading(false);
+        }
+      });
+
+    return () => {
+      ignore = true;
+    };
+  }, [careerId]);
+
+  const generateRoadmap = useCallback(
+    ({ regenerate = false } = {}) => {
+      setLoading(true);
+      setError("");
+
+      api
+        .post(`/careers/${careerId}/roadmap`, { regenerate })
+        .then((response) => setRoadmap(response.data))
+        .catch((requestError) => {
+          setError(
+            requestError.response?.data?.message ||
+              "Không thể tạo roadmap học tập lúc này. Vui lòng thử lại."
+          );
+        })
+        .finally(() => setLoading(false));
+    },
+    [careerId]
+  );
+
+  return (
+    <section className="career-roadmap-section">
+      <div className="career-roadmap-heading">
+        <div className="career-roadmap-heading-main">
+          <span className="career-roadmap-icon">R</span>
+          <div>
+            <p className="career-detail-section-eyebrow">Student roadmap</p>
+            <h3>Roadmap học tập cho nghề {title}</h3>
+            <p>
+              Một đường đi gợi ý để học sinh chuyển từ tìm hiểu, rèn kỹ năng,
+              làm dự án đến chuẩn bị lựa chọn sau THPT.
+            </p>
+          </div>
+        </div>
+
+        {roadmap && (
+          <button
+            className="career-roadmap-regenerate"
+            disabled={loading}
+            onClick={() => generateRoadmap({ regenerate: true })}
+            type="button"
+          >
+            {loading ? "Đang tạo..." : "Tạo lại"}
+          </button>
+        )}
+      </div>
+
+      {loading && !roadmap && (
+        <p className="career-roadmap-status">
+          AI đang phác thảo roadmap học tập...
+        </p>
+      )}
+
+      {error && (
+        <div className="career-roadmap-error">
+          <p>{error}</p>
+          <button type="button" onClick={() => generateRoadmap()}>
+            Thử lại
+          </button>
+        </div>
+      )}
+
+      {roadmap && (
+        <>
+          <p className="career-roadmap-summary">{roadmap.summary}</p>
+          <div className="career-roadmap-diagram">
+            <ReactFlow
+              nodes={roadmapDiagram.nodes}
+              edges={roadmapDiagram.edges}
+              nodeTypes={CAREER_ROADMAP_NODE_TYPES}
+              fitView
+              fitViewOptions={{ padding: 0.12 }}
+              minZoom={0.42}
+              maxZoom={1.15}
+              nodesDraggable={false}
+              nodesConnectable={false}
+              elementsSelectable={false}
+              panOnScroll
+              preventScrolling={false}
+            >
+              <Background color="#d8e2dc" gap={24} size={1} />
               <Controls showInteractive={false} />
             </ReactFlow>
           </div>
@@ -855,18 +1078,12 @@ function CareerDetail() {
       [type]: !currentGroups[type],
     }));
   };
-  const firstSectionId =
-    (career.riasecCode && "career-riasec") ||
-    (token && "career-fit") ||
-    (token && "career-day") ||
-    (importantElements.length > 0 && "career-elements") ||
-    "";
-
   return (
     <div className="career-detail-page">
       <aside className="career-detail-rail" aria-label="Điều hướng trang nghề">
         <a href="#career-overview" aria-label="Tổng quan" />
         {career.riasecCode && <a href="#career-riasec" aria-label="RIASEC" />}
+        {token && <a href="#career-roadmap" aria-label="Roadmap học tập" />}
         {token && <a href="#career-fit" aria-label="Điểm mạnh phù hợp" />}
         {token && elements.length > 0 && (
           <a href="#career-match" aria-label="So sánh hồ sơ" />
@@ -914,11 +1131,6 @@ function CareerDetail() {
           </section>
         )}
 
-        {firstSectionId && (
-          <a className="career-detail-scroll" href={`#${firstSectionId}`}>
-            ↓
-          </a>
-        )}
       </section>
 
       <div className="career-detail-sections">
@@ -934,6 +1146,12 @@ function CareerDetail() {
               </p>
             )}
           </section>
+        )}
+
+        {token && (
+          <div id="career-roadmap">
+            <CareerRoadmapSection careerId={id} title={title} />
+          </div>
         )}
 
         {token && (

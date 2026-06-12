@@ -69,19 +69,27 @@ function JobMatchCompareChart({
               <article className="career-match-row" key={row.code}>
                 <div className="career-match-label">
                   <strong>{row.label}</strong>
-                  <span>{gap >= 0 ? "Đang khớp tốt" : "Cần bổ sung"}</span>
+                  <span className={gap >= 0 ? "match-good" : "match-gap"}>
+                    {gap >= 0 ? "Đang khớp tốt" : "Cần bổ sung"}
+                  </span>
                 </div>
-                <div className="career-match-pair">
-                  <div className="career-match-bar profile">
-                    <div style={{ width: `${profilePercent}%` }} />
+
+                {/* Tách thành 2 dòng metric để thanh và số không bị dính nhau khi tên yếu tố dài. */}
+                <div className="career-match-comparison">
+                  <div className="career-match-metric">
+                    <span>Bạn có</span>
+                    <div className="career-match-bar profile">
+                      <div style={{ width: `${profilePercent}%` }} />
+                    </div>
+                    <strong>{profilePercent}%</strong>
                   </div>
-                  <div className="career-match-bar career">
-                    <div style={{ width: `${careerPercent}%` }} />
+                  <div className="career-match-metric">
+                    <span>Nghề cần</span>
+                    <div className="career-match-bar career">
+                      <div style={{ width: `${careerPercent}%` }} />
+                    </div>
+                    <strong>{careerPercent}%</strong>
                   </div>
-                </div>
-                <div className="career-match-values">
-                  <span>{profilePercent}%</span>
-                  <span>{careerPercent}%</span>
                 </div>
               </article>
             );
@@ -91,8 +99,14 @@ function JobMatchCompareChart({
 
       {learningRows.length > 0 && (
         <div className="career-match-learning">
-          <h4>Những yếu tố phải học</h4>
-          <ul>
+          <div className="career-match-learning-heading">
+            <h4>Những yếu tố nên học thêm</h4>
+            <p>
+              Các năng lực/kỹ năng quan trọng với nghề này nhưng hồ sơ hiện chưa
+              có tín hiệu rõ.
+            </p>
+          </div>
+          <ul className="career-match-learning-list">
             {learningRows.map((row) => (
               <li key={row.code}>
                 <span>{row.label}</span>

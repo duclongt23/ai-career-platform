@@ -21,6 +21,7 @@ router.post(
   careerController.createFitExplanation
 );
 router.post("/:id/day-in-life", protect, careerController.createDayInLife);
+router.post("/:id/roadmap", protect, careerController.createRoadmap);
 router.post(
   "/:id/explore-chat",
   protect,

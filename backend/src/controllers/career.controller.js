@@ -13,6 +13,7 @@ const {
 const {
   getCareerDayInLife,
   getCareerFitExplanation,
+  getCareerRoadmap,
 } = require("../services/careerInsight.service");
 
 function sendError(res, error, fallbackMessage) {
@@ -65,6 +66,25 @@ async function createDayInLife(req, res) {
         error.statusCode && error.statusCode < 500
           ? error.message
           : "Không thể tạo lịch làm việc lúc này. Vui lòng thử lại.",
+    });
+  }
+}
+
+async function createRoadmap(req, res) {
+  try {
+    return res.json(
+      await getCareerRoadmap({
+        userId: req.user._id,
+        careerId: req.params.id,
+        regenerate: req.body?.regenerate,
+      })
+    );
+  } catch (error) {
+    return res.status(error.statusCode || 500).json({
+      message:
+        error.statusCode && error.statusCode < 500
+          ? error.message
+          : "Không thể tạo roadmap học tập lúc này. Vui lòng thử lại.",
     });
   }
 }
@@ -145,6 +165,7 @@ module.exports = {
   createCareer,
   createDayInLife,
   createFitExplanation,
+  createRoadmap,
   deleteCareer,
   getById,
   listAdmin,
