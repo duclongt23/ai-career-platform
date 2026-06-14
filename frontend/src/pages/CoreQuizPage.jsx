@@ -3,6 +3,12 @@ import { Link, useNavigate } from "react-router-dom";
 import api from "../api/axios";
 import AdminCoreQuizAnswerScores from "../components/AdminCoreQuizAnswerScores";
 import { DISCOVERY_PROGRESS_UPDATED } from "../components/DiscoveryWorkflowLayout";
+import {
+  clearDiscoveryDraft,
+  getDiscoveryDraftKey,
+  readDiscoveryDraft,
+  writeDiscoveryDraft,
+} from "../utils/discoveryDrafts";
 import { getStoredUser } from "../utils/storage";
 
 const TYPE_LABELS = {
@@ -35,6 +41,100 @@ const shuffleQuestionAnswers = (questionList = []) =>
     answers: shuffleArray(question.answers || []),
   }));
 
+const CORE_QUIZ_DRAFT_VERSION = 1;
+
+const buildCoreQuizDraft = ({ questions, answers, currentIndex }) => ({
+  version: CORE_QUIZ_DRAFT_VERSION,
+  currentIndex,
+  answers,
+  questionOrder: questions.map((question) => question.question_id),
+  answerOrderByQuestion: questions.reduce((orders, question) => {
+    orders[question.question_id] = (question.answers || []).map(
+      (answer) => answer.index
+    );
+    return orders;
+  }, {}),
+});
+
+const restoreCoreQuizDraft = (questionList = [], draft) => {
+  if (!draft || draft.version !== CORE_QUIZ_DRAFT_VERSION) {
+    return {
+      questions: shuffleQuestionAnswers(questionList),
+      answers: {},
+      currentIndex: 0,
+    };
+  }
+
+  const questionById = new Map(
+    questionList.map((question) => [question.question_id, question])
+  );
+  const draftQuestionOrder = Array.isArray(draft.questionOrder)
+    ? draft.questionOrder
+    : [];
+  const orderedQuestionIds = [
+    ...draftQuestionOrder.filter((questionId) => questionById.has(questionId)),
+    ...questionList
+      .map((question) => question.question_id)
+      .filter((questionId) => !draftQuestionOrder.includes(questionId)),
+  ];
+  const draftAnswerOrders = draft.answerOrderByQuestion || {};
+  const orderedQuestions = orderedQuestionIds.map((questionId) => {
+    const question = questionById.get(questionId);
+    const answerOrder = draftAnswerOrders[questionId] || [];
+    const answerByIndex = new Map(
+      (question.answers || []).map((answer) => [answer.index, answer])
+    );
+    const orderedAnswers = [
+      ...answerOrder
+        .filter((answerIndex) => answerByIndex.has(answerIndex))
+        .map((answerIndex) => answerByIndex.get(answerIndex)),
+      ...(question.answers || []).filter(
+        (answer) => !answerOrder.includes(answer.index)
+      ),
+    ];
+
+    return {
+      ...question,
+      answers: orderedAnswers,
+    };
+  });
+  const validQuestionIds = new Set(orderedQuestionIds);
+  const validAnswerIndexesByQuestion = new Map(
+    orderedQuestions.map((question) => [
+      question.question_id,
+      new Set((question.answers || []).map((answer) => answer.index)),
+    ])
+  );
+  const restoredAnswers = Object.entries(draft.answers || {}).reduce(
+    (nextAnswers, [questionId, answerIndexes]) => {
+      if (!validQuestionIds.has(questionId) || !Array.isArray(answerIndexes)) {
+        return nextAnswers;
+      }
+
+      const validAnswerIndexes = validAnswerIndexesByQuestion.get(questionId);
+      const selectedAnswerIndexes = answerIndexes.filter((answerIndex) =>
+        validAnswerIndexes.has(answerIndex)
+      );
+
+      if (selectedAnswerIndexes.length > 0) {
+        nextAnswers[questionId] = selectedAnswerIndexes;
+      }
+
+      return nextAnswers;
+    },
+    {}
+  );
+
+  return {
+    questions: orderedQuestions,
+    answers: restoredAnswers,
+    currentIndex: Math.max(
+      0,
+      Math.min(Number(draft.currentIndex) || 0, orderedQuestions.length - 1)
+    ),
+  };
+};
+
 const formatPercent = (value) => {
   if (value === null || value === undefined) {
     return "-";
@@ -56,6 +156,7 @@ function CoreQuizPage() {
   const token = localStorage.getItem("token");
   const user = getStoredUser();
   const isAdmin = user?.role === "admin";
+  const draftKey = getDiscoveryDraftKey("core-quiz", user);
   const [questions, setQuestions] = useState([]);
   const [answers, setAnswers] = useState({});
   const [currentIndex, setCurrentIndex] = useState(0);
@@ -86,6 +187,7 @@ function CoreQuizPage() {
 
         setResult(res.data);
         setQuestions([]);
+        clearDiscoveryDraft(draftKey);
         setError("");
       })
       .catch(async (err) => {
@@ -97,7 +199,14 @@ function CoreQuizPage() {
 
             if (!isMounted) return;
 
-            setQuestions(shuffleQuestionAnswers(questionsResponse.data));
+            const restoredDraft = restoreCoreQuizDraft(
+              questionsResponse.data,
+              readDiscoveryDraft(draftKey)
+            );
+
+            setQuestions(restoredDraft.questions);
+            setAnswers(restoredDraft.answers);
+            setCurrentIndex(restoredDraft.currentIndex);
             setError("");
           } catch {
             if (!isMounted) return;
@@ -119,7 +228,16 @@ function CoreQuizPage() {
     return () => {
       isMounted = false;
     };
-  }, [navigate, token]);
+  }, [draftKey, navigate, token]);
+
+  useEffect(() => {
+    if (!token || result || questions.length === 0) return;
+
+    writeDiscoveryDraft(
+      draftKey,
+      buildCoreQuizDraft({ questions, answers, currentIndex })
+    );
+  }, [answers, currentIndex, draftKey, questions, result, token]);
 
   const currentQuestion = questions[currentIndex];
   const selectedIndexes = currentQuestion
@@ -220,6 +338,7 @@ function CoreQuizPage() {
       };
       const res = await api.post("/profile/core-quiz/submit", payload);
       setResult(res.data);
+      clearDiscoveryDraft(draftKey);
       window.dispatchEvent(new Event(DISCOVERY_PROGRESS_UPDATED));
     } catch (err) {
       setError(
@@ -237,6 +356,7 @@ function CoreQuizPage() {
     setError("");
 
     try {
+      clearDiscoveryDraft(draftKey);
       await api.delete("/profile/core-quiz/result");
       const res = await api.get("/profile/core-quiz/questions");
 

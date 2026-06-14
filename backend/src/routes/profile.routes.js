@@ -23,6 +23,21 @@ router.post(
   protect,
   aiDiscoveryController.confirmCandidates
 );
+router.get(
+  "/ai-discovery/confirmed-elements",
+  protect,
+  aiDiscoveryController.listConfirmedElements
+);
+router.put(
+  "/ai-discovery/confirmed-elements",
+  protect,
+  aiDiscoveryController.updateAllConfirmedElements
+);
+router.put(
+  "/ai-discovery/confirmed",
+  protect,
+  aiDiscoveryController.updateConfirmedCandidates
+);
 
 router.get(
   "/summary-insights",

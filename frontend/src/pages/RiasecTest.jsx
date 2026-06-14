@@ -1,7 +1,14 @@
-﻿import { useEffect, useMemo, useState } from "react";
+﻿import { useCallback, useEffect, useMemo, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import api from "../api/axios";
 import { DISCOVERY_PROGRESS_UPDATED } from "../components/DiscoveryWorkflowLayout";
+import {
+  clearDiscoveryDraft,
+  getDiscoveryDraftKey,
+  readDiscoveryDraft,
+  writeDiscoveryDraft,
+} from "../utils/discoveryDrafts";
+import { getStoredUser } from "../utils/storage";
 
 const RIASEC_TYPES = [
   "REALISTIC",
@@ -100,6 +107,70 @@ const HOLLAND_TYPES = [
 
 const createEmptyScores = () =>
   RIASEC_TYPES.reduce((scores, type) => ({ ...scores, [type]: 0 }), {});
+
+const RIASEC_DRAFT_VERSION = 1;
+
+const buildRiasecDraft = ({ answers, currentIndex }) => ({
+  version: RIASEC_DRAFT_VERSION,
+  hasStarted: true,
+  answers,
+  currentIndex,
+});
+
+const isRestorableRiasecDraft = (draft) =>
+  draft?.version === RIASEC_DRAFT_VERSION &&
+  draft.hasStarted === true &&
+  draft.answers &&
+  typeof draft.answers === "object";
+
+const restoreRiasecDraftState = (questionList = [], draft) => {
+  if (!isRestorableRiasecDraft(draft)) {
+    return {
+      answers: {},
+      currentIndex: 0,
+    };
+  }
+
+  const validQuestionIds = new Set(
+    questionList.map((question) => String(question.id))
+  );
+  const restoredAnswers = Object.entries(draft.answers).reduce(
+    (nextAnswers, [questionId, value]) => {
+      const numericValue = Number(value);
+
+      if (
+        validQuestionIds.has(String(questionId)) &&
+        Number.isInteger(numericValue) &&
+        numericValue >= 0 &&
+        numericValue <= 4
+      ) {
+        nextAnswers[questionId] = numericValue;
+      }
+
+      return nextAnswers;
+    },
+    {}
+  );
+  const firstUnansweredIndex = questionList.findIndex(
+    (question) => restoredAnswers[question.id] === undefined
+  );
+  const fallbackIndex =
+    firstUnansweredIndex >= 0
+      ? firstUnansweredIndex
+      : Math.max(questionList.length - 1, 0);
+  const draftCurrentIndex = Number(draft.currentIndex);
+
+  return {
+    answers: restoredAnswers,
+    currentIndex: Math.max(
+      0,
+      Math.min(
+        Number.isInteger(draftCurrentIndex) ? draftCurrentIndex : fallbackIndex,
+        fallbackIndex
+      )
+    ),
+  };
+};
 
 const calculateResults = (questions, answers) => {
   const scores = createEmptyScores();
@@ -297,6 +368,8 @@ function RiasecRadarChart({ results, topResults }) {
 function RiasecTest() {
   const navigate = useNavigate();
   const token = localStorage.getItem("token");
+  const user = getStoredUser();
+  const draftKey = getDiscoveryDraftKey("riasec", user);
   const [questions, setQuestions] = useState([]);
   const [answers, setAnswers] = useState({});
   const [currentIndex, setCurrentIndex] = useState(0);
@@ -325,11 +398,20 @@ function RiasecTest() {
     if (!token) return undefined;
 
     let isMounted = true;
+    const draft = readDiscoveryDraft(draftKey);
 
     api
       .get("/profile")
       .then((res) => {
         if (!isMounted) return;
+
+        if (isRestorableRiasecDraft(draft)) {
+          setHasStarted(true);
+          setSavedResult(null);
+          setSaveStatus("idle");
+          setIsLoading(true);
+          return;
+        }
 
         if (res.data?.riasecCode && res.data?.riasecScores) {
           setSavedResult({
@@ -349,16 +431,27 @@ function RiasecTest() {
     return () => {
       isMounted = false;
     };
-  }, [token]);
+  }, [draftKey, token]);
 
-  const fetchQuestions = () => {
+  const fetchQuestions = useCallback((draft = null) => {
     setIsLoading(true);
 
-    api
+    return api
       .get("/riasec/questions")
       .then((res) => {
+        const questionList = res.data;
+
         setError("");
-        setQuestions(res.data);
+        setQuestions(questionList);
+
+        if (isRestorableRiasecDraft(draft)) {
+          const restoredDraft = restoreRiasecDraftState(questionList, draft);
+
+          setAnswers(restoredDraft.answers);
+          setCurrentIndex(restoredDraft.currentIndex);
+          setSavedResult(null);
+          setSaveStatus("idle");
+        }
       })
       .catch(() => {
         setError("Không tải được bộ câu hỏi RIASEC. Vui lòng thử lại sau.");
@@ -366,9 +459,20 @@ function RiasecTest() {
       .finally(() => {
         setIsLoading(false);
       });
-  };
+  }, []);
+
+  useEffect(() => {
+    if (!token || !hasStarted || questions.length > 0) return;
+
+    const draft = readDiscoveryDraft(draftKey);
+
+    if (isRestorableRiasecDraft(draft)) {
+      fetchQuestions(draft);
+    }
+  }, [draftKey, fetchQuestions, hasStarted, questions.length, token]);
 
   const startAssessment = () => {
+    clearDiscoveryDraft(draftKey);
     setSavedResult(null);
     setHasStarted(true);
     setAnswers({});
@@ -383,6 +487,23 @@ function RiasecTest() {
   const progressPercent = questions.length
     ? Math.round((answeredCount / questions.length) * 100)
     : 0;
+
+  useEffect(() => {
+    if (!token || !hasStarted || questions.length === 0 || savedResult) return;
+
+    writeDiscoveryDraft(
+      draftKey,
+      buildRiasecDraft({ answers, currentIndex })
+    );
+  }, [
+    answers,
+    currentIndex,
+    draftKey,
+    hasStarted,
+    questions.length,
+    savedResult,
+    token,
+  ]);
 
   const results = useMemo(
     () => calculateResults(questions, answers),
@@ -425,6 +546,7 @@ function RiasecTest() {
         code: riasecCode,
         scores: riasecScores,
       });
+      clearDiscoveryDraft(draftKey);
       setSaveStatus("saved");
       window.dispatchEvent(new Event(DISCOVERY_PROGRESS_UPDATED));
     } catch {
@@ -462,6 +584,7 @@ function RiasecTest() {
   };
 
   const restartTest = () => {
+    clearDiscoveryDraft(draftKey);
     setSavedResult(null);
     setHasStarted(true);
     setAnswers({});
@@ -566,6 +689,14 @@ function RiasecTest() {
         <button type="button" onClick={fetchQuestions}>
           Tải lại
         </button>
+      </section>
+    );
+  }
+
+  if (!currentQuestion && hasStarted && !savedResult) {
+    return (
+      <section className="card riasec-card">
+        <p className="muted">Chưa có câu hỏi RIASEC để hiển thị.</p>
       </section>
     );
   }

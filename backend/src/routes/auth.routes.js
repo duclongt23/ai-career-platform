@@ -5,9 +5,11 @@ const { authRateLimit } = require("../middleware/rateLimit.middleware");
 const { validate } = require("../middleware/validate.middleware");
 const {
   createAdminSchema,
+  forgotPasswordSchema,
   loginSchema,
   refreshSchema,
   registerSchema,
+  resetPasswordSchema,
 } = require("../validators/auth.validators");
 
 const router = express.Router();
@@ -19,6 +21,18 @@ router.post(
   authController.register
 );
 router.post("/login", authRateLimit, validate(loginSchema), authController.login);
+router.post(
+  "/forgot-password",
+  authRateLimit,
+  validate(forgotPasswordSchema),
+  authController.forgotPassword
+);
+router.post(
+  "/reset-password",
+  authRateLimit,
+  validate(resetPasswordSchema),
+  authController.resetPassword
+);
 router.post("/refresh", validate(refreshSchema), authController.refresh);
 router.post("/logout", validate(refreshSchema), authController.logout);
 

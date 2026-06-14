@@ -19,6 +19,15 @@ const refreshSchema = objectSchema({
   refreshToken: stringField({ label: "Refresh token", min: 64, max: 256 }),
 });
 
+const forgotPasswordSchema = objectSchema({
+  email: emailField(),
+});
+
+const resetPasswordSchema = objectSchema({
+  token: stringField({ label: "Reset token", min: 64, max: 128 }),
+  password: stringField({ label: "Password", min: 6, max: 128 }),
+});
+
 const createAdminSchema = objectSchema({
   name: stringField({ label: "Name", min: 2, max: 80 }),
   email: emailField(),
@@ -33,7 +42,9 @@ const createAdminSchema = objectSchema({
 
 module.exports = {
   createAdminSchema,
+  forgotPasswordSchema,
   loginSchema,
   refreshSchema,
   registerSchema,
+  resetPasswordSchema,
 };

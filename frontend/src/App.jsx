@@ -24,6 +24,8 @@ import CareerExploreChat from "./pages/CareerExploreChat";
 import CareerExploreChats from "./pages/CareerExploreChats";
 import DiscoverySummaryDashboard from "./pages/DiscoverySummaryDashboard";
 import DiscoveryWorkflowLayout from "./components/DiscoveryWorkflowLayout";
+import ForgotPassword from "./pages/ForgotPassword";
+import ResetPassword from "./pages/ResetPassword";
 import api from "./api/axios";
 import logoIcon from "./assets/logo.png";
 import { AUTH_SESSION_EXPIRED_EVENT, getStoredUser } from "./utils/storage";
@@ -224,6 +226,8 @@ function App() {
       >
         <Routes>
           <Route path="/" element={<LandingPage />} />
+          <Route path="/forgot-password" element={<ForgotPassword />} />
+          <Route path="/reset-password" element={<ResetPassword />} />
           <Route path="/register" element={<AuthRedirect mode="register" />} />
           <Route path="/login" element={<AuthRedirect mode="login" />} />
           <Route path="/profile/setup" element={<ProfileSetup />} />

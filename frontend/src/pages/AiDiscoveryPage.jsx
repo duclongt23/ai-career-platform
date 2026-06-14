@@ -40,6 +40,7 @@ function AiDiscoveryPage() {
   const [sessionId, setSessionId] = useState("");
   const [messages, setMessages] = useState([]);
   const [candidates, setCandidates] = useState([]);
+  const [confirmedElements, setConfirmedElements] = useState([]);
   const [status, setStatus] = useState("in_progress");
   const [selectedCandidates, setSelectedCandidates] = useState({});
   const [openingOptions, setOpeningOptions] = useState([]);
@@ -53,17 +54,31 @@ function AiDiscoveryPage() {
   const [showResetConfirm, setShowResetConfirm] = useState(false);
   const [isSelectingOpening, setIsSelectingOpening] = useState(false);
   const [isSending, setIsSending] = useState(false);
+  const [isEditingConfirmed, setIsEditingConfirmed] = useState(false);
+  const [isUpdatingConfirmed, setIsUpdatingConfirmed] = useState(false);
+  const [confirmedEditMessage, setConfirmedEditMessage] = useState("");
+  const [allConfirmedElements, setAllConfirmedElements] = useState([]);
+  const [selectedAllConfirmed, setSelectedAllConfirmed] = useState({});
+  const [isLoadingAllConfirmed, setIsLoadingAllConfirmed] = useState(false);
+  const [isEditingAllConfirmed, setIsEditingAllConfirmed] = useState(false);
+  const [isUpdatingAllConfirmed, setIsUpdatingAllConfirmed] = useState(false);
+  const [allConfirmedMessage, setAllConfirmedMessage] = useState("");
 
   const hydrateSession = useCallback((data = {}) => {
+    const nextConfirmedElements = data.confirmedElements || [];
+
     setSessionId(data.sessionId);
     setMessages(keepLatestMessages(data.messages));
     setCandidates(data.candidates || []);
+    setConfirmedElements(nextConfirmedElements);
     setStatus(data.status || "in_progress");
     setOpeningOptions(data.openingOptions || []);
     setOpeningQuestionId(data.openingQuestionId || "");
     // A confirmed session is restored by the backend after a page reload.
     // Hydrate saved levels so disabled controls still show the final state.
-    setSelectedCandidates(getSelectedCandidateLevels(data.confirmedElements));
+    setSelectedCandidates(getSelectedCandidateLevels(nextConfirmedElements));
+    setIsEditingConfirmed(false);
+    setConfirmedEditMessage("");
   }, []);
 
   const loadSession = useCallback(async (currentSessionId = "") => {
@@ -71,6 +86,30 @@ function AiDiscoveryPage() {
     const res = await api.post("/profile/ai-discovery/start", payload);
     hydrateSession(res.data);
   }, [hydrateSession]);
+
+  const hydrateAllConfirmedElements = useCallback((elements = []) => {
+    setAllConfirmedElements(elements);
+    setSelectedAllConfirmed(getSelectedCandidateLevels(elements));
+    setIsEditingAllConfirmed(false);
+  }, []);
+
+  const loadAllConfirmedElements = useCallback(async () => {
+    setIsLoadingAllConfirmed(true);
+
+    try {
+      const res = await api.get("/profile/ai-discovery/confirmed-elements");
+      hydrateAllConfirmedElements(res.data.elements || []);
+    } catch (err) {
+      setError(
+        getApiErrorMessage(
+          err,
+          "Chưa thể tải các yếu tố đã xác nhận. Vui lòng thử lại sau."
+        )
+      );
+    } finally {
+      setIsLoadingAllConfirmed(false);
+    }
+  }, [hydrateAllConfirmedElements]);
 
   useEffect(() => {
     if (!token) {
@@ -179,9 +218,12 @@ function AiDiscoveryPage() {
       setSessionId(res.data.sessionId);
       setStatus(res.data.status || "in_progress");
       setCandidates(res.data.candidates || []);
+      setConfirmedElements([]);
       setOpeningOptions(res.data.openingOptions || openingOptions);
       setOpeningQuestionId(res.data.openingQuestionId || openingQuestionId);
       setSelectedCandidates({});
+      setIsEditingConfirmed(false);
+      setConfirmedEditMessage("");
       setMessages((currentMessages) =>
         keepLatestMessages([
           ...currentMessages,
@@ -223,7 +265,8 @@ function AiDiscoveryPage() {
       isResetting ||
       isConfirming ||
       isFindingMore ||
-      isSelectingOpening
+      isSelectingOpening ||
+      isUpdatingConfirmed
     ) {
       return;
     }
@@ -289,8 +332,11 @@ function AiDiscoveryPage() {
       setSessionId(res.data.sessionId);
       setStatus(res.data.status || "ready_to_confirm");
       setCandidates(res.data.candidates || []);
+      setConfirmedElements([]);
       setOpeningOptions(res.data.openingOptions || openingOptions);
       setOpeningQuestionId(res.data.openingQuestionId || openingQuestionId);
+      setIsEditingConfirmed(false);
+      setConfirmedEditMessage("");
 
       if (res.data.assistantMessage) {
         setMessages((currentMessages) =>
@@ -336,9 +382,11 @@ function AiDiscoveryPage() {
       });
 
       setStatus(res.data.status);
+      setConfirmedElements(res.data.confirmedElements || []);
       setSelectedCandidates(
         getSelectedCandidateLevels(res.data.confirmedElements)
       );
+      setConfirmedEditMessage("");
       window.dispatchEvent(new Event(DISCOVERY_PROGRESS_UPDATED));
     } catch (err) {
       setError(
@@ -351,6 +399,144 @@ function AiDiscoveryPage() {
       setIsConfirming(false);
     }
   };
+
+  const startEditingConfirmed = () => {
+    setSelectedCandidates(getSelectedCandidateLevels(confirmedElements));
+    setIsEditingConfirmed(true);
+    setConfirmedEditMessage("");
+    setError("");
+  };
+
+  const cancelEditingConfirmed = () => {
+    setSelectedCandidates(getSelectedCandidateLevels(confirmedElements));
+    setIsEditingConfirmed(false);
+    setConfirmedEditMessage("");
+  };
+
+  const updateConfirmedCandidates = async () => {
+    if (status !== "confirmed" || isUpdatingConfirmed) {
+      return;
+    }
+
+    const elements = Object.entries(selectedCandidates).map(([code, level]) => ({
+      code,
+      level,
+    }));
+
+    setIsUpdatingConfirmed(true);
+    setError("");
+    setConfirmedEditMessage("");
+
+    try {
+      const res = await api.put("/profile/ai-discovery/confirmed", {
+        sessionId,
+        elements,
+      });
+
+      setConfirmedElements(res.data.confirmedElements || []);
+      setSelectedCandidates(
+        getSelectedCandidateLevels(res.data.confirmedElements)
+      );
+      setIsEditingConfirmed(false);
+      setConfirmedEditMessage("Đã cập nhật các yếu tố đã xác nhận.");
+      window.dispatchEvent(new Event(DISCOVERY_PROGRESS_UPDATED));
+    } catch (err) {
+      setError(
+        getApiErrorMessage(
+          err,
+          "Chưa thể cập nhật các yếu tố đã xác nhận. Vui lòng thử lại sau."
+        )
+      );
+    } finally {
+      setIsUpdatingConfirmed(false);
+    }
+  };
+
+  const startEditingAllConfirmed = () => {
+    setSelectedAllConfirmed(getSelectedCandidateLevels(allConfirmedElements));
+    setIsEditingAllConfirmed(true);
+    setAllConfirmedMessage("");
+    setError("");
+  };
+
+  const cancelEditingAllConfirmed = () => {
+    setSelectedAllConfirmed(getSelectedCandidateLevels(allConfirmedElements));
+    setIsEditingAllConfirmed(false);
+    setAllConfirmedMessage("");
+  };
+
+  const toggleAllConfirmedElement = (code) => {
+    setSelectedAllConfirmed((current) => {
+      if (current[code]) {
+        const next = { ...current };
+        delete next[code];
+        return next;
+      }
+
+      const element = allConfirmedElements.find((item) => item.code === code);
+      return {
+        ...current,
+        [code]: Number(element?.level || 2),
+      };
+    });
+  };
+
+  const updateAllConfirmedLevel = (code, level) => {
+    setSelectedAllConfirmed((current) => ({
+      ...current,
+      [code]: Number(level),
+    }));
+  };
+
+  const updateAllConfirmedElements = async () => {
+    if (isUpdatingAllConfirmed) {
+      return;
+    }
+
+    const elements = Object.entries(selectedAllConfirmed).map(
+      ([code, level]) => ({
+        code,
+        level,
+      })
+    );
+
+    setIsUpdatingAllConfirmed(true);
+    setAllConfirmedMessage("");
+    setError("");
+
+    try {
+      const res = await api.put("/profile/ai-discovery/confirmed-elements", {
+        elements,
+      });
+
+      hydrateAllConfirmedElements(res.data.elements || []);
+      setAllConfirmedMessage("Đã cập nhật các yếu tố đã từng xác nhận.");
+      window.dispatchEvent(new Event(DISCOVERY_PROGRESS_UPDATED));
+    } catch (err) {
+      setError(
+        getApiErrorMessage(
+          err,
+          "Chưa thể cập nhật các yếu tố đã từng xác nhận. Vui lòng thử lại sau."
+        )
+      );
+    } finally {
+      setIsUpdatingAllConfirmed(false);
+    }
+  };
+
+  const shouldSelectOpening =
+    messages.length === 0 && status === "in_progress" && openingOptions.length > 0;
+  const canEditConfirmedCandidates = status === "confirmed";
+  const candidateControlsDisabled =
+    status === "confirmed" && !isEditingConfirmed;
+
+  useEffect(() => {
+    if (!token || !shouldSelectOpening) {
+      return;
+    }
+
+    loadAllConfirmedElements();
+  }, [loadAllConfirmedElements, shouldSelectOpening, token]);
 
   if (isLoading) {
     return (
@@ -373,9 +559,6 @@ function AiDiscoveryPage() {
       </section>
     );
   }
-
-  const shouldSelectOpening =
-    messages.length === 0 && status === "in_progress" && openingOptions.length > 0;
 
   return (
     <div className="ai-discovery-page">
@@ -418,6 +601,143 @@ function AiDiscoveryPage() {
               </button>
             ))}
           </div>
+
+          {(isLoadingAllConfirmed || allConfirmedElements.length > 0) && (
+            <section className="ai-discovery-all-confirmed">
+              <div className="ai-discovery-candidate-heading">
+                <p className="ai-discovery-eyebrow">Confirmed elements</p>
+                <h2>Các yếu tố em đã từng chọn</h2>
+                <p>
+                  Có thể bỏ chọn yếu tố bị thêm nhầm hoặc điều chỉnh lại mức độ
+                  trước khi bắt đầu cuộc trò chuyện mới.
+                </p>
+              </div>
+
+              {isLoadingAllConfirmed ? (
+                <p className="muted">Đang tải các yếu tố đã xác nhận...</p>
+              ) : (
+                <>
+                  <div className="ai-discovery-candidate-grid">
+                    {allConfirmedElements.map((element) => {
+                      const selected = Boolean(
+                        selectedAllConfirmed[element.code]
+                      );
+
+                      return (
+                        <article
+                          className={`ai-discovery-candidate ${
+                            selected ? "selected" : ""
+                          }`}
+                          key={element.code}
+                        >
+                          <div className="ai-discovery-candidate-meta">
+                            <label className="ai-discovery-candidate-checkbox">
+                              <input
+                                type="checkbox"
+                                checked={selected}
+                                onChange={() =>
+                                  toggleAllConfirmedElement(element.code)
+                                }
+                                disabled={
+                                  !isEditingAllConfirmed ||
+                                  isUpdatingAllConfirmed
+                                }
+                              />
+                              <span>
+                                {TYPE_LABELS[element.type] || element.type}
+                              </span>
+                            </label>
+                            <strong>
+                              {Math.round(
+                                Number(
+                                  element.confidence ||
+                                    element.contribution ||
+                                    0
+                                ) * 100
+                              )}
+                              %
+                            </strong>
+                          </div>
+                          <h3>{element.name_vi || element.code}</h3>
+                          {element.reason && <p>{element.reason}</p>}
+                          <small>{element.code}</small>
+
+                          {selected && (
+                            <label className="ai-discovery-level">
+                              Mức độ phù hợp
+                              <select
+                                value={selectedAllConfirmed[element.code]}
+                                onChange={(event) =>
+                                  updateAllConfirmedLevel(
+                                    element.code,
+                                    event.target.value
+                                  )
+                                }
+                                disabled={
+                                  !isEditingAllConfirmed ||
+                                  isUpdatingAllConfirmed
+                                }
+                              >
+                                {Object.entries(LEVEL_LABELS).map(
+                                  ([level, label]) => (
+                                    <option key={level} value={level}>
+                                      {level} - {label}
+                                    </option>
+                                  )
+                                )}
+                              </select>
+                            </label>
+                          )}
+                        </article>
+                      );
+                    })}
+                  </div>
+
+                  {allConfirmedMessage && (
+                    <p className="ai-discovery-edit-status saved">
+                      {allConfirmedMessage}
+                    </p>
+                  )}
+
+                  <div className="ai-discovery-confirm-footer">
+                    <span>
+                      Đang giữ {Object.keys(selectedAllConfirmed).length} /{" "}
+                      {allConfirmedElements.length} yếu tố
+                    </span>
+                    {isEditingAllConfirmed ? (
+                      <div className="ai-discovery-confirm-actions">
+                        <button
+                          className="secondary"
+                          type="button"
+                          onClick={cancelEditingAllConfirmed}
+                          disabled={isUpdatingAllConfirmed}
+                        >
+                          Hủy
+                        </button>
+                        <button
+                          type="button"
+                          onClick={updateAllConfirmedElements}
+                          disabled={isUpdatingAllConfirmed}
+                        >
+                          {isUpdatingAllConfirmed
+                            ? "Đang lưu..."
+                            : "Lưu thay đổi"}
+                        </button>
+                      </div>
+                    ) : (
+                      <button
+                        className="secondary"
+                        type="button"
+                        onClick={startEditingAllConfirmed}
+                      >
+                        Chỉnh sửa yếu tố
+                      </button>
+                    )}
+                  </div>
+                </>
+              )}
+            </section>
+          )}
         </section>
       ) : (
       <section className="card ai-discovery-chat-card">
@@ -443,7 +763,8 @@ function AiDiscoveryPage() {
                 isResetting ||
                 isConfirming ||
                 isFindingMore ||
-                isSelectingOpening
+                isSelectingOpening ||
+                isUpdatingConfirmed
               }
             >
               {isResetting ? "Đang quay lại menu..." : "Quay lại menu"}
@@ -575,7 +896,9 @@ function AiDiscoveryPage() {
                       type="checkbox"
                       checked={Boolean(selectedCandidates[candidate.code])}
                       onChange={() => toggleCandidate(candidate.code)}
-                      disabled={status === "confirmed"}
+                      disabled={
+                        candidateControlsDisabled || isUpdatingConfirmed
+                      }
                     />
                     <span>{TYPE_LABELS[candidate.type] || candidate.type}</span>
                   </label>
@@ -593,7 +916,9 @@ function AiDiscoveryPage() {
                       onChange={(event) =>
                         updateCandidateLevel(candidate.code, event.target.value)
                       }
-                      disabled={status === "confirmed"}
+                      disabled={
+                        candidateControlsDisabled || isUpdatingConfirmed
+                      }
                     >
                       {Object.entries(LEVEL_LABELS).map(([level, label]) => (
                         <option key={level} value={level}>
@@ -606,6 +931,12 @@ function AiDiscoveryPage() {
               </article>
             ))}
           </div>
+
+          {confirmedEditMessage && (
+            <p className="ai-discovery-edit-status saved">
+              {confirmedEditMessage}
+            </p>
+          )}
 
           <div className="ai-discovery-confirm-footer">
             <span>
@@ -622,11 +953,45 @@ function AiDiscoveryPage() {
                     nhiều yếu tố hơn trước khi xem gợi ý nghề nghiệp.
                   </p>
                 </div>
+                {isEditingConfirmed ? (
+                  <div className="ai-discovery-confirm-actions">
+                    <button
+                      className="secondary"
+                      type="button"
+                      onClick={cancelEditingConfirmed}
+                      disabled={isUpdatingConfirmed}
+                    >
+                      Hủy
+                    </button>
+                    <button
+                      type="button"
+                      onClick={updateConfirmedCandidates}
+                      disabled={isUpdatingConfirmed}
+                    >
+                      {isUpdatingConfirmed ? "Đang lưu..." : "Lưu thay đổi"}
+                    </button>
+                  </div>
+                ) : (
+                  <button
+                    className="secondary"
+                    type="button"
+                    onClick={startEditingConfirmed}
+                    disabled={
+                      !canEditConfirmedCandidates ||
+                      isResetting ||
+                      isUpdatingConfirmed
+                    }
+                  >
+                    Chỉnh sửa yếu tố
+                  </button>
+                )}
                 <button
                   className="secondary"
                   type="button"
                   onClick={resetSession}
-                  disabled={isResetting}
+                  disabled={
+                    isResetting || isEditingConfirmed || isUpdatingConfirmed
+                  }
                 >
                   {isResetting ? "Đang mở menu..." : "Chọn câu bắt đầu khác"}
                 </button>

@@ -266,6 +266,10 @@ function LandingPage() {
                   required
                 />
 
+                <div className="auth-form-meta">
+                  <Link to="/forgot-password">Quên mật khẩu?</Link>
+                </div>
+
                 <button type="submit" disabled={loading}>
                   {loading ? "Đang đăng nhập..." : "Đăng nhập"}
                 </button>

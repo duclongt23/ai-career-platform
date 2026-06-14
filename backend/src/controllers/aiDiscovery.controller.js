@@ -678,6 +678,131 @@ function buildProfileAiDiscoverySnapshot(session) {
   };
 }
 
+function normalizeConfirmedElementsFromCandidates(session, elements = []) {
+  const candidateMap = new Map(
+    session.extractedCandidates.map((candidate) => [
+      String(candidate.code).toLowerCase(),
+      candidate,
+    ])
+  );
+  const seenCodes = new Set();
+
+  return elements.map((element) => {
+    const code = String(element?.code || "")
+      .trim()
+      .toLowerCase();
+    const level = Number(element?.level);
+    const candidate = candidateMap.get(code);
+
+    if (!candidate || seenCodes.has(code)) {
+      throw createHttpError(400, `Invalid candidate element: ${code}`);
+    }
+
+    if (!CONFIRM_LEVELS.includes(level)) {
+      throw createHttpError(400, `Invalid level for candidate element: ${code}`);
+    }
+
+    seenCodes.add(code);
+
+    return {
+      code: candidate.code,
+      type: candidate.type,
+      level,
+      contribution: candidate.confidence,
+    };
+  });
+}
+
+function buildGlobalConfirmedElements(sessions = []) {
+  const elementMap = new Map();
+
+  sessions.forEach((session) => {
+    const candidateMap = new Map(
+      (session.extractedCandidates || []).map((candidate) => [
+        String(candidate.code).toLowerCase(),
+        candidate,
+      ])
+    );
+
+    (session.confirmedElements || []).forEach((element) => {
+      const code = String(element.code || "").toLowerCase();
+      const candidate = candidateMap.get(code);
+      const contribution = Number.isFinite(Number(element.contribution))
+        ? Number(element.contribution)
+        : DEFAULT_AI_CONFIDENCE;
+
+      elementMap.set(code, {
+        code: element.code,
+        type: element.type,
+        level: element.level,
+        contribution,
+        confidence: Number.isFinite(Number(candidate?.confidence))
+          ? Number(candidate.confidence)
+          : contribution,
+        name_vi: candidate?.name_vi || element.code,
+        reason: candidate?.reason || "",
+        updatedAt: session.updatedAt,
+      });
+    });
+  });
+
+  return [...elementMap.values()].sort((a, b) =>
+    String(a.name_vi || a.code).localeCompare(String(b.name_vi || b.code), "vi")
+  );
+}
+
+function normalizeGlobalConfirmedElementUpdates(elements = [], availableElements) {
+  const normalized = new Map();
+
+  elements.forEach((element) => {
+    const code = String(element?.code || "")
+      .trim()
+      .toLowerCase();
+    const level = Number(element?.level);
+
+    if (!availableElements.has(code) || normalized.has(code)) {
+      throw createHttpError(400, `Invalid confirmed element: ${code}`);
+    }
+
+    if (!CONFIRM_LEVELS.includes(level)) {
+      throw createHttpError(400, `Invalid level for confirmed element: ${code}`);
+    }
+
+    normalized.set(code, level);
+  });
+
+  return normalized;
+}
+
+async function rebuildProfileScores(userId, aiDiscoveries) {
+  const profile = await StudentProfile.findOne({ userId })
+    .select("coreQuizAnswers")
+    .lean();
+
+  if (!profile) {
+    throw createHttpError(404, "Profile not found");
+  }
+
+  const elementScores = await calculateProfileElementScores({
+    coreQuizAnswers: profile.coreQuizAnswers,
+    aiDiscoveries,
+  });
+
+  await StudentProfile.updateOne(
+    { _id: profile._id },
+    {
+      $set: {
+        aiDiscoveries,
+        elementScores,
+        elementScoreVersion: ELEMENT_SCORE_ALGORITHM_VERSION,
+      },
+    },
+    {
+      runValidators: true,
+    }
+  );
+}
+
 async function persistProfileAiDiscoverySnapshot(userId, session) {
   const snapshot = buildProfileAiDiscoverySnapshot(session);
 
@@ -898,11 +1023,148 @@ async function confirmCandidates(req, res) {
   }
 }
 
+async function listConfirmedElements(req, res) {
+  try {
+    const sessions = await AiDiscoverySession.find({
+      userId: req.user._id,
+      status: "confirmed",
+      "confirmedElements.0": { $exists: true },
+    }).sort({ createdAt: 1 });
+
+    return res.json({
+      message: "AI discovery confirmed elements loaded successfully",
+      elements: buildGlobalConfirmedElements(sessions),
+    });
+  } catch (error) {
+    return res.status(error.statusCode || 500).json({
+      message: error.statusCode
+        ? error.message
+        : "Failed to load AI discovery confirmed elements",
+      error: error.message,
+    });
+  }
+}
+
+async function updateAllConfirmedElements(req, res) {
+  try {
+    const { elements } = req.body || {};
+
+    if (!Array.isArray(elements)) {
+      throw createHttpError(400, "elements must be an array");
+    }
+
+    const sessions = await AiDiscoverySession.find({
+      userId: req.user._id,
+      status: "confirmed",
+    }).sort({ createdAt: 1 });
+    const availableElements = new Map(
+      buildGlobalConfirmedElements(sessions).map((element) => [
+        String(element.code).toLowerCase(),
+        element,
+      ])
+    );
+    const retainedElements = normalizeGlobalConfirmedElementUpdates(
+      elements,
+      availableElements
+    );
+
+    for (const session of sessions) {
+      session.confirmedElements = (session.confirmedElements || []).reduce(
+        (nextElements, element) => {
+          const code = String(element.code || "").toLowerCase();
+
+          if (!retainedElements.has(code)) {
+            return nextElements;
+          }
+
+          nextElements.push({
+            code: element.code,
+            type: element.type,
+            level: retainedElements.get(code),
+            contribution: Number.isFinite(Number(element.contribution))
+              ? Number(element.contribution)
+              : DEFAULT_AI_CONFIDENCE,
+          });
+          return nextElements;
+        },
+        []
+      );
+      await session.save();
+    }
+
+    const aiDiscoveries = sessions
+      .map(buildProfileAiDiscoverySnapshot)
+      .filter((snapshot) => snapshot.confirmedElements.length > 0);
+
+    await rebuildProfileScores(req.user._id, aiDiscoveries);
+
+    return res.json({
+      message: "AI discovery confirmed elements updated successfully",
+      elements: buildGlobalConfirmedElements(sessions),
+    });
+  } catch (error) {
+    return res.status(error.statusCode || 500).json({
+      message: error.statusCode
+        ? error.message
+        : "Failed to update AI discovery confirmed elements",
+      error: error.message,
+    });
+  }
+}
+
+async function updateConfirmedCandidates(req, res) {
+  try {
+    const { sessionId, elements } = req.body || {};
+
+    if (!mongoose.isValidObjectId(sessionId)) {
+      throw createHttpError(400, "Invalid sessionId");
+    }
+
+    if (!Array.isArray(elements)) {
+      throw createHttpError(400, "elements must be an array");
+    }
+
+    const session = await AiDiscoverySession.findOne({
+      _id: sessionId,
+      userId: req.user._id,
+      status: "confirmed",
+    });
+
+    if (!session) {
+      throw createHttpError(404, "Confirmed AI discovery session not found");
+    }
+
+    session.confirmedElements = normalizeConfirmedElementsFromCandidates(
+      session,
+      elements
+    );
+    await session.save();
+    await persistProfileAiDiscoverySnapshot(req.user._id, session);
+
+    return res.json({
+      message: "AI discovery confirmed elements updated successfully",
+      sessionId: session._id,
+      status: session.status,
+      confirmedElements: session.confirmedElements,
+    });
+  } catch (error) {
+    return res.status(error.statusCode || 500).json({
+      message: error.statusCode
+        ? error.message
+        : "Failed to update AI discovery confirmed elements",
+      error: error.message,
+    });
+  }
+}
+
 module.exports = {
   confirmCandidates,
   findMoreCandidates,
+  listConfirmedElements,
   parseAiResponse,
   resetSession,
   sendMessage,
   startSession,
+  updateAllConfirmedElements,
+  updateConfirmedCandidates,
 };

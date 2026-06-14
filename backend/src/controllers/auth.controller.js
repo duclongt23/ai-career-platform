@@ -2,6 +2,8 @@ const {
   createAdminUser,
   loginUser,
   logoutAuthSession,
+  requestPasswordReset,
+  resetPasswordWithToken,
   refreshAuthSession,
   registerStudent,
 } = require("../services/auth.service");
@@ -57,6 +59,22 @@ async function logout(req, res) {
   }
 }
 
+async function forgotPassword(req, res) {
+  try {
+    return res.json(await requestPasswordReset(req.body));
+  } catch (error) {
+    return sendAuthError(res, error);
+  }
+}
+
+async function resetPassword(req, res) {
+  try {
+    return res.json(await resetPasswordWithToken(req.body));
+  } catch (error) {
+    return sendAuthError(res, error);
+  }
+}
+
 async function createAdmin(req, res) {
   try {
     const authPayload = await createAdminUser({
@@ -82,9 +100,11 @@ function me(req, res) {
 
 module.exports = {
   createAdmin,
+  forgotPassword,
   login,
   logout,
   me,
   refresh,
   register,
+  resetPassword,
 };

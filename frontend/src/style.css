@@ -961,6 +961,22 @@ button.danger:hover:not(:disabled),
   min-height: 52px;
 }
 
+.auth-form-meta,
+.auth-form-footer {
+  font-size: 14px;
+  margin: 0;
+}
+
+.auth-form-meta {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.auth-form-footer {
+  margin-top: 18px;
+  text-align: center;
+}
+
 .auth-switch {
   background: transparent;
   color: var(--primary);
@@ -3804,12 +3820,19 @@ button.danger:hover:not(:disabled),
 
 .ai-discovery-opening-option {
   align-items: start;
+  align-content: start;
   background: var(--surface-soft);
   color: var(--ink);
   display: grid;
+  gap: 22px;
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-rows: auto minmax(52px, auto) minmax(50px, auto);
+  justify-content: stretch;
   justify-items: start;
   min-height: 190px;
+  padding: 22px;
   text-align: left;
+  width: 100%;
 }
 
 .ai-discovery-opening-option:hover:not(:disabled) {
@@ -3823,6 +3846,7 @@ button.danger:hover:not(:disabled),
   display: block;
   font-size: 20px;
   line-height: 1.28;
+  margin: 0;
 }
 
 .ai-discovery-opening-option p,
@@ -3878,6 +3902,14 @@ button.danger:hover:not(:disabled),
   gap: 18px;
 }
 
+.ai-discovery-all-confirmed {
+  border-top: 1px solid var(--line);
+  display: grid;
+  gap: 16px;
+  margin-top: 8px;
+  padding-top: 20px;
+}
+
 .ai-discovery-candidate.selected {
   background: var(--primary-soft);
   border-color: rgba(15, 118, 110, 0.35);
@@ -3916,6 +3948,17 @@ button.danger:hover:not(:disabled),
 
 .ai-discovery-level {
   margin-top: 12px;
+}
+
+.ai-discovery-edit-status {
+  color: var(--muted);
+  font-size: 14px;
+  font-weight: 800;
+  margin: 0;
+}
+
+.ai-discovery-edit-status.saved {
+  color: var(--primary);
 }
 
 .profile-hero {
