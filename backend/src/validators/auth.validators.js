@@ -28,6 +28,11 @@ const resetPasswordSchema = objectSchema({
   password: stringField({ label: "Password", min: 6, max: 128 }),
 });
 
+const changePasswordSchema = objectSchema({
+  currentPassword: stringField({ label: "Current password", min: 1, max: 128 }),
+  newPassword: stringField({ label: "New password", min: 6, max: 128 }),
+});
+
 const createAdminSchema = objectSchema({
   name: stringField({ label: "Name", min: 2, max: 80 }),
   email: emailField(),
@@ -41,6 +46,7 @@ const createAdminSchema = objectSchema({
 });
 
 module.exports = {
+  changePasswordSchema,
   createAdminSchema,
   forgotPasswordSchema,
   loginSchema,

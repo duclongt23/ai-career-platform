@@ -15,11 +15,15 @@ const {
 const router = express.Router();
 
 router.get("/recommendations/me", protect, careerController.listRecommendations);
+router.get("/favorites/me", protect, careerController.listFavoriteCareers);
 router.post(
   "/:id/fit-explanation",
   protect,
   careerController.createFitExplanation
 );
+router.get("/:id/favorite", protect, careerController.getFavoriteStatus);
+router.post("/:id/favorite", protect, careerController.saveFavoriteCareer);
+router.delete("/:id/favorite", protect, careerController.removeFavoriteCareer);
 router.post("/:id/day-in-life", protect, careerController.createDayInLife);
 router.post("/:id/roadmap", protect, careerController.createRoadmap);
 router.post(

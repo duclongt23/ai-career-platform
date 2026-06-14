@@ -1,5 +1,6 @@
 const Career = require("../models/Career");
 const Element = require("../models/Element");
+const User = require("../models/User");
 const { createHttpError } = require("../utils/httpError");
 const { escapeRegExp } = require("../utils/regex");
 
@@ -184,6 +185,78 @@ async function getCareerDetails(careerId) {
   };
 }
 
+async function ensureCareerCanBeSaved(careerId) {
+  const career = await Career.findOne({
+    _id: careerId,
+    is_active: true,
+    student_suitable: true,
+  })
+    .select("_id")
+    .lean();
+
+  if (!career) {
+    throw createHttpError(404, "Career not found");
+  }
+
+  return career;
+}
+
+async function isFavoriteCareer(userId, careerId) {
+  await ensureCareerCanBeSaved(careerId);
+
+  const user = await User.findOne({
+    _id: userId,
+    favoriteCareers: careerId,
+  })
+    .select("_id")
+    .lean();
+
+  return { isFavorite: Boolean(user) };
+}
+
+async function listFavoriteCareers(userId) {
+  const user = await User.findById(userId)
+    .select("favoriteCareers")
+    .populate({
+      path: "favoriteCareers",
+      match: {
+        is_active: true,
+        student_suitable: true,
+      },
+      select: "onetCode title_en title_vi description_vi careerCluster updatedAt",
+      options: {
+        sort: { title_vi: 1, title_en: 1 },
+      },
+    })
+    .lean();
+
+  if (!user) {
+    throw createHttpError(404, "User not found");
+  }
+
+  return {
+    careers: (user.favoriteCareers || []).filter(Boolean),
+  };
+}
+
+async function saveFavoriteCareer(userId, careerId) {
+  await ensureCareerCanBeSaved(careerId);
+
+  await User.findByIdAndUpdate(userId, {
+    $addToSet: { favoriteCareers: careerId },
+  });
+
+  return { isFavorite: true };
+}
+
+async function removeFavoriteCareer(userId, careerId) {
+  await User.findByIdAndUpdate(userId, {
+    $pull: { favoriteCareers: careerId },
+  });
+
+  return { isFavorite: false };
+}
+
 async function createCareer(payload) {
   return Career.create(payload);
 }
@@ -214,8 +287,12 @@ module.exports = {
   createCareer,
   deleteCareer,
   getCareerDetails,
+  isFavoriteCareer,
   listAdminCareers,
   listCareers,
+  listFavoriteCareers,
+  removeFavoriteCareer,
+  saveFavoriteCareer,
   searchCareerElements,
   updateCareer,
 };

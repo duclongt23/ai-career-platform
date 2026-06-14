@@ -1,4 +1,5 @@
 const {
+  changeAuthenticatedPassword,
   createAdminUser,
   loginUser,
   logoutAuthSession,
@@ -75,6 +76,16 @@ async function resetPassword(req, res) {
   }
 }
 
+async function changePassword(req, res) {
+  try {
+    return res.json(
+      await changeAuthenticatedPassword(req.user._id, req.body)
+    );
+  } catch (error) {
+    return sendAuthError(res, error);
+  }
+}
+
 async function createAdmin(req, res) {
   try {
     const authPayload = await createAdminUser({
@@ -99,6 +110,7 @@ function me(req, res) {
 }
 
 module.exports = {
+  changePassword,
   createAdmin,
   forgotPassword,
   login,

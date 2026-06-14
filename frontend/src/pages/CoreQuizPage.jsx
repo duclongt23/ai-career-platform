@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { ArrowRight, CheckCircle2, ListChecks, Save } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import api from "../api/axios";
 import AdminCoreQuizAnswerScores from "../components/AdminCoreQuizAnswerScores";
@@ -165,6 +166,7 @@ function CoreQuizPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isResetting, setIsResetting] = useState(false);
   const [error, setError] = useState("");
+  const [hasStarted, setHasStarted] = useState(false);
   const [validationError, setValidationError] = useState("");
 
   useEffect(() => {
@@ -187,6 +189,7 @@ function CoreQuizPage() {
 
         setResult(res.data);
         setQuestions([]);
+        setHasStarted(false);
         clearDiscoveryDraft(draftKey);
         setError("");
       })
@@ -246,6 +249,16 @@ function CoreQuizPage() {
   const progressPercent = questions.length
     ? Math.round(((currentIndex + 1) / questions.length) * 100)
     : 0;
+  const answeredCount = useMemo(
+    () =>
+      Object.values(answers).filter(
+        (answerIndexes) =>
+          Array.isArray(answerIndexes) && answerIndexes.length > 0
+      ).length,
+    [answers]
+  );
+  const introQuestionCount = questions.length || 30;
+  const hasDraftProgress = answeredCount > 0;
 
   const visibleScores = useMemo(() => result?.elementScores || [], [result]);
 
@@ -311,6 +324,11 @@ function CoreQuizPage() {
     setCurrentIndex((prev) => Math.min(prev + 1, questions.length - 1));
   };
 
+  const startQuiz = () => {
+    setHasStarted(true);
+    setValidationError("");
+  };
+
   const submitQuiz = async () => {
     if (!canLeaveCurrentQuestion()) return;
 
@@ -364,6 +382,7 @@ function CoreQuizPage() {
       setAnswers({});
       setCurrentIndex(0);
       setResult(null);
+      setHasStarted(false);
       window.dispatchEvent(new Event(DISCOVERY_PROGRESS_UPDATED));
     } catch (err) {
       setError(
@@ -542,6 +561,89 @@ function CoreQuizPage() {
       <section className="card core-quiz-card">
         <p className="muted">Chưa có câu hỏi để hiển thị.</p>
       </section>
+    );
+  }
+
+  if (!hasStarted) {
+    return (
+      <div className="core-quiz-page">
+        <section className="core-quiz-header">
+          <p className="core-quiz-eyebrow">Self-discovery Core Quiz</p>
+          <h1>Chào mừng đến bài test Core Quiz</h1>
+          <p>
+            Bài trắc nghiệm gồm {introQuestionCount} câu hỏi giúp hệ thống nhận
+            diện những năng lực, kỹ năng, kiến thức và phong cách làm việc nổi
+            bật của bạn.
+          </p>
+        </section>
+
+        {error && <p className="error">{error}</p>}
+
+        <section className="card core-quiz-card core-quiz-intro-card">
+          <div className="core-quiz-intro-grid">
+            <div className="core-quiz-intro-copy">
+              <p className="core-quiz-eyebrow">Trước khi bắt đầu</p>
+              <h2>Trả lời theo đúng cảm nhận của bạn</h2>
+              <p>
+                Core Quiz không chấm điểm đúng sai. Mỗi câu hỏi chỉ dùng để
+                hiểu rõ hơn cách bạn học, xử lý vấn đề và lựa chọn hoạt động
+                phù hợp với bản thân.
+              </p>
+              <ul className="core-quiz-intro-list">
+                <li>Đọc kỹ tình huống rồi chọn đáp án gần với bạn nhất.</li>
+                <li>Một số câu có thể cho phép chọn nhiều đáp án.</li>
+                <li>Bạn có thể quay lại câu trước trong quá trình làm bài.</li>
+              </ul>
+            </div>
+
+            <aside
+              className="core-quiz-intro-facts"
+              aria-label="Thông tin bài test Core Quiz"
+            >
+              <div className="core-quiz-intro-fact">
+                <ListChecks size={20} aria-hidden="true" />
+                <div>
+                  <strong>{introQuestionCount} câu hỏi</strong>
+                  <span>Đi lần lượt từng câu để hoàn thành bài test.</span>
+                </div>
+              </div>
+              <div className="core-quiz-intro-fact">
+                <CheckCircle2 size={20} aria-hidden="true" />
+                <div>
+                  <strong>Không có đáp án đúng sai</strong>
+                  <span>Ưu tiên lựa chọn thật với trải nghiệm của bạn.</span>
+                </div>
+              </div>
+              <div className="core-quiz-intro-fact">
+                <Save size={20} aria-hidden="true" />
+                <div>
+                  <strong>
+                    {hasDraftProgress
+                      ? "Có tiến trình đã lưu"
+                      : "Tự động lưu tiến trình"}
+                  </strong>
+                  <span>
+                    {hasDraftProgress
+                      ? `${answeredCount}/${introQuestionCount} câu đã trả lời`
+                      : "Bạn có thể tiếp tục nếu quay lại sau."}
+                  </span>
+                </div>
+              </div>
+            </aside>
+          </div>
+
+          <div className="core-quiz-intro-actions">
+            <button type="button" onClick={startQuiz}>
+              {hasDraftProgress ? "Tiếp tục làm bài" : "Bắt đầu làm bài"}
+              <ArrowRight size={18} aria-hidden="true" />
+            </button>
+            <p className="core-quiz-intro-note">
+              Kết quả sẽ được dùng để gợi ý nhóm năng lực và lộ trình khám phá
+              nghề nghiệp phù hợp hơn.
+            </p>
+          </div>
+        </section>
+      </div>
     );
   }
 

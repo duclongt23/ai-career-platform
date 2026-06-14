@@ -3,6 +3,7 @@ import { Link, useLocation, useNavigate } from "react-router-dom";
 import api from "../api/axios";
 import logoIcon from "../assets/logo.png";
 import landingVisual from "../assets/landing-visual.jpg";
+import { getStoredUser } from "../utils/storage";
 
 const storyCards = [
   {
@@ -21,6 +22,18 @@ const storyCards = [
     text: "Bạn nhận được nhóm ngành phù hợp và lý do rõ ràng để tiếp tục khám phá.",
   },
 ];
+
+function getPostLoginRedirect(user, fallback = "/discovery") {
+  if (user?.role === "admin") {
+    return "/admin";
+  }
+
+  if (String(fallback || "").startsWith("/admin")) {
+    return "/discovery";
+  }
+
+  return fallback || "/discovery";
+}
 
 function LandingPage() {
   const navigate = useNavigate();
@@ -48,7 +61,7 @@ function LandingPage() {
     const token = localStorage.getItem("token");
 
     if (token) {
-      navigate(redirectTo);
+      navigate(getPostLoginRedirect(getStoredUser(), redirectTo));
       return;
     }
 
@@ -90,7 +103,9 @@ function LandingPage() {
     try {
       const res = await api.post("/auth/login", loginForm);
       storeAuth(res.data);
-      navigate(authRedirect, { replace: true });
+      navigate(getPostLoginRedirect(res.data.user, authRedirect), {
+        replace: true,
+      });
     } catch (err) {
       setError(err.response?.data?.message || "Đăng nhập thất bại");
     } finally {

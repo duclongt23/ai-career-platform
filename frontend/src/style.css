@@ -371,6 +371,194 @@ button.danger:hover:not(:disabled),
   padding: 28px 24px 78px;
 }
 
+.admin-container {
+  max-width: 1500px;
+  padding: 28px 24px 78px;
+}
+
+.nav-admin-link,
+.nav-links button {
+  align-items: center;
+  display: inline-flex;
+  gap: 8px;
+}
+
+.nav-admin-link {
+  background: var(--primary-soft);
+  border-color: rgba(15, 118, 110, 0.22) !important;
+  color: var(--primary-hover) !important;
+}
+
+.admin-shell {
+  align-items: start;
+  display: grid;
+  gap: 22px;
+  grid-template-columns: 260px minmax(0, 1fr);
+}
+
+.admin-sidebar {
+  background: rgba(255, 255, 255, 0.94);
+  border: 1px solid rgba(184, 199, 183, 0.74);
+  border-radius: 8px;
+  box-shadow: var(--shadow-sm);
+  display: grid;
+  gap: 18px;
+  padding: 18px;
+  position: sticky;
+  top: 96px;
+}
+
+.admin-sidebar-brand {
+  align-items: center;
+  border-bottom: 1px solid var(--line);
+  display: flex;
+  gap: 12px;
+  padding-bottom: 16px;
+}
+
+.admin-sidebar-brand svg {
+  color: var(--primary);
+  flex: 0 0 auto;
+}
+
+.admin-sidebar-brand strong,
+.admin-sidebar-brand span {
+  display: block;
+}
+
+.admin-sidebar-brand strong {
+  color: var(--ink);
+  font-size: 17px;
+  line-height: 1.2;
+}
+
+.admin-sidebar-brand span {
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 750;
+  margin-top: 2px;
+}
+
+.admin-sidebar-nav {
+  display: grid;
+  gap: 8px;
+}
+
+.admin-sidebar-link,
+.admin-overview-card {
+  align-items: center;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  color: var(--ink-soft);
+  display: flex;
+  gap: 10px;
+}
+
+.admin-sidebar-link {
+  min-height: 44px;
+  padding: 10px 12px;
+}
+
+.admin-sidebar-link:hover,
+.admin-sidebar-link.active,
+.admin-overview-card:hover {
+  background: var(--surface-tint);
+  border-color: rgba(15, 118, 110, 0.2);
+  color: var(--primary-hover);
+}
+
+.admin-sidebar-link.active {
+  box-shadow: var(--shadow-sm);
+}
+
+.admin-content {
+  min-width: 0;
+}
+
+.admin-dashboard-header {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  box-shadow: var(--shadow-sm);
+  padding: 24px;
+}
+
+.admin-eyebrow {
+  color: var(--primary);
+  display: block;
+  font-size: 12px;
+  font-weight: 900;
+  letter-spacing: 0.1em;
+  margin-bottom: 8px;
+  text-transform: uppercase;
+}
+
+.admin-overview-grid {
+  display: grid;
+  gap: 14px;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.admin-overview-card {
+  background: var(--surface);
+  box-shadow: var(--shadow-sm);
+  min-height: 96px;
+  padding: 18px;
+}
+
+.admin-overview-card svg {
+  color: var(--primary);
+  flex: 0 0 auto;
+}
+
+.admin-overview-card span {
+  color: var(--ink);
+  font-size: 16px;
+  font-weight: 850;
+}
+
+@media (max-width: 1100px) {
+  .admin-shell {
+    grid-template-columns: 1fr;
+  }
+
+  .admin-sidebar {
+    position: static;
+  }
+
+  .admin-sidebar-nav {
+    display: flex;
+    gap: 8px;
+    overflow-x: auto;
+    padding-bottom: 2px;
+    scrollbar-width: thin;
+  }
+
+  .admin-sidebar-link {
+    flex: 0 0 auto;
+    white-space: nowrap;
+  }
+
+  .admin-overview-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 640px) {
+  .admin-container {
+    padding: 18px 12px 48px;
+  }
+
+  .admin-sidebar,
+  .admin-dashboard-header {
+    padding: 16px;
+  }
+
+  .admin-overview-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
 .page-header {
   margin-bottom: 22px;
 }
@@ -427,6 +615,32 @@ button.danger:hover:not(:disabled),
   font-size: 22px;
   line-height: 1.25;
   margin: 0 0 8px;
+}
+
+.favorite-career-card {
+  gap: 10px;
+}
+
+.favorite-career-card .profile-tags {
+  margin-bottom: 2px;
+}
+
+.favorite-career-card .form-actions {
+  margin-top: auto;
+}
+
+.favorite-empty-state {
+  align-items: flex-start;
+  display: grid;
+  gap: 12px;
+  max-width: 720px;
+}
+
+.favorite-empty-state h2 {
+  color: var(--ink);
+  font-size: 24px;
+  line-height: 1.24;
+  margin: 0;
 }
 
 .career-description {
@@ -2708,6 +2922,51 @@ button.danger:hover:not(:disabled),
   margin-top: 20px;
 }
 
+.career-detail-actions {
+  @apply flex flex-wrap items-center;
+  gap: 10px;
+  margin-top: 22px;
+}
+
+.career-favorite-button {
+  background: var(--accent);
+  color: #ffffff;
+}
+
+.career-favorite-button:hover:not(:disabled) {
+  background: #b85d05;
+}
+
+.career-favorite-button.saved {
+  background: var(--success);
+}
+
+.career-favorite-button.saved:hover:not(:disabled) {
+  background: #0f6539;
+}
+
+.career-favorite-notice,
+.career-favorite-error {
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 750;
+  margin: 14px 0 0;
+  padding: 10px 12px;
+  width: fit-content;
+}
+
+.career-favorite-notice {
+  background: #e5f8ec;
+  border: 1px solid #bce7cd;
+  color: var(--success);
+}
+
+.career-favorite-error {
+  background: var(--coral-soft);
+  border: 1px solid #f5b8ad;
+  color: var(--danger);
+}
+
 .career-detail-sections {
   display: grid;
   gap: 22px;
@@ -3621,6 +3880,116 @@ button.danger:hover:not(:disabled),
   gap: 18px;
 }
 
+.core-quiz-intro-card {
+  gap: 24px;
+}
+
+.core-quiz-intro-grid {
+  align-items: start;
+  display: grid;
+  gap: 28px;
+  grid-template-columns: minmax(0, 1fr) minmax(260px, 0.46fr);
+}
+
+.core-quiz-intro-copy h2 {
+  color: var(--ink);
+  font-size: 26px;
+  line-height: 1.24;
+  margin: 8px 0 10px;
+}
+
+.core-quiz-intro-copy p {
+  color: var(--muted);
+  line-height: 1.65;
+  margin: 0;
+}
+
+.core-quiz-intro-list {
+  display: grid;
+  gap: 10px;
+  list-style: none;
+  margin: 18px 0 0;
+  padding: 0;
+}
+
+.core-quiz-intro-list li {
+  color: var(--ink-soft);
+  line-height: 1.55;
+  padding-left: 18px;
+  position: relative;
+}
+
+.core-quiz-intro-list li::before {
+  background: var(--primary);
+  border-radius: 999px;
+  content: "";
+  height: 6px;
+  left: 0;
+  position: absolute;
+  top: 0.7em;
+  width: 6px;
+}
+
+.core-quiz-intro-facts {
+  border-left: 1px solid var(--line);
+  display: grid;
+  gap: 18px;
+  padding-left: 22px;
+}
+
+.core-quiz-intro-fact {
+  align-items: start;
+  display: grid;
+  gap: 12px;
+  grid-template-columns: auto minmax(0, 1fr);
+}
+
+.core-quiz-intro-fact svg {
+  color: var(--primary);
+  margin-top: 2px;
+}
+
+.core-quiz-intro-fact strong,
+.core-quiz-intro-fact span {
+  display: block;
+}
+
+.core-quiz-intro-fact strong {
+  color: var(--ink);
+  font-size: 16px;
+  line-height: 1.3;
+}
+
+.core-quiz-intro-fact span {
+  color: var(--muted);
+  font-size: 14px;
+  line-height: 1.5;
+  margin-top: 3px;
+}
+
+.core-quiz-intro-actions {
+  align-items: center;
+  border-top: 1px solid var(--line);
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  justify-content: space-between;
+  padding-top: 20px;
+}
+
+.core-quiz-intro-actions button {
+  gap: 8px;
+}
+
+.core-quiz-intro-note {
+  color: var(--muted);
+  flex: 1 1 280px;
+  font-size: 13px;
+  font-weight: 750;
+  line-height: 1.55;
+  margin: 0;
+}
+
 .riasec-progress-meta,
 .core-progress-meta,
 .core-question-meta {
@@ -4061,6 +4430,28 @@ button.danger:hover:not(:disabled),
   max-width: 760px;
 }
 
+.profile-password-modal-backdrop {
+  align-items: center;
+  background: rgba(16, 24, 32, 0.68);
+  display: flex;
+  inset: 0;
+  justify-content: center;
+  padding: 24px;
+  position: fixed;
+  z-index: 120;
+}
+
+.profile-password-modal {
+  box-shadow: var(--shadow-strong);
+  max-height: calc(100vh - 48px);
+  overflow-y: auto;
+  width: min(100%, 520px);
+}
+
+.profile-password-modal h2 {
+  margin-bottom: 8px;
+}
+
 .admin-form,
 .admin-table-wrapper {
   margin-bottom: 20px;
@@ -4462,10 +4853,27 @@ button.danger:hover:not(:disabled),
   .admin-target-row,
   .admin-mapping-row,
   .ai-discovery-opening-grid,
+  .core-quiz-intro-grid,
   .core-score-groups,
   .core-top-list,
   .riasec-options {
     grid-template-columns: 1fr;
+  }
+
+  .core-quiz-intro-facts {
+    border-left: 0;
+    border-top: 1px solid var(--line);
+    padding-left: 0;
+    padding-top: 18px;
+  }
+
+  .core-quiz-intro-actions {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .core-quiz-intro-actions button {
+    width: 100%;
   }
 }
 
@@ -4584,6 +4992,11 @@ button.danger:hover:not(:disabled),
   .profile-header {
     padding: 0 18px 20px;
     transform: translateY(-24px);
+  }
+
+  .profile-password-modal-backdrop {
+    align-items: flex-start;
+    padding: 18px;
   }
 
   .profile-header button {
@@ -5003,6 +5416,7 @@ button.danger:hover:not(:disabled),
   }
 
   .career-element-list li,
+  .career-detail-actions,
   .career-explore-chat-cta,
   .workflow-result-actions,
   .profile-actions,
@@ -5055,6 +5469,8 @@ button.danger:hover:not(:disabled),
 
   .career-explore-chat-composer button,
   .ai-discovery-composer button,
+  .career-detail-actions button,
+  .career-detail-actions .detail-link,
   .career-explore-chat-cta .career-explore-chat-link,
   .workflow-next-action,
   .profile-actions button,

@@ -12,6 +12,12 @@ const emptyProfileForm = {
   riasecCompletedAt: "",
 };
 
+const emptyPasswordForm = {
+  currentPassword: "",
+  newPassword: "",
+  confirmPassword: "",
+};
+
 function profileToForm(profile = {}) {
   return {
     grade: profile.grade || 10,
@@ -27,11 +33,16 @@ function Profile() {
   const navigate = useNavigate();
   const token = localStorage.getItem("token");
   const user = getStoredUser();
+  const isAdmin = user?.role === "admin";
   const [form, setForm] = useState(emptyProfileForm);
+  const [passwordForm, setPasswordForm] = useState(emptyPasswordForm);
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
+  const [passwordError, setPasswordError] = useState("");
+  const [passwordSaving, setPasswordSaving] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
-  const [isLoading, setIsLoading] = useState(Boolean(token));
+  const [isPasswordEditing, setIsPasswordEditing] = useState(false);
+  const [isLoading, setIsLoading] = useState(Boolean(token && !isAdmin));
 
   const handleProfileLoadError = (err) => {
     if (err.response?.status === 404) {
@@ -53,6 +64,10 @@ function Profile() {
   useEffect(() => {
     if (!token) {
       navigate("/login");
+      return;
+    }
+
+    if (isAdmin) {
       return;
     }
 
@@ -80,7 +95,7 @@ function Profile() {
     return () => {
       isMounted = false;
     };
-  }, [navigate, token]);
+  }, [isAdmin, navigate, token]);
 
   const toArray = (text) => {
     return text
@@ -92,6 +107,13 @@ function Profile() {
   const handleChange = (e) => {
     setForm({
       ...form,
+      [e.target.name]: e.target.value,
+    });
+  };
+
+  const handlePasswordChange = (e) => {
+    setPasswordForm({
+      ...passwordForm,
       [e.target.name]: e.target.value,
     });
   };
@@ -120,6 +142,47 @@ function Profile() {
     }
   };
 
+  const handleChangePassword = async (e) => {
+    e.preventDefault();
+    setPasswordError("");
+
+    if (passwordForm.newPassword !== passwordForm.confirmPassword) {
+      setPasswordError("Mật khẩu mới và xác nhận mật khẩu không khớp.");
+      return;
+    }
+
+    setPasswordSaving(true);
+
+    try {
+      await api.put("/auth/password", {
+        currentPassword: passwordForm.currentPassword,
+        newPassword: passwordForm.newPassword,
+      });
+
+      localStorage.removeItem("token");
+      localStorage.removeItem("refreshToken");
+      localStorage.removeItem("user");
+      navigate("/login", {
+        replace: true,
+        state: {
+          message: "Đổi mật khẩu thành công. Vui lòng đăng nhập lại.",
+        },
+      });
+    } catch (err) {
+      setPasswordError(
+        err.response?.data?.message || "Đổi mật khẩu thất bại."
+      );
+    } finally {
+      setPasswordSaving(false);
+    }
+  };
+
+  const closePasswordForm = () => {
+    setIsPasswordEditing(false);
+    setPasswordError("");
+    setPasswordForm(emptyPasswordForm);
+  };
+
   const renderTags = (text, emptyText) => {
     const items = toArray(text);
 
@@ -139,6 +202,78 @@ function Profile() {
   const riasecDate = form.riasecCompletedAt
     ? new Date(form.riasecCompletedAt).toLocaleDateString("vi-VN")
     : "";
+
+  const renderPasswordModal = () => (
+    <div
+      className="profile-password-modal-backdrop"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="profile-password-modal-title"
+      onMouseDown={(event) => {
+        if (event.target === event.currentTarget) {
+          closePasswordForm();
+        }
+      }}
+    >
+      <section className="card profile-password-modal">
+      <h2 id="profile-password-modal-title">Đổi mật khẩu</h2>
+      <p className="muted">
+        Đổi mật khẩu định kỳ giúp bảo vệ tài khoản tốt hơn. Sau khi đổi mật
+        khẩu, bạn cần đăng nhập lại.
+      </p>
+
+      {passwordError && <p className="error">{passwordError}</p>}
+
+      <form onSubmit={handleChangePassword}>
+        <label>Mật khẩu hiện tại</label>
+        <input
+          autoComplete="current-password"
+          name="currentPassword"
+          type="password"
+          value={passwordForm.currentPassword}
+          onChange={handlePasswordChange}
+          placeholder="Nhập mật khẩu hiện tại"
+          required
+        />
+
+        <label>Mật khẩu mới</label>
+        <input
+          autoComplete="new-password"
+          name="newPassword"
+          type="password"
+          value={passwordForm.newPassword}
+          onChange={handlePasswordChange}
+          placeholder="Tối thiểu 6 ký tự"
+          required
+        />
+
+        <label>Xác nhận mật khẩu mới</label>
+        <input
+          autoComplete="new-password"
+          name="confirmPassword"
+          type="password"
+          value={passwordForm.confirmPassword}
+          onChange={handlePasswordChange}
+          placeholder="Nhập lại mật khẩu mới"
+          required
+        />
+
+        <div className="profile-actions">
+          <button type="submit" disabled={passwordSaving}>
+            {passwordSaving ? "Đang đổi mật khẩu..." : "Đổi mật khẩu"}
+          </button>
+          <button
+            className="secondary-button"
+            type="button"
+            onClick={closePasswordForm}
+          >
+            Hủy
+          </button>
+        </div>
+      </form>
+      </section>
+    </div>
+  );
 
   if (isLoading) {
     return (
@@ -164,9 +299,27 @@ function Profile() {
           </div>
 
           {!isEditing && (
-            <button type="button" onClick={() => setIsEditing(true)}>
-              Chỉnh sửa thông tin
-            </button>
+            <div className="profile-actions">
+              {!isAdmin && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsPasswordEditing(false);
+                    setIsEditing(true);
+                  }}
+                >
+                  Chỉnh sửa thông tin
+                </button>
+              )}
+              <button
+                className="secondary-button"
+                disabled={isPasswordEditing}
+                type="button"
+                onClick={() => setIsPasswordEditing(true)}
+              >
+                Đổi mật khẩu
+              </button>
+            </div>
           )}
         </div>
       </section>
@@ -174,7 +327,27 @@ function Profile() {
       {message && <p className="success">{message}</p>}
       {error && <p className="error">{error}</p>}
 
-      {!isEditing ? (
+      {isAdmin ? (
+        <div className="profile-grid">
+          <section className="card profile-card profile-summary">
+            <h2>Tài khoản quản trị</h2>
+            <div className="profile-stat">
+              <span>Họ tên</span>
+              <strong>{user.name || "Admin"}</strong>
+            </div>
+            <div className="profile-stat">
+              <span>Email</span>
+              <p>{user.email}</p>
+            </div>
+            <div className="profile-stat">
+              <span>Vai trò</span>
+              <strong>Admin</strong>
+            </div>
+          </section>
+
+          {isPasswordEditing && renderPasswordModal()}
+        </div>
+      ) : !isEditing ? (
         <div className="profile-grid">
           <section className="card profile-card profile-summary">
             <h2>Thông tin học tập</h2>
@@ -216,6 +389,8 @@ function Profile() {
             <h2>Môn học học tốt</h2>
             {renderTags(form.strongSubjects, "Chưa có môn học nổi bật.")}
           </section>
+
+          {isPasswordEditing && renderPasswordModal()}
         </div>
       ) : (
         <section className="card profile-edit-card">

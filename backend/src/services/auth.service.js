@@ -175,6 +175,40 @@ async function resetPasswordWithToken({ token, password }) {
   return { message: "Đổi mật khẩu thành công. Vui lòng đăng nhập lại." };
 }
 
+async function changeAuthenticatedPassword(userId, { currentPassword, newPassword }) {
+  const user = await User.findById(userId).select(
+    "+password +refreshTokenHash +refreshTokenExpiresAt"
+  );
+
+  if (!user) {
+    throw createHttpError(404, "User not found");
+  }
+
+  const isCurrentPasswordValid = await bcrypt.compare(
+    currentPassword,
+    user.password
+  );
+
+  if (!isCurrentPasswordValid) {
+    throw createHttpError(400, "Mật khẩu hiện tại không đúng");
+  }
+
+  const isSamePassword = await bcrypt.compare(newPassword, user.password);
+
+  if (isSamePassword) {
+    throw createHttpError(400, "Mật khẩu mới cần khác mật khẩu hiện tại");
+  }
+
+  user.password = await bcrypt.hash(newPassword, 10);
+  user.passwordResetTokenHash = null;
+  user.passwordResetTokenExpiresAt = null;
+  user.refreshTokenHash = null;
+  user.refreshTokenExpiresAt = null;
+  await user.save();
+
+  return { message: "Đổi mật khẩu thành công. Vui lòng đăng nhập lại." };
+}
+
 async function createAdminUser({ name, email, password, providedSetupSecret }) {
   const expectedSecret = process.env.ADMIN_SETUP_SECRET;
 
@@ -191,6 +225,7 @@ async function createAdminUser({ name, email, password, providedSetupSecret }) {
 }
 
 module.exports = {
+  changeAuthenticatedPassword,
   createAdminUser,
   loginUser,
   logoutAuthSession,

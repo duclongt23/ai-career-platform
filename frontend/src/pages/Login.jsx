@@ -16,6 +16,18 @@ function Login() {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
+  const getPostLoginRedirect = (user) => {
+    if (user?.role === "admin") {
+      return "/admin";
+    }
+
+    if (String(redirectTo || "").startsWith("/admin")) {
+      return "/profile";
+    }
+
+    return redirectTo;
+  };
+
   const handleChange = (e) => {
     setForm({
       ...form,
@@ -35,7 +47,7 @@ function Login() {
       localStorage.setItem("refreshToken", res.data.refreshToken);
       localStorage.setItem("user", JSON.stringify(res.data.user));
 
-      navigate(redirectTo, { replace: true });
+      navigate(getPostLoginRedirect(res.data.user), { replace: true });
     } catch (err) {
       setError(err.response?.data?.message || "Đăng nhập thất bại");
     } finally {

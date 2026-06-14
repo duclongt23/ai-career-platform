@@ -23,6 +23,13 @@ const UserSchema = new mongoose.Schema({
         enum: ["student", "admin"],
         default: "student"
     },
+    favoriteCareers: {
+        type: [{
+            type: mongoose.Schema.Types.ObjectId,
+            ref: "Career",
+        }],
+        default: [],
+    },
     is_active: {
         type: Boolean,
         default: true,

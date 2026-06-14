@@ -2,8 +2,12 @@ const {
   createCareer: createCareerRecord,
   deleteCareer: deleteCareerRecord,
   getCareerDetails,
+  isFavoriteCareer: checkFavoriteCareer,
   listAdminCareers,
   listCareers,
+  listFavoriteCareers: listFavoriteCareerRecords,
+  removeFavoriteCareer: removeFavoriteCareerRecord,
+  saveFavoriteCareer: saveFavoriteCareerRecord,
   searchCareerElements,
   updateCareer: updateCareerRecord,
 } = require("../services/career.service");
@@ -123,6 +127,38 @@ async function getById(req, res) {
   }
 }
 
+async function listFavoriteCareers(req, res) {
+  try {
+    return res.json(await listFavoriteCareerRecords(req.user._id));
+  } catch (error) {
+    return sendError(res, error, "Server error");
+  }
+}
+
+async function getFavoriteStatus(req, res) {
+  try {
+    return res.json(await checkFavoriteCareer(req.user._id, req.params.id));
+  } catch (error) {
+    return sendError(res, error, "Server error");
+  }
+}
+
+async function saveFavoriteCareer(req, res) {
+  try {
+    return res.json(await saveFavoriteCareerRecord(req.user._id, req.params.id));
+  } catch (error) {
+    return sendError(res, error, "Server error");
+  }
+}
+
+async function removeFavoriteCareer(req, res) {
+  try {
+    return res.json(await removeFavoriteCareerRecord(req.user._id, req.params.id));
+  } catch (error) {
+    return sendError(res, error, "Server error");
+  }
+}
+
 async function createCareer(req, res) {
   try {
     const career = await createCareerRecord(req.body);
@@ -168,9 +204,13 @@ module.exports = {
   createRoadmap,
   deleteCareer,
   getById,
+  getFavoriteStatus,
   listAdmin,
+  listFavoriteCareers,
   listPublic,
   listRecommendations,
+  removeFavoriteCareer,
+  saveFavoriteCareer,
   searchAdminElements,
   updateCareer,
 };

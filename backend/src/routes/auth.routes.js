@@ -4,6 +4,7 @@ const { protect } = require("../middleware/auth.middleware");
 const { authRateLimit } = require("../middleware/rateLimit.middleware");
 const { validate } = require("../middleware/validate.middleware");
 const {
+  changePasswordSchema,
   createAdminSchema,
   forgotPasswordSchema,
   loginSchema,
@@ -35,6 +36,12 @@ router.post(
 );
 router.post("/refresh", validate(refreshSchema), authController.refresh);
 router.post("/logout", validate(refreshSchema), authController.logout);
+router.put(
+  "/password",
+  protect,
+  validate(changePasswordSchema),
+  authController.changePassword
+);
 
 router.post(
   "/admin/create",

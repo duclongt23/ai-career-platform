@@ -3,7 +3,9 @@ import {
   Routes,
   Route,
   Link,
+  NavLink,
   Navigate,
+  Outlet,
   useLocation,
   useNavigate,
 } from "react-router-dom";
@@ -22,6 +24,7 @@ import AiDiscoveryPage from "./pages/AiDiscoveryPage";
 import CareerRecommendations from "./pages/CareerRecommendations";
 import CareerExploreChat from "./pages/CareerExploreChat";
 import CareerExploreChats from "./pages/CareerExploreChats";
+import CareerFavorites from "./pages/CareerFavorites";
 import DiscoverySummaryDashboard from "./pages/DiscoverySummaryDashboard";
 import DiscoveryWorkflowLayout from "./components/DiscoveryWorkflowLayout";
 import ForgotPassword from "./pages/ForgotPassword";
@@ -30,6 +33,15 @@ import api from "./api/axios";
 import logoIcon from "./assets/logo.png";
 import { AUTH_SESSION_EXPIRED_EVENT, getStoredUser } from "./utils/storage";
 import useStaleOverlayCleanup from "./utils/useStaleOverlayCleanup";
+import {
+  BarChart3,
+  BriefcaseBusiness,
+  ClipboardList,
+  LayoutDashboard,
+  LogOut,
+  ShieldCheck,
+  UsersRound,
+} from "lucide-react";
 
 function AuthRedirect({ mode }) {
   const location = useLocation();
@@ -63,19 +75,11 @@ function BasicProfileGate({ children }) {
   const [error, setError] = useState("");
 
   useEffect(() => {
-    if (!token) {
-      setStatus("unauthenticated");
-      return;
-    }
-
-    if (user?.role === "admin") {
-      setStatus("ready");
+    if (!token || user?.role === "admin") {
       return;
     }
 
     let isMounted = true;
-    setStatus("loading");
-    setError("");
 
     api
       .get("/profile")
@@ -108,16 +112,20 @@ function BasicProfileGate({ children }) {
     };
   }, [location.pathname, token, user?.role]);
 
+  if (!token) {
+    return <Navigate to="/login" replace state={{ from: location.pathname }} />;
+  }
+
+  if (user?.role === "admin") {
+    return children;
+  }
+
   if (status === "loading") {
     return (
       <section className="card profile-card">
         <p className="muted">Đang kiểm tra hồ sơ...</p>
       </section>
     );
-  }
-
-  if (status === "unauthenticated") {
-    return <Navigate to="/login" replace state={{ from: location.pathname }} />;
   }
 
   if (status === "needsSetup") {
@@ -137,6 +145,120 @@ function BasicProfileGate({ children }) {
   return children;
 }
 
+const adminNavItems = [
+  {
+    to: "/admin",
+    label: "Tổng quan",
+    end: true,
+    icon: LayoutDashboard,
+  },
+  {
+    to: "/admin/users",
+    label: "Người dùng",
+    icon: UsersRound,
+  },
+  {
+    to: "/admin/careers",
+    label: "Nghề nghiệp",
+    icon: BriefcaseBusiness,
+  },
+  {
+    to: "/admin/elements",
+    label: "Năng lực",
+    icon: BarChart3,
+  },
+  {
+    to: "/admin/core-quiz",
+    label: "Câu hỏi khảo sát",
+    icon: ClipboardList,
+  },
+];
+
+function AdminOnly({ children }) {
+  const location = useLocation();
+  const token = localStorage.getItem("token");
+  const user = getStoredUser();
+
+  if (!token) {
+    return <Navigate to="/login" replace state={{ from: location.pathname }} />;
+  }
+
+  if (user?.role !== "admin") {
+    return <Navigate to="/" replace />;
+  }
+
+  return children;
+}
+
+function AdminDashboard() {
+  return (
+    <div className="admin-dashboard-page">
+      <div className="page-header admin-dashboard-header">
+        <span className="admin-eyebrow">Admin console</span>
+        <h1>Bảng điều khiển quản trị</h1>
+        <p>
+          Khu vực quản trị tập trung vào quản lý dữ liệu, tài khoản và cấu hình
+          khảo sát. Các chức năng trải nghiệm của học sinh vẫn tồn tại ở hệ
+          thống chính, nhưng không đặt trong menu admin.
+        </p>
+      </div>
+
+      <section className="admin-overview-grid">
+        {adminNavItems.slice(1).map((item) => {
+          const Icon = item.icon;
+
+          return (
+            <NavLink className="admin-overview-card" key={item.to} to={item.to}>
+              <Icon size={22} aria-hidden="true" />
+              <span>{item.label}</span>
+            </NavLink>
+          );
+        })}
+      </section>
+    </div>
+  );
+}
+
+function AdminLayout() {
+  return (
+    <div className="admin-shell">
+      <aside className="admin-sidebar" aria-label="Điều hướng quản trị">
+        <div className="admin-sidebar-brand">
+          <ShieldCheck size={22} aria-hidden="true" />
+          <div>
+            <strong>Quản trị</strong>
+            <span>Career Guidance</span>
+          </div>
+        </div>
+
+        <nav className="admin-sidebar-nav">
+          {adminNavItems.map((item) => {
+            const Icon = item.icon;
+
+            return (
+              <NavLink
+                key={item.to}
+                to={item.to}
+                end={item.end}
+                className={({ isActive }) =>
+                  `admin-sidebar-link${isActive ? " active" : ""}`
+                }
+              >
+                <Icon size={18} aria-hidden="true" />
+                <span>{item.label}</span>
+              </NavLink>
+            );
+          })}
+        </nav>
+      </aside>
+
+      <section className="admin-content">
+        <Outlet />
+      </section>
+    </div>
+  );
+}
+
 function App() {
   useStaleOverlayCleanup();
 
@@ -147,6 +269,7 @@ function App() {
   const isAdmin = user?.role === "admin";
   const isLandingPage = location.pathname === "/";
   const isDiscoveryPage = location.pathname.startsWith("/discovery");
+  const isAdminPage = location.pathname.startsWith("/admin");
 
   useEffect(() => {
     const handleSessionExpired = () => {
@@ -196,17 +319,24 @@ function App() {
           </Link>
 
           <div className="nav-links">
-            {token && <Link to="/discovery">Hành trình khám phá</Link>}
-            {token && <Link to="/career-explore-chats">Hội thoại nghề</Link>}
+            {token && !isAdmin && <Link to="/discovery">Hành trình khám phá</Link>}
+            {token && !isAdmin && <Link to="/career-explore-chats">Hội thoại nghề</Link>}
+
+            {token && !isAdmin && <Link to="/favorite-careers">Nghề yêu thích</Link>}
 
             {token ? (
               <>
-                {isAdmin && <Link to="/admin/careers">Admin Careers</Link>}
-                {isAdmin && <Link to="/admin/core-quiz">Admin Quiz</Link>}
-                {isAdmin && <Link to="/admin/elements">Admin Elements</Link>}
-                {isAdmin && <Link to="/admin/users">Admin Users</Link>}
+                {isAdmin && (
+                  <Link className="nav-admin-link" to="/admin">
+                    <ShieldCheck size={16} aria-hidden="true" />
+                    Quản trị
+                  </Link>
+                )}
                 <Link to="/profile">Hồ sơ</Link>
-                <button onClick={handleLogout}>Đăng xuất</button>
+                <button onClick={handleLogout}>
+                  <LogOut size={16} aria-hidden="true" />
+                  Đăng xuất
+                </button>
               </>
             ) : (
               <Link className="nav-auth-link" to="/login">
@@ -221,7 +351,9 @@ function App() {
         className={
           isLandingPage
             ? "landing-container"
-            : `container${isDiscoveryPage ? " discovery-container" : ""}`
+            : `container${isDiscoveryPage ? " discovery-container" : ""}${
+                isAdminPage ? " admin-container" : ""
+              }`
         }
       >
         <Routes>
@@ -240,6 +372,7 @@ function App() {
             }
           />
           <Route path="/careers" element={<Navigate to="/" replace />} />
+          <Route path="/favorites" element={<Navigate to="/favorite-careers" replace />} />
           <Route path="/career-recommendations" element={<Navigate to="/discovery/recommendations" replace />} />
           <Route path="/riasec-info" element={<RiasecInfo />} />
           <Route path="/riasec-test" element={<Navigate to="/discovery/riasec" replace />} />
@@ -292,10 +425,28 @@ function App() {
               </BasicProfileGate>
             }
           />
-          <Route path="/admin/careers" element={<AdminCareers />} />
-          <Route path="/admin/core-quiz" element={<AdminCoreQuiz />} />
-          <Route path="/admin/elements" element={<AdminElements />} />
-          <Route path="/admin/users" element={<AdminUsers />} />
+          <Route
+            path="/favorite-careers"
+            element={
+              <BasicProfileGate>
+                <CareerFavorites />
+              </BasicProfileGate>
+            }
+          />
+          <Route
+            path="/admin"
+            element={
+              <AdminOnly>
+                <AdminLayout />
+              </AdminOnly>
+            }
+          >
+            <Route index element={<AdminDashboard />} />
+            <Route path="careers" element={<AdminCareers />} />
+            <Route path="core-quiz" element={<AdminCoreQuiz />} />
+            <Route path="elements" element={<AdminElements />} />
+            <Route path="users" element={<AdminUsers />} />
+          </Route>
         </Routes>
       </main>
     </div>

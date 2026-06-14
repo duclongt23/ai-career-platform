@@ -1098,6 +1098,10 @@ function CareerDetail() {
   const [profileElementScores, setProfileElementScores] = useState([]);
   const [loading, setLoading] = useState(true);
   const [expandedGroups, setExpandedGroups] = useState({});
+  const [isFavorite, setIsFavorite] = useState(false);
+  const [favoriteLoading, setFavoriteLoading] = useState(false);
+  const [favoriteError, setFavoriteError] = useState("");
+  const [favoriteNotice, setFavoriteNotice] = useState("");
 
   useEffect(() => {
     api
@@ -1109,6 +1113,37 @@ function CareerDetail() {
       })
       .finally(() => setLoading(false));
   }, [id]);
+
+  useEffect(() => {
+    if (!token) return undefined;
+
+    let ignore = false;
+    setFavoriteLoading(true);
+    setFavoriteError("");
+    setFavoriteNotice("");
+
+    api
+      .get(`/careers/${id}/favorite`)
+      .then((response) => {
+        if (!ignore) {
+          setIsFavorite(Boolean(response.data?.isFavorite));
+        }
+      })
+      .catch(() => {
+        if (!ignore) {
+          setIsFavorite(false);
+        }
+      })
+      .finally(() => {
+        if (!ignore) {
+          setFavoriteLoading(false);
+        }
+      });
+
+    return () => {
+      ignore = true;
+    };
+  }, [id, token]);
 
   useEffect(() => {
     if (!token) return undefined;
@@ -1161,6 +1196,35 @@ function CareerDetail() {
       [type]: !currentGroups[type],
     }));
   };
+
+  const handleFavoriteToggle = async () => {
+    const nextIsFavorite = !isFavorite;
+
+    setFavoriteLoading(true);
+    setFavoriteError("");
+    setFavoriteNotice("");
+
+    try {
+      const response = nextIsFavorite
+        ? await api.post(`/careers/${id}/favorite`)
+        : await api.delete(`/careers/${id}/favorite`);
+
+      setIsFavorite(Boolean(response.data?.isFavorite));
+      setFavoriteNotice(
+        nextIsFavorite
+          ? "Đã lưu nghề vào danh sách yêu thích."
+          : "Đã bỏ nghề khỏi danh sách yêu thích."
+      );
+    } catch (requestError) {
+      setFavoriteError(
+        requestError.response?.data?.message ||
+          "Không thể cập nhật nghề yêu thích lúc này. Vui lòng thử lại."
+      );
+    } finally {
+      setFavoriteLoading(false);
+    }
+  };
+
   return (
     <div className="career-detail-page">
       <aside className="career-detail-rail" aria-label="Điều hướng trang nghề">
@@ -1197,6 +1261,29 @@ function CareerDetail() {
               </span>
             ))}
           </div>
+
+          {token && (
+            <div className="career-detail-actions">
+              <button
+                className={`career-favorite-button ${isFavorite ? "saved" : ""}`}
+                disabled={favoriteLoading}
+                onClick={handleFavoriteToggle}
+                type="button"
+              >
+                {favoriteLoading
+                  ? "Đang cập nhật..."
+                  : isFavorite
+                    ? "Đã lưu nghề"
+                    : "Lưu nghề yêu thích"}
+              </button>
+              <Link className="detail-link secondary" to="/favorite-careers">
+                Xem nghề đã lưu
+              </Link>
+            </div>
+          )}
+
+          {favoriteNotice && <p className="career-favorite-notice">{favoriteNotice}</p>}
+          {favoriteError && <p className="career-favorite-error">{favoriteError}</p>}
         </div>
 
         {token && (
