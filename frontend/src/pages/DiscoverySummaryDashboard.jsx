@@ -1,5 +1,13 @@
-import { useEffect, useMemo, useState } from "react";
-import { Brain, Compass, Lightbulb, Sparkles, Target } from "lucide-react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import {
+  Brain,
+  ChevronLeft,
+  ChevronRight,
+  Compass,
+  Lightbulb,
+  Sparkles,
+  Target,
+} from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import api from "../api/axios";
 import CompetencyGroupsChart from "../components/analytics/CompetencyGroupsChart";
@@ -132,9 +140,11 @@ function DiscoverySummaryDashboard() {
   const [questions, setQuestions] = useState([]);
   const [profileInsights, setProfileInsights] = useState(null);
   const [insightIndex, setInsightIndex] = useState(0);
+  const [insightDirection, setInsightDirection] = useState("next");
   const [isInsightLoading, setIsInsightLoading] = useState(Boolean(token));
   const [isLoading, setIsLoading] = useState(Boolean(token));
   const [error, setError] = useState("");
+  const insightSwipeRef = useRef(null);
 
   useEffect(() => {
     if (!token) {
@@ -277,6 +287,7 @@ function DiscoverySummaryDashboard() {
   const goToPreviousInsight = () => {
     if (!canNavigateInsights) return;
 
+    setInsightDirection("previous");
     setInsightIndex((currentIndex) =>
       currentIndex === 0 ? insights.length - 1 : currentIndex - 1
     );
@@ -284,7 +295,53 @@ function DiscoverySummaryDashboard() {
   const goToNextInsight = () => {
     if (!canNavigateInsights) return;
 
+    setInsightDirection("next");
     setInsightIndex((currentIndex) => (currentIndex + 1) % insights.length);
+  };
+  const goToInsight = (index) => {
+    if (index === activeInsightIndex) return;
+
+    setInsightDirection(index > activeInsightIndex ? "next" : "previous");
+    setInsightIndex(index);
+  };
+  const handleInsightPointerDown = (event) => {
+    if (!canNavigateInsights) return;
+
+    event.currentTarget.setPointerCapture?.(event.pointerId);
+    insightSwipeRef.current = {
+      pointerId: event.pointerId,
+      startX: event.clientX,
+      startY: event.clientY,
+    };
+  };
+  const handleInsightPointerUp = (event) => {
+    const swipe = insightSwipeRef.current;
+    insightSwipeRef.current = null;
+
+    if (event.currentTarget.hasPointerCapture?.(event.pointerId)) {
+      event.currentTarget.releasePointerCapture(event.pointerId);
+    }
+
+    if (!swipe || swipe.pointerId !== event.pointerId || !canNavigateInsights) {
+      return;
+    }
+
+    const deltaX = event.clientX - swipe.startX;
+    const deltaY = event.clientY - swipe.startY;
+    const absX = Math.abs(deltaX);
+
+    if (absX < 44 || absX < Math.abs(deltaY) * 1.2) {
+      return;
+    }
+
+    if (deltaX < 0) {
+      goToNextInsight();
+    } else {
+      goToPreviousInsight();
+    }
+  };
+  const resetInsightSwipe = () => {
+    insightSwipeRef.current = null;
   };
 
   if (isLoading) {
@@ -330,10 +387,16 @@ function DiscoverySummaryDashboard() {
           </p>
         ) : activeInsight ? (
           <div className="summary-insight-carousel">
-            <div className="summary-insight-stage" aria-live="polite">
+            <div
+              className="summary-insight-stage"
+              aria-live="polite"
+              onPointerCancel={resetInsightSwipe}
+              onPointerDown={handleInsightPointerDown}
+              onPointerUp={handleInsightPointerUp}
+            >
               {/* Mỗi lần chỉ nổi bật một insight để học sinh đọc nhanh, không bị ngợp bởi nhiều đoạn chữ cùng lúc. */}
               <article
-                className="summary-insight-card"
+                className={`summary-insight-card is-entering-${insightDirection}`}
                 key={`${activeInsight.title}-${activeInsightIndex}`}
                 style={{
                   "--summary-insight-color": insightVisual.color,
@@ -364,7 +427,7 @@ function DiscoverySummaryDashboard() {
                 onClick={goToPreviousInsight}
                 type="button"
               >
-                ←
+                <ChevronLeft aria-hidden="true" size={20} strokeWidth={2.6} />
               </button>
               <div className="summary-insight-progress" aria-label="Vị trí insight">
                 {insights.map((insight, index) => (
@@ -373,7 +436,7 @@ function DiscoverySummaryDashboard() {
                     aria-pressed={index === activeInsightIndex}
                     className={index === activeInsightIndex ? "active" : ""}
                     key={`${insight.title}-${index}`}
-                    onClick={() => setInsightIndex(index)}
+                    onClick={() => goToInsight(index)}
                     type="button"
                   />
                 ))}
@@ -385,7 +448,7 @@ function DiscoverySummaryDashboard() {
                 onClick={goToNextInsight}
                 type="button"
               >
-                →
+                <ChevronRight aria-hidden="true" size={20} strokeWidth={2.6} />
               </button>
               <span className="summary-insight-count">
                 {activeInsightIndex + 1}/{insights.length}

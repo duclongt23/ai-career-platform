@@ -136,6 +136,35 @@ const aiDiscoverySessionSchema = new mongoose.Schema(
       min: 0,
     },
 
+    finalizationReason: {
+      type: String,
+      enum: ["", "ai_confident", "user_requested"],
+      default: "",
+    },
+
+    conclusionStatus: {
+      type: String,
+      enum: ["", "sufficient", "provisional", "insufficient"],
+      default: "",
+    },
+
+    conclusionConfidence: {
+      type: Number,
+      min: 0,
+      max: 1,
+      default: null,
+    },
+
+    missingInformation: {
+      type: [String],
+      default: [],
+    },
+
+    canProceedToNextStep: {
+      type: Boolean,
+      default: false,
+    },
+
     extractedCandidates: {
       type: [candidateElementSchema],
       default: [],

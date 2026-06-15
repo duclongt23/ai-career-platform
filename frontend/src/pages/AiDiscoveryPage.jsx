@@ -16,6 +16,13 @@ const LEVEL_LABELS = {
   3: "Rất đúng với mình",
 };
 const MAX_VISIBLE_MESSAGES = 50;
+const EMPTY_FINALIZATION = {
+  reason: "",
+  status: "",
+  confidence: null,
+  missingInformation: [],
+  canProceed: false,
+};
 
 const keepLatestMessages = (messages = []) =>
   messages.slice(-MAX_VISIBLE_MESSAGES);
@@ -33,6 +40,53 @@ const getSelectedCandidateLevels = (confirmedElements = []) =>
     confirmedElements.map((element) => [element.code, Number(element.level)])
   );
 
+const getSessionFinalization = (data = {}) => {
+  const finalization = data.finalization || {};
+  const confidence = Number(finalization.confidence);
+
+  return {
+    reason: finalization.reason || "",
+    status: finalization.status || "",
+    confidence: Number.isFinite(confidence) ? confidence : null,
+    missingInformation: Array.isArray(finalization.missingInformation)
+      ? finalization.missingInformation
+      : [],
+    canProceed: Boolean(finalization.canProceed),
+  };
+};
+
+const getConclusionTitle = (finalization) => {
+  if (finalization.status === "insufficient") {
+    return "Chưa đủ thông tin để kết luận chắc chắn";
+  }
+
+  if (finalization.status === "provisional") {
+    return "Kết luận tạm thời từ dữ liệu hiện có";
+  }
+
+  return "AI đã có đủ dữ liệu để đề xuất yếu tố phù hợp";
+};
+
+const getStatusLabel = (status, finalization) => {
+  if (status === "confirmed") {
+    return "Đã xác nhận";
+  }
+
+  if (status === "ready_to_confirm") {
+    if (finalization.status === "insufficient") {
+      return "Chưa đủ dữ liệu";
+    }
+
+    if (finalization.status === "provisional") {
+      return "Kết luận tạm thời";
+    }
+
+    return "Chờ xác nhận";
+  }
+
+  return "Đang khám phá";
+};
+
 function AiDiscoveryPage() {
   const navigate = useNavigate();
   const token = localStorage.getItem("token");
@@ -42,6 +96,7 @@ function AiDiscoveryPage() {
   const [candidates, setCandidates] = useState([]);
   const [confirmedElements, setConfirmedElements] = useState([]);
   const [status, setStatus] = useState("in_progress");
+  const [finalization, setFinalization] = useState(EMPTY_FINALIZATION);
   const [selectedCandidates, setSelectedCandidates] = useState({});
   const [openingOptions, setOpeningOptions] = useState([]);
   const [openingQuestionId, setOpeningQuestionId] = useState("");
@@ -54,6 +109,7 @@ function AiDiscoveryPage() {
   const [showResetConfirm, setShowResetConfirm] = useState(false);
   const [isSelectingOpening, setIsSelectingOpening] = useState(false);
   const [isSending, setIsSending] = useState(false);
+  const [isFinalizing, setIsFinalizing] = useState(false);
   const [isEditingConfirmed, setIsEditingConfirmed] = useState(false);
   const [isUpdatingConfirmed, setIsUpdatingConfirmed] = useState(false);
   const [confirmedEditMessage, setConfirmedEditMessage] = useState("");
@@ -72,6 +128,7 @@ function AiDiscoveryPage() {
     setCandidates(data.candidates || []);
     setConfirmedElements(nextConfirmedElements);
     setStatus(data.status || "in_progress");
+    setFinalization(getSessionFinalization(data));
     setOpeningOptions(data.openingOptions || []);
     setOpeningQuestionId(data.openingQuestionId || "");
     // A confirmed session is restored by the backend after a page reload.
@@ -219,6 +276,7 @@ function AiDiscoveryPage() {
       setStatus(res.data.status || "in_progress");
       setCandidates(res.data.candidates || []);
       setConfirmedElements([]);
+      setFinalization(getSessionFinalization(res.data));
       setOpeningOptions(res.data.openingOptions || openingOptions);
       setOpeningQuestionId(res.data.openingQuestionId || openingQuestionId);
       setSelectedCandidates({});
@@ -259,12 +317,70 @@ function AiDiscoveryPage() {
     }
   };
 
+  const finalizeConversation = async () => {
+    if (
+      isSending ||
+      isFinalizing ||
+      isResetting ||
+      isConfirming ||
+      isFindingMore ||
+      isSelectingOpening ||
+      isUpdatingConfirmed ||
+      status !== "in_progress"
+    ) {
+      return;
+    }
+
+    setIsFinalizing(true);
+    setError("");
+
+    try {
+      const res = await api.post("/profile/ai-discovery/finalize", {
+        sessionId,
+      });
+
+      setSessionId(res.data.sessionId);
+      setStatus(res.data.status || "ready_to_confirm");
+      setCandidates(res.data.candidates || []);
+      setConfirmedElements([]);
+      setFinalization(getSessionFinalization(res.data));
+      setOpeningOptions(res.data.openingOptions || openingOptions);
+      setOpeningQuestionId(res.data.openingQuestionId || openingQuestionId);
+      setSelectedCandidates({});
+      setIsEditingConfirmed(false);
+      setConfirmedEditMessage("");
+
+      if (res.data.assistantMessage) {
+        setMessages((currentMessages) =>
+          keepLatestMessages([
+            ...currentMessages,
+            {
+              role: "assistant",
+              content: res.data.assistantMessage,
+              createdAt: new Date().toISOString(),
+            },
+          ])
+        );
+      }
+    } catch (err) {
+      setError(
+        getApiErrorMessage(
+          err,
+          "AI chưa thể kết luận ngay. Vui lòng thử lại sau."
+        )
+      );
+    } finally {
+      setIsFinalizing(false);
+    }
+  };
+
   const resetSession = async () => {
     if (
       isSending ||
       isResetting ||
       isConfirming ||
       isFindingMore ||
+      isFinalizing ||
       isSelectingOpening ||
       isUpdatingConfirmed
     ) {
@@ -333,6 +449,7 @@ function AiDiscoveryPage() {
       setStatus(res.data.status || "ready_to_confirm");
       setCandidates(res.data.candidates || []);
       setConfirmedElements([]);
+      setFinalization(getSessionFinalization(res.data));
       setOpeningOptions(res.data.openingOptions || openingOptions);
       setOpeningQuestionId(res.data.openingQuestionId || openingQuestionId);
       setIsEditingConfirmed(false);
@@ -529,6 +646,12 @@ function AiDiscoveryPage() {
   const canEditConfirmedCandidates = status === "confirmed";
   const candidateControlsDisabled =
     status === "confirmed" && !isEditingConfirmed;
+  const shouldShowConclusionPanel =
+    status === "ready_to_confirm" && Boolean(finalization.status);
+  const conclusionConfidencePercent =
+    finalization.confidence === null
+      ? null
+      : Math.round(finalization.confidence * 100);
 
   useEffect(() => {
     if (!token || !shouldSelectOpening) {
@@ -744,16 +867,36 @@ function AiDiscoveryPage() {
         <div className="ai-discovery-chat-heading">
           <div>
             <strong>Career discovery mentor</strong>
-            <span>{isSending ? "Đang suy nghĩ..." : "Sẵn sàng trò chuyện"}</span>
+            <span>
+              {isFinalizing
+                ? "Đang tổng hợp kết luận..."
+                : isSending
+                  ? "Đang suy nghĩ..."
+                  : "Sẵn sàng trò chuyện"}
+            </span>
           </div>
           <div className="ai-discovery-chat-actions">
             <span className="ai-discovery-session-status">
-              {status === "confirmed"
-                ? "Đã xác nhận"
-                : status === "ready_to_confirm"
-                  ? "Chờ xác nhận"
-                  : "Đang khám phá"}
+              {getStatusLabel(status, finalization)}
             </span>
+            {status === "in_progress" && (
+              <button
+                className="secondary ai-discovery-finalize-button"
+                type="button"
+                onClick={finalizeConversation}
+                disabled={
+                  isSending ||
+                  isFinalizing ||
+                  isResetting ||
+                  isConfirming ||
+                  isFindingMore ||
+                  isSelectingOpening ||
+                  isUpdatingConfirmed
+                }
+              >
+                {isFinalizing ? "Đang kết luận..." : "Kết luận ngay"}
+              </button>
+            )}
             <button
               className="ai-discovery-reset-button"
               type="button"
@@ -763,6 +906,7 @@ function AiDiscoveryPage() {
                 isResetting ||
                 isConfirming ||
                 isFindingMore ||
+                isFinalizing ||
                 isSelectingOpening ||
                 isUpdatingConfirmed
               }
@@ -790,10 +934,79 @@ function AiDiscoveryPage() {
             </article>
           )}
 
+          {isFinalizing && (
+            <article className="ai-discovery-message assistant pending">
+              <span>AI mentor</span>
+              <p>Đang tổng hợp kết luận hiện tại...</p>
+            </article>
+          )}
+
           <div ref={messagesEndRef} />
         </div>
 
         {error && <p className="error ai-discovery-error">{error}</p>}
+
+        {shouldShowConclusionPanel && (
+          <section
+            className={`ai-discovery-conclusion-panel ${finalization.status}`}
+          >
+            <div className="ai-discovery-conclusion-heading">
+              <div>
+                <span>
+                  {finalization.reason === "user_requested"
+                    ? "Kết luận theo yêu cầu"
+                    : "Kết luận từ AI"}
+                </span>
+                <strong>{getConclusionTitle(finalization)}</strong>
+              </div>
+              {conclusionConfidencePercent !== null && (
+                <b>{conclusionConfidencePercent}%</b>
+              )}
+            </div>
+
+            {finalization.status === "insufficient" ? (
+              <p>
+                AI chưa thấy đủ bằng chứng để đề xuất yếu tố một cách chắc chắn.
+                Bạn vẫn có thể chuyển sang bước tổng kết bằng dữ liệu hiện có.
+              </p>
+            ) : (
+              <p>
+                Hãy xem lại các yếu tố bên dưới trước khi lưu vào hồ sơ. Nếu cần
+                đi nhanh, bạn có thể chuyển sang bước tổng kết và quay lại sau.
+              </p>
+            )}
+
+            {finalization.missingInformation.length > 0 && (
+              <div className="ai-discovery-missing-info">
+                <span>Còn thiếu</span>
+                <ul>
+                  {finalization.missingInformation.map((item) => (
+                    <li key={item}>{item}</li>
+                  ))}
+                </ul>
+              </div>
+            )}
+
+            {finalization.status === "insufficient" && (
+              <div className="ai-discovery-conclusion-actions">
+                <Link
+                  className="workflow-next-action"
+                  to="/discovery/dashboard"
+                >
+                  Chuyển sang tổng kết
+                </Link>
+                <button
+                  className="secondary"
+                  type="button"
+                  onClick={resetSession}
+                  disabled={isResetting || isFinalizing}
+                >
+                  {isResetting ? "Đang mở menu..." : "Chọn câu bắt đầu khác"}
+                </button>
+              </div>
+            )}
+          </section>
+        )}
 
         <form className="ai-discovery-composer" onSubmit={sendMessage}>
           <textarea
@@ -803,13 +1016,17 @@ function AiDiscoveryPage() {
               status === "confirmed"
                 ? "Các lựa chọn đã được lưu vào hồ sơ."
                 : status === "ready_to_confirm"
-                  ? "AI đã đưa ra gợi ý để bạn xem lại."
+                  ? candidates.length > 0
+                    ? "AI đã đưa ra gợi ý để bạn xem lại."
+                    : "AI chưa đủ dữ liệu để kết luận chắc chắn."
                   : "Nhập câu trả lời của bạn..."
             }
             rows="3"
             maxLength="2000"
             disabled={
-              isSending || ["ready_to_confirm", "confirmed"].includes(status)
+              isSending ||
+              isFinalizing ||
+              ["ready_to_confirm", "confirmed"].includes(status)
             }
           />
           <div className="ai-discovery-composer-footer">
@@ -819,6 +1036,7 @@ function AiDiscoveryPage() {
               disabled={
                 !input.trim() ||
                 isSending ||
+                isFinalizing ||
                 ["ready_to_confirm", "confirmed"].includes(status)
               }
             >
@@ -950,7 +1168,7 @@ function AiDiscoveryPage() {
                   <p>
                     Một cuộc trò chuyện là mức tối thiểu. Em nên làm thêm 1-2
                     cuộc trò chuyện với câu bắt đầu khác để AI nhận diện được
-                    nhiều yếu tố hơn trước khi xem gợi ý nghề nghiệp.
+                    nhiều yếu tố hơn trước khi xem tổng kết hồ sơ.
                   </p>
                 </div>
                 {isEditingConfirmed ? (
@@ -999,7 +1217,7 @@ function AiDiscoveryPage() {
                   className="workflow-next-action"
                   to="/discovery/dashboard"
                 >
-                  Xem gợi ý nghề nghiệp
+                  Xem tổng kết hồ sơ
                 </Link>
               </div>
             ) : (

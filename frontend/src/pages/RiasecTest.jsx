@@ -554,19 +554,13 @@ function RiasecTest() {
     }
   };
 
-  const handleAnswer = (value) => {
-    const nextAnswers = {
-      ...answers,
+  const handleAnswer = (value, event) => {
+    event?.currentTarget?.blur();
+
+    setAnswers((prev) => ({
+      ...prev,
       [currentQuestion.id]: value,
-    };
-
-    setAnswers(nextAnswers);
-
-    if (currentIndex < questions.length - 1) {
-      setCurrentIndex((prev) => prev + 1);
-    } else {
-      saveRiasecResult(nextAnswers);
-    }
+    }));
   };
 
   const goToNext = () => {
@@ -727,36 +721,42 @@ function RiasecTest() {
             <div style={{ width: progressPercent ? `${progressPercent}%` : 18 }} />
           </div>
 
-          <div className="riasec-question">
-            <p>
-              Câu hỏi {currentIndex + 1}/{questions.length}
-            </p>
-            <h2>Bạn có thích hoạt động {currentQuestion.text} không?</h2>
-          </div>
+          <div
+            key={currentQuestion.id}
+            className="riasec-question-step"
+            aria-live="polite"
+          >
+            <div className="riasec-question">
+              <p>
+                Câu hỏi {currentIndex + 1}/{questions.length}
+              </p>
+              <h2>Bạn có thích hoạt động {currentQuestion.text} không?</h2>
+            </div>
 
-          <div className="riasec-options">
-            {ANSWER_OPTIONS.map((option) => (
-              <button
-                key={option.value}
-                type="button"
-                className={[
-                  "riasec-scale-option",
-                  `scale-${option.value}`,
-                  answers[currentQuestion.id] === option.value ? "selected" : "",
-                ]
-                  .filter(Boolean)
-                  .join(" ")}
-                onClick={() => handleAnswer(option.value)}
-              >
-                <span>{option.label}</span>
-              </button>
-            ))}
+            <div className="riasec-options">
+              {ANSWER_OPTIONS.map((option) => (
+                <button
+                  key={`${currentQuestion.id}-${option.value}`}
+                  type="button"
+                  className={[
+                    "riasec-scale-option",
+                    `scale-${option.value}`,
+                    answers[currentQuestion.id] === option.value ? "selected" : "",
+                  ]
+                    .filter(Boolean)
+                    .join(" ")}
+                  onClick={(event) => handleAnswer(option.value, event)}
+                >
+                  <span>{option.label}</span>
+                </button>
+              ))}
+            </div>
           </div>
 
           <div className="riasec-actions">
             <button
               type="button"
-              className="secondary-button"
+              className="secondary-button riasec-action-back"
               onClick={goToPrevious}
               disabled={currentIndex === 0}
             >
@@ -764,6 +764,7 @@ function RiasecTest() {
             </button>
             <button
               type="button"
+              className="riasec-action-next"
               onClick={goToNext}
               disabled={answers[currentQuestion.id] === undefined}
             >
@@ -800,6 +801,21 @@ function RiasecTest() {
               Làm lại bài test
             </button>
           </div>
+
+          {topResults[0] && (
+            <div className="riasec-primary-result">
+              <div>
+                <span>Kết quả chính</span>
+                <strong>{topResults.map((item) => item.code).join("")}</strong>
+              </div>
+              <div>
+                <h3>
+                  Nhóm nổi bật nhất: {topResults[0].code} - {topResults[0].viName}
+                </h3>
+                <p>{topResults[0].description}</p>
+              </div>
+            </div>
+          )}
 
           <RiasecRadarChart
             results={displayedResults}

@@ -12,6 +12,11 @@ router.post("/core-quiz/submit", protect, coreQuizController.submitQuiz);
 router.delete("/core-quiz/result", protect, coreQuizController.resetQuiz);
 router.post("/ai-discovery/start", protect, aiDiscoveryController.startSession);
 router.post("/ai-discovery/message", protect, aiDiscoveryController.sendMessage);
+router.post(
+  "/ai-discovery/finalize",
+  protect,
+  aiDiscoveryController.finalizeSession
+);
 router.post("/ai-discovery/reset", protect, aiDiscoveryController.resetSession);
 router.post(
   "/ai-discovery/more-candidates",

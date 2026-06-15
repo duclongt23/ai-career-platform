@@ -136,6 +136,11 @@ const restoreCoreQuizDraft = (questionList = [], draft) => {
   };
 };
 
+const hasCoreQuizProgress = (answers = {}) =>
+  Object.values(answers).some(
+    (answerIndexes) => Array.isArray(answerIndexes) && answerIndexes.length > 0
+  );
+
 const formatPercent = (value) => {
   if (value === null || value === undefined) {
     return "-";
@@ -210,6 +215,7 @@ function CoreQuizPage() {
             setQuestions(restoredDraft.questions);
             setAnswers(restoredDraft.answers);
             setCurrentIndex(restoredDraft.currentIndex);
+            setHasStarted(hasCoreQuizProgress(restoredDraft.answers));
             setError("");
           } catch {
             if (!isMounted) return;
@@ -436,6 +442,20 @@ function CoreQuizPage() {
               Làm lại
             </button>
           </div>
+
+          {topScores[0] && (
+            <div className="core-primary-result">
+              <div>
+                <span>Kết quả chính</span>
+                <strong>{getElementDisplayName(topScores[0])}</strong>
+              </div>
+              <p>
+                Nhóm {TYPE_LABELS[topScores[0].type] || topScores[0].type} nổi
+                bật nhất trong bài làm, mức độ phù hợp{" "}
+                {formatPercent(topScores[0].finalScore)}.
+              </p>
+            </div>
+          )}
 
           {error && <p className="error">{error}</p>}
 
@@ -671,6 +691,11 @@ function CoreQuizPage() {
           <div style={{ width: `${progressPercent}%` }} />
         </div>
 
+        <div
+          key={currentQuestion.question_id}
+          className="core-question-step"
+          aria-live="polite"
+        >
         <div className="core-question-meta">
           <span>{TYPE_LABELS[currentQuestion.target_type]}</span>
           <span>
@@ -690,7 +715,10 @@ function CoreQuizPage() {
               : "radio";
 
             return (
-              <label key={answer.index} className={selected ? "selected" : ""}>
+              <label
+                key={`${currentQuestion.question_id}-${answer.index}`}
+                className={selected ? "selected" : ""}
+              >
                 <input
                   type={inputType}
                   name={currentQuestion.question_id}
@@ -708,12 +736,14 @@ function CoreQuizPage() {
           })}
         </div>
 
+        </div>
+
         {validationError && <p className="field-error">{validationError}</p>}
 
         <div className="core-actions">
           <button
             type="button"
-            className="secondary-button"
+            className="secondary-button core-action-back"
             onClick={goToPrevious}
             disabled={currentIndex === 0 || isSubmitting}
           >
@@ -721,11 +751,21 @@ function CoreQuizPage() {
           </button>
 
           {currentIndex < questions.length - 1 ? (
-            <button type="button" onClick={goToNext} disabled={isSubmitting}>
+            <button
+              type="button"
+              className="core-action-next"
+              onClick={goToNext}
+              disabled={isSubmitting}
+            >
               Tiếp tục
             </button>
           ) : (
-            <button type="button" onClick={submitQuiz} disabled={isSubmitting}>
+            <button
+              type="button"
+              className="core-action-next"
+              onClick={submitQuiz}
+              disabled={isSubmitting}
+            >
               {isSubmitting ? "Đang lưu..." : "Hoàn thành"}
             </button>
           )}

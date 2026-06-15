@@ -2,6 +2,7 @@ const mongoose = require("mongoose");
 const AiDiscoverySession = require("../models/AiDiscovery");
 const StudentProfile = require("../models/StudentProfile");
 const {
+  buildAiDiscoveryImmediateConclusionPrompt,
   buildAiDiscoveryMoreCandidatesPrompt,
   buildAiDiscoveryPrompt,
 } = require("../prompts/aiDiscoveryPrompt");
@@ -210,10 +211,57 @@ function parseJsonObject(rawResponse) {
   }
 }
 
-function parseAiResponse(rawResponse, availableElements) {
-  const response = parseJsonObject(rawResponse);
+function clampNumber(value, min, max) {
+  const numericValue = Number(value);
 
-  if (!["ask_followup", "ready_to_confirm"].includes(response.action)) {
+  if (!Number.isFinite(numericValue)) {
+    return null;
+  }
+
+  return Math.min(max, Math.max(min, numericValue));
+}
+
+function normalizeStringList(values = [], limit = 4) {
+  if (!Array.isArray(values)) {
+    return [];
+  }
+
+  return values
+    .map((value) => String(value || "").trim())
+    .filter(Boolean)
+    .slice(0, limit);
+}
+
+function getAverageCandidateConfidence(candidates = []) {
+  if (!candidates.length) {
+    return null;
+  }
+
+  const total = candidates.reduce(
+    (sum, candidate) => sum + Number(candidate.confidence || 0),
+    0
+  );
+
+  return Math.round((total / candidates.length) * 100) / 100;
+}
+
+function normalizeConclusionStatus(status, fallback = "") {
+  return ["sufficient", "provisional", "insufficient"].includes(status)
+    ? status
+    : fallback;
+}
+
+function parseAiResponse(rawResponse, availableElements, options = {}) {
+  const response = parseJsonObject(rawResponse);
+  const allowedActions = options.allowedActions || [
+    "ask_followup",
+    "ready_to_confirm",
+  ];
+  const minCandidates = Number.isFinite(options.minCandidates)
+    ? options.minCandidates
+    : 3;
+
+  if (!allowedActions.includes(response.action)) {
     throw new Error("DeepSeek returned an invalid action");
   }
 
@@ -235,6 +283,20 @@ function parseAiResponse(rawResponse, availableElements) {
       action: response.action,
       assistantMessage,
       candidates: [],
+      conclusionStatus: "",
+      conclusionConfidence: null,
+      missingInformation: [],
+    };
+  }
+
+  if (response.action === "insufficient_information") {
+    return {
+      action: response.action,
+      assistantMessage,
+      candidates: [],
+      conclusionStatus: "insufficient",
+      conclusionConfidence: clampNumber(response.confidence, 0, 1) ?? 0.3,
+      missingInformation: normalizeStringList(response.missing_information),
     };
   }
 
@@ -261,9 +323,9 @@ function parseAiResponse(rawResponse, availableElements) {
 
     const reason =
       typeof candidate.reason === "string" ? candidate.reason.trim() : "";
-    const confidence = Number(candidate.confidence);
+    const confidence = clampNumber(candidate.confidence, 0.1, 1);
 
-    if (!reason || !Number.isFinite(confidence)) {
+    if (!reason || confidence === null) {
       return normalized;
     }
 
@@ -273,13 +335,13 @@ function parseAiResponse(rawResponse, availableElements) {
       type: element.type,
       name_vi: element.name_vi,
       reason,
-      confidence: Math.min(1, Math.max(0.1, confidence)),
+      confidence,
     });
 
     return normalized;
   }, []);
 
-  if (candidates.length < 3 || candidates.length > 6) {
+  if (candidates.length < minCandidates || candidates.length > 6) {
     throw new Error("DeepSeek returned an invalid candidate list");
   }
 
@@ -287,14 +349,22 @@ function parseAiResponse(rawResponse, availableElements) {
     action: response.action,
     assistantMessage,
     candidates,
+    conclusionStatus: normalizeConclusionStatus(
+      response.conclusion_status,
+      "sufficient"
+    ),
+    conclusionConfidence:
+      clampNumber(response.confidence, 0, 1) ??
+      getAverageCandidateConfidence(candidates),
+    missingInformation: normalizeStringList(response.missing_information),
   };
 }
 
-async function getParsedAiResponse(prompt, elements) {
+async function getParsedAiResponse(prompt, elements, options = {}) {
   const rawResponse = await callDeepSeek(prompt);
 
   try {
-    return parseAiResponse(rawResponse, elements);
+    return parseAiResponse(rawResponse, elements, options);
   } catch (error) {
     if (error.code !== "INVALID_AI_JSON") {
       throw error;
@@ -312,7 +382,7 @@ async function getParsedAiResponse(prompt, elements) {
       },
     ]);
 
-    return parseAiResponse(retryResponse, elements);
+    return parseAiResponse(retryResponse, elements, options);
   }
 }
 
@@ -370,6 +440,48 @@ function mergeCandidates(existingCandidates = [], newCandidates = []) {
   return merged;
 }
 
+function clearConclusionMetadata(session) {
+  session.finalizationReason = "";
+  session.conclusionStatus = "";
+  session.conclusionConfidence = null;
+  session.missingInformation = [];
+  session.canProceedToNextStep = false;
+}
+
+function applyConclusionMetadata(session, aiResponse, reason) {
+  session.finalizationReason = reason;
+  session.conclusionStatus =
+    aiResponse.conclusionStatus ||
+    (aiResponse.action === "ready_to_confirm" ? "sufficient" : "");
+  session.conclusionConfidence = Number.isFinite(
+    Number(aiResponse.conclusionConfidence)
+  )
+    ? Number(aiResponse.conclusionConfidence)
+    : null;
+  session.missingInformation = normalizeStringList(
+    aiResponse.missingInformation
+  );
+  session.canProceedToNextStep =
+    aiResponse.action === "ready_to_confirm" ||
+    aiResponse.action === "insufficient_information";
+}
+
+function getConclusionResponseFields(session) {
+  return {
+    finalization: {
+      reason: session.finalizationReason || "",
+      status: session.conclusionStatus || "",
+      confidence:
+        session.conclusionConfidence === null ||
+        session.conclusionConfidence === undefined
+          ? null
+          : Number(session.conclusionConfidence),
+      missingInformation: session.missingInformation || [],
+      canProceed: Boolean(session.canProceedToNextStep),
+    },
+  };
+}
+
 async function sendMessage(req, res) {
   try {
     const message = normalizeMessage(req.body?.message);
@@ -400,6 +512,7 @@ async function sendMessage(req, res) {
     trimStoredMessages(session);
     session.status = "in_progress";
     session.extractedCandidates = [];
+    clearConclusionMetadata(session);
     await session.save();
 
     // Tách lỗi upstream khỏi lỗi request: sessionId vẫn được trả về để frontend retry.
@@ -432,6 +545,9 @@ async function sendMessage(req, res) {
 
       if (aiResponse.action === "ask_followup") {
         session.followUpCount += 1;
+        clearConclusionMetadata(session);
+      } else {
+        applyConclusionMetadata(session, aiResponse, "ai_confident");
       }
 
       await session.save();
@@ -445,6 +561,7 @@ async function sendMessage(req, res) {
         candidates: aiResponse.candidates,
         followUpCount: session.followUpCount,
         ...getOpeningResponseFields(profile, session),
+        ...getConclusionResponseFields(session),
       });
     } catch (error) {
       // Ghi lỗi upstream để phân biệt lỗi API, JSON và validate candidate khi debug.
@@ -469,6 +586,93 @@ async function sendMessage(req, res) {
       message: error.statusCode
         ? error.message
         : "Failed to process AI discovery message",
+      error: error.message,
+    });
+  }
+}
+
+async function finalizeSession(req, res) {
+  try {
+    const profile = await getProfileWithRiasec(req.user._id);
+    const session = await getOrCreateSession(req.user._id, req.body?.sessionId);
+
+    if (session.status === "ready_to_confirm") {
+      return res.json({
+        message: "AI discovery conclusion already generated",
+        sessionId: session._id,
+        status: session.status,
+        action:
+          (session.extractedCandidates || []).length > 0
+            ? "ready_to_confirm"
+            : "insufficient_information",
+        assistantMessage:
+          session.messages[session.messages.length - 1]?.role === "assistant"
+            ? session.messages[session.messages.length - 1].content
+            : null,
+        candidates: session.extractedCandidates || [],
+        followUpCount: session.followUpCount,
+        ...getOpeningResponseFields(profile, session),
+        ...getConclusionResponseFields(session),
+      });
+    }
+
+    ensureOpeningMessage(session, profile, req.body?.openingQuestionId);
+
+    const elements = await getElementsForAiDiscovery(profile, {
+      openingTopic: session.openingTopic,
+      seed: session._id,
+    });
+
+    if (elements.length === 0) {
+      throw createHttpError(
+        422,
+        "No suitable elements found for this RIASEC profile"
+      );
+    }
+
+    const prompt = buildAiDiscoveryImmediateConclusionPrompt({
+      profile: {
+        grade: profile.grade,
+        favoriteSubjects: profile.favoriteSubjects,
+        strongSubjects: profile.strongSubjects,
+        goal: profile.goal,
+        riasecCode: profile.riasecCode,
+        riasecScores: profile.riasecScores,
+      },
+      followUpCount: session.followUpCount,
+      messages: session.messages.slice(-MAX_CONTEXT_MESSAGES),
+      elements: getPromptElements(elements),
+    });
+    const aiResponse = await getParsedAiResponse(prompt, elements, {
+      allowedActions: ["ready_to_confirm", "insufficient_information"],
+    });
+
+    session.messages.push({
+      role: "assistant",
+      content: aiResponse.assistantMessage,
+    });
+    trimStoredMessages(session);
+    session.status = "ready_to_confirm";
+    session.extractedCandidates = aiResponse.candidates;
+    applyConclusionMetadata(session, aiResponse, "user_requested");
+    await session.save();
+
+    return res.json({
+      message: "AI discovery immediate conclusion generated successfully",
+      sessionId: session._id,
+      status: session.status,
+      action: aiResponse.action,
+      assistantMessage: aiResponse.assistantMessage,
+      candidates: aiResponse.candidates,
+      followUpCount: session.followUpCount,
+      ...getOpeningResponseFields(profile, session),
+      ...getConclusionResponseFields(session),
+    });
+  } catch (error) {
+    return res.status(error.statusCode || 500).json({
+      message: error.statusCode
+        ? error.message
+        : "Failed to finalize AI discovery session",
       error: error.message,
     });
   }
@@ -508,7 +712,9 @@ async function startSession(req, res) {
         session.status === "confirmed"
           ? "confirmed"
           : session.status === "ready_to_confirm"
-            ? "ready_to_confirm"
+            ? (session.extractedCandidates || []).length > 0
+              ? "ready_to_confirm"
+              : "insufficient_information"
             : session.messages.length === 0
               ? "select_opening"
               : "awaiting_user_message",
@@ -517,11 +723,12 @@ async function startSession(req, res) {
         session.messages[session.messages.length - 1]?.role === "assistant"
           ? session.messages[session.messages.length - 1].content
           : null,
-      candidates: session.extractedCandidates,
+      candidates: session.extractedCandidates || [],
       confirmedElements: session.confirmedElements,
       followUpCount: session.followUpCount,
       openingCreated,
       ...getOpeningResponseFields(profile, session),
+      ...getConclusionResponseFields(session),
     });
   } catch (error) {
     return res.status(error.statusCode || 500).json({
@@ -564,6 +771,7 @@ async function resetSession(req, res) {
       followUpCount: 0,
       openingCreated: false,
       ...getOpeningResponseFields(profile, session),
+      ...getConclusionResponseFields(session),
     });
   } catch (error) {
     return res.status(error.statusCode || 500).json({
@@ -641,6 +849,15 @@ async function findMoreCandidates(req, res) {
     trimStoredMessages(session);
     session.status = "ready_to_confirm";
     session.extractedCandidates = mergedCandidates;
+    applyConclusionMetadata(
+      session,
+      {
+        ...aiResponse,
+        candidates: mergedCandidates,
+        conclusionStatus: session.conclusionStatus || aiResponse.conclusionStatus,
+      },
+      session.finalizationReason || "ai_confident"
+    );
     await session.save();
 
     return res.json({
@@ -653,6 +870,7 @@ async function findMoreCandidates(req, res) {
       addedCandidates: aiResponse.candidates,
       followUpCount: session.followUpCount,
       ...getOpeningResponseFields(profile, session),
+      ...getConclusionResponseFields(session),
     });
   } catch (error) {
     return res.status(error.statusCode || 500).json({
@@ -1159,6 +1377,7 @@ async function updateConfirmedCandidates(req, res) {
 
 module.exports = {
   confirmCandidates,
+  finalizeSession,
   findMoreCandidates,
   listConfirmedElements,
   parseAiResponse,

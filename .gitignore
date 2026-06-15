@@ -4,3 +4,4 @@ node_modules/
 data/
 QAprofiling.json
 *.md
+tests/
