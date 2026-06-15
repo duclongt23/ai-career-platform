@@ -861,7 +861,7 @@ button.danger:hover:not(:disabled),
   align-items: center;
   background:
     linear-gradient(90deg, rgba(17, 24, 39, 0.9) 0%, rgba(17, 24, 39, 0.72) 48%, rgba(17, 24, 39, 0.2) 100%),
-    url("./assets/career.jpg");
+    url("./assets/career.png");
   background-position: center;
   background-size: cover;
   color: #ffffff;
@@ -1022,9 +1022,9 @@ button.danger:hover:not(:disabled),
 .story-grid {
   display: grid;
   gap: 18px;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(4, minmax(0, 1fr));
   margin: 0 auto;
-  max-width: 1120px;
+  max-width: 1280px;
 }
 
 .story-card {
@@ -4760,7 +4760,6 @@ button.danger:hover:not(:disabled),
     width: 100%;
   }
 
-  .story-grid,
   .profile-grid,
   .riasec-type-grid,
   .ai-discovery-candidate-grid,
@@ -4769,6 +4768,10 @@ button.danger:hover:not(:disabled),
   .career-fit-content,
   .career-chat-hub {
     grid-template-columns: 1fr;
+  }
+
+  .story-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
   .career-chat-sidebar {
@@ -4929,6 +4932,10 @@ button.danger:hover:not(:disabled),
   .landing-final {
     padding-left: 20px;
     padding-right: 20px;
+  }
+
+  .story-grid {
+    grid-template-columns: 1fr;
   }
 
   .story-heading h2,

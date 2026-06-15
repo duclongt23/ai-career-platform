@@ -8,18 +8,23 @@ import { getStoredUser } from "../utils/storage";
 const storyCards = [
   {
     step: "01",
-    title: "Lắng nghe cách bạn nghĩ",
-    text: "AI bắt đầu từ sở thích, nhịp học tập và những điều bạn thấy có ý nghĩa.",
+    title: "Phác họa bản thân" ,
+    text: "Chia sẻ nhanh về sở thích, điểm mạnh và cách bạn tư duy. Hãy là chính mình!",
   },
   {
     step: "02",
-    title: "Ghép tín hiệu thành bản đồ",
-    text: "RIASEC, giá trị cá nhân và câu trả lời mở được nối lại thành hồ sơ định hướng.",
+    title: "Định hình hồ sơ cùng AI",
+    text: "Chinh phục các câu hỏi tình huống ngắn và trò chuyện cùng AI để bóc tách sâu về tính cách và các tầng năng lực ẩn giấu.",
   },
   {
     step: "03",
-    title: "Gợi ý con đường kế tiếp",
-    text: "Bạn nhận được nhóm ngành phù hợp và lý do rõ ràng để tiếp tục khám phá.",
+    title: "Khám phá cơ hội nghề nghiệp",
+    text: "Đón nhận bức tranh toàn cảnh về những ngành nghề phù hợp với bản thân và bắt đầu hành trình khám phá.",
+  },
+  {
+    step: "04",
+    title: "Tham vấn cùng AI Mentor",
+    text: "Trò chuyện trực tiếp với chuyên gia AI để đào sâu lộ trình, giải đáp thắc mắc và lên kế hoạch hành động.",
   },
 ];
 
