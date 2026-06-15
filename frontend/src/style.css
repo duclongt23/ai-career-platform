@@ -842,6 +842,12 @@ button.danger:hover:not(:disabled),
 .ai-discovery-confirmed-actions {
   @apply flex flex-wrap items-center;
   gap: 12px;
+  justify-content: flex-start;
+  width: 100%;
+}
+
+.ai-discovery-confirmed-guidance {
+  flex: 1 0 100%;
 }
 
 .landing-container {
@@ -1767,10 +1773,15 @@ button.danger:hover:not(:disabled),
   margin-bottom: 8px;
 }
 
-.recommendation-matches div,
+.recommendation-matches div {
+  @apply flex flex-wrap;
+  gap: 8px;
+}
+
 .recommendation-card-actions {
   @apply flex flex-wrap;
   gap: 8px;
+  margin-top: 14px;
 }
 
 .recommendation-matches span {

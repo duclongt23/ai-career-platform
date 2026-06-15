@@ -39,6 +39,15 @@ function formatElementCode(code) {
     .replace(/\b\w/g, (character) => character.toUpperCase());
 }
 
+function getElementDisplayName(element) {
+  return (
+    element?.name_vi ||
+    element?.name_en ||
+    element?.name ||
+    formatElementCode(element?.code)
+  );
+}
+
 function getMatchScore(career) {
   if (Number.isFinite(career.displayMatchScore)) {
     return Math.round(career.displayMatchScore);
@@ -112,7 +121,7 @@ function RecommendationNode({ career, index }) {
             <strong>Điểm mạnh phù hợp</strong>
             <div>
               {matchedElements.map((element) => (
-                <span key={element.code}>{formatElementCode(element.code)}</span>
+                <span key={element.code}>{getElementDisplayName(element)}</span>
               ))}
             </div>
           </div>

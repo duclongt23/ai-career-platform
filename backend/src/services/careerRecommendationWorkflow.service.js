@@ -105,9 +105,13 @@ async function getCareerRecommendationsForUser(userId) {
     Array.isArray(snapshot.recommendations);
 
   if (canReuseSnapshot) {
+    const recommendations = await addElementNamesToRecommendations(
+      snapshot.recommendations
+    );
+
     return {
-      recommendations: snapshot.recommendations,
-      count: snapshot.recommendations.length,
+      recommendations,
+      count: recommendations.length,
       limit: DEFAULT_RECOMMENDATION_LIMIT,
       elementScoreVersion: ELEMENT_SCORE_ALGORITHM_VERSION,
       generatedAt: snapshot.generatedAt,
