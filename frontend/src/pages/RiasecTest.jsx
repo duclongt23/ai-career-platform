@@ -379,6 +379,7 @@ function RiasecTest() {
   const [error, setError] = useState("");
   const [saveStatus, setSaveStatus] = useState("idle");
   const [savedResult, setSavedResult] = useState(null);
+  const [hasSubmitted, setHasSubmitted] = useState(false);
 
   useEffect(() => {
     if (!token) {
@@ -408,6 +409,7 @@ function RiasecTest() {
         if (isRestorableRiasecDraft(draft)) {
           setHasStarted(true);
           setSavedResult(null);
+          setHasSubmitted(false);
           setSaveStatus("idle");
           setIsLoading(true);
           return;
@@ -418,6 +420,7 @@ function RiasecTest() {
             code: res.data.riasecCode,
             scores: res.data.riasecScores,
           });
+          setHasSubmitted(false);
           setSaveStatus("saved");
         }
       })
@@ -450,6 +453,7 @@ function RiasecTest() {
           setAnswers(restoredDraft.answers);
           setCurrentIndex(restoredDraft.currentIndex);
           setSavedResult(null);
+          setHasSubmitted(false);
           setSaveStatus("idle");
         }
       })
@@ -474,6 +478,7 @@ function RiasecTest() {
   const startAssessment = () => {
     clearDiscoveryDraft(draftKey);
     setSavedResult(null);
+    setHasSubmitted(false);
     setHasStarted(true);
     setAnswers({});
     setCurrentIndex(0);
@@ -482,14 +487,23 @@ function RiasecTest() {
   };
 
   const answeredCount = Object.keys(answers).length;
-  const isCompleted = questions.length > 0 && answeredCount === questions.length;
+  const hasAnsweredAll = questions.length > 0 && answeredCount === questions.length;
+  const shouldShowResult = hasSubmitted || Boolean(savedResult);
   const currentQuestion = questions[currentIndex];
   const progressPercent = questions.length
     ? Math.round((answeredCount / questions.length) * 100)
     : 0;
 
   useEffect(() => {
-    if (!token || !hasStarted || questions.length === 0 || savedResult) return;
+    if (
+      !token ||
+      !hasStarted ||
+      questions.length === 0 ||
+      savedResult ||
+      hasSubmitted
+    ) {
+      return;
+    }
 
     writeDiscoveryDraft(
       draftKey,
@@ -499,6 +513,7 @@ function RiasecTest() {
     answers,
     currentIndex,
     draftKey,
+    hasSubmitted,
     hasStarted,
     questions.length,
     savedResult,
@@ -518,11 +533,13 @@ function RiasecTest() {
     [questions, savedResult]
   );
 
-  const displayedResults = savedResult && !isCompleted ? savedResults : results;
+  const displayedResults = savedResult && !hasSubmitted ? savedResults : results;
   const topResults = displayedResults.slice(0, 3);
 
   const saveRiasecResult = async (nextAnswers) => {
     const token = localStorage.getItem("token");
+
+    setHasSubmitted(true);
 
     if (!token) {
       setSaveStatus("guest");
@@ -568,7 +585,7 @@ function RiasecTest() {
 
     if (currentIndex < questions.length - 1) {
       setCurrentIndex((prev) => prev + 1);
-    } else {
+    } else if (hasAnsweredAll) {
       saveRiasecResult(answers);
     }
   };
@@ -580,6 +597,7 @@ function RiasecTest() {
   const restartTest = () => {
     clearDiscoveryDraft(draftKey);
     setSavedResult(null);
+    setHasSubmitted(false);
     setHasStarted(true);
     setAnswers({});
     setCurrentIndex(0);
@@ -709,7 +727,7 @@ function RiasecTest() {
         </Link>
       </section>
 
-      {!isCompleted && !savedResult ? (
+      {!shouldShowResult ? (
         <section className="card riasec-card">
           <div className="riasec-progress-meta">
             <span>
