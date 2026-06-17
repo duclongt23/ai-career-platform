@@ -5,3 +5,5 @@ data/
 QAprofiling.json
 *.md
 tests/
+test/
+__tests__/

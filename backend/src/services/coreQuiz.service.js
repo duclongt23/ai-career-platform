@@ -147,9 +147,13 @@ function normalizeSelectedIndexes(selectedAnswerIndexes) {
     return [];
   }
 
-  return [...new Set(selectedAnswerIndexes)]
-    .map((index) => Number(index))
-    .filter((index) => Number.isInteger(index) && index >= 0);
+  return [
+    ...new Set(
+      selectedAnswerIndexes
+        .map((index) => Number(index))
+        .filter((index) => Number.isInteger(index) && index >= 0)
+    ),
+  ]
 }
 
 async function calculateElementScores(submittedAnswers) {
