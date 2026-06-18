@@ -3,8 +3,8 @@ const { DEFAULT_AI_CONFIDENCE } = require("../constants/aiDiscovery");
 
 const AI_DISCOVERY_BASE_WEIGHT = 0.75;
 const CORE_QUIZ_BASE_WEIGHT = 0.25;
-const QUIZ_EVIDENCE_TARGET = 5;
-const ELEMENT_SCORE_ALGORITHM_VERSION = 2;
+const QUIZ_RELIABILITY_SCALE = 2;
+const ELEMENT_SCORE_ALGORITHM_VERSION = 3;
 
 function roundScore(value) {
   return Number(value.toFixed(4));
@@ -112,7 +112,7 @@ function finalizeElementScore(score) {
   const hasQuizScore = Number.isFinite(score.quizScore);
   const hasAiDiscoveryScore = Number.isFinite(score.aiDiscoveryScore);
   const quizReliability = hasQuizScore
-    ? Math.min(score.quizEvidenceCount / QUIZ_EVIDENCE_TARGET, 1)
+    ? 1 - Math.exp(-score.quizEvidenceCount / QUIZ_RELIABILITY_SCALE)
     : null;
   const aiDiscoveryReliability = hasAiDiscoveryScore
     ? 0.8 + 0.2 * score.aiDiscoveryConfidence
@@ -131,10 +131,11 @@ function finalizeElementScore(score) {
         score.aiDiscoveryScore * aiDiscoveryWeight) /
       (quizWeight + aiDiscoveryWeight);
   } else if (hasAiDiscoveryScore) {
-    // Do not penalize an explicit student confirmation merely because a quiz
-    // has not produced evidence for this element.
+    // AI-only elements are discounted by the reliability of the AI evidence.
+    // The student's level remains the primary score, while model confidence
+    // controls how much of that score is retained.
     aiDiscoveryWeight = aiDiscoveryReliability;
-    finalScore = score.aiDiscoveryScore;
+    finalScore = score.aiDiscoveryScore * aiDiscoveryReliability;
   } else if (hasQuizScore) {
     // Quiz-only elements remain useful but are discounted until the amount of
     // questionnaire evidence becomes stable or AI Discovery confirms them.
