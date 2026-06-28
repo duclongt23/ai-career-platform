@@ -70,10 +70,36 @@ test("calculateSimilarity returns full raw score for identical element and RIASE
   assert.equal(similarity.matchedElementCount, 5);
 });
 
+test("calculateSimilarity renormalizes element type weights when career groups are missing", () => {
+  const similarity = calculateSimilarity(
+    toProfileWeights([
+      { code: "analysis", type: "ability", finalScore: 1 },
+    ]),
+    [{ code: "analysis", type: "ability", importance: 1 }],
+    { riasecCode: "RIA", careerRiasecCode: "RIA" }
+  );
+
+  assert.equal(similarity.elementFit, 1);
+  assert.equal(similarity.typeFits.ability.hasCareerData, true);
+  assert.equal(similarity.typeFits.knowledge.hasCareerData, false);
+  assert.equal(similarity.rawScoreV3, 1);
+});
+
 test("calculateRiasecFit uses weighted intersection of Holland codes", () => {
   assert.equal(calculateRiasecFit("RIA", "RIA"), 1);
   assert.equal(calculateRiasecFit("RIA", "SEC"), 0);
   assert.equal(calculateRiasecFit("RIA", "IRS") > 0, true);
+});
+
+test("calculateSimilarity renormalizes available weights when career RIASEC is missing", () => {
+  const similarity = calculateSimilarity(
+    toProfileWeights(completeProfileScores),
+    completeCareerElements,
+    { riasecCode: "RIA", careerRiasecCode: "" }
+  );
+
+  assert.equal(similarity.hasRiasecData, false);
+  assert.equal(similarity.rawScoreV3, 1);
 });
 
 test("calculateSimilarity surfaces career-linked growth elements", () => {
@@ -92,6 +118,18 @@ test("calculateSimilarity surfaces career-linked growth elements", () => {
   assert.equal(similarity.growthElements.length, 1);
   assert.equal(similarity.growthElements[0].code, "presentation");
   assert.equal(similarity.growthElements[0].gap, 0.65);
+});
+
+test("calculateSimilarity emphasizes strong evidence and softly penalizes elements outside the career", () => {
+  const similarity = calculateSimilarity(
+    toProfileWeights([
+      { code: "analysis", type: "ability", finalScore: 1 },
+      { code: "creativity", type: "ability", finalScore: 1 },
+    ]),
+    [{ code: "analysis", type: "ability", importance: 1 }]
+  );
+
+  assert.equal(similarity.studentToCareerFit, 0.7692);
 });
 
 test("rankCareerRecommendations ranks by raw score, excludes no-overlap careers, and calibrates display scores", () => {

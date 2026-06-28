@@ -1,0 +1,206 @@
+\subsection{Giải pháp đề xuất}
+\label{subsection:5.5.2}
+
+Mục tiêu của thuật toán gợi ý nghề nghiệp trong hệ thống là tìm các nghề phù hợp với những đặc điểm, năng lực và sở thích mà học sinh đã thể hiện qua bài đánh giá năng lực cốt lõi, quá trình khám phá cùng AI và bài trắc nghiệm RIASEC. Do hệ thống được xây dựng ở quy mô MVP, thuật toán được thiết kế theo hướng dựa trên luật và độ tương đồng có trọng số. Cách tiếp cận này không yêu cầu một tập dữ liệu huấn luyện lớn, có chi phí tính toán thấp và cho phép giải thích được lý do một nghề được đề xuất.
+
+\subsubsection{Rút gọn tập yếu tố cốt lõi của nghề}
+
+Trước khi tính điểm, hệ thống rút gọn danh sách element của mỗi nghề thành tập \texttt{careerCoreElements}. Trong từng loại element, hệ thống sắp xếp theo mức độ quan trọng và chỉ giữ lại tối đa 20 \texttt{ability}, 15 \texttt{workstyle}, 10 \texttt{transferable\_skill}, 5 \texttt{essential\_skill} và 10 \texttt{knowledge}. Vì vậy, một nghề được biểu diễn bởi tối đa 60 element cốt lõi.
+
+Việc rút gọn này phù hợp với đặc điểm dữ liệu của hệ thống. Vector nghề thường chứa nhiều element, trong khi hồ sơ học sinh là một vector tương đối thưa: Core Quiz phát hiện nhiều element nhưng phần lớn có điểm thấp, còn AI Discovery chỉ xác nhận một số lượng nhỏ element nhưng thường có điểm từ khá đến cao. Nếu sử dụng toàn bộ element nghề, nhiều yêu cầu phụ có thể làm giảm độ tương đồng một cách không cần thiết. Việc chỉ giữ các element quan trọng giúp thuật toán tập trung vào cấu trúc yêu cầu chính của nghề, giảm nhiễu và giảm chi phí tính toán.
+
+Các element không được chọn không được gán giá trị 0 mà bị loại khỏi không gian so sánh của nghề. Đối với một element cốt lõi của nghề mà học sinh chưa thể hiện, điểm tương ứng của học sinh mới được xem là 0 trong phép tính \textit{elementFit}.
+
+\subsubsection{Điểm phù hợp theo yêu cầu cốt lõi của nghề}
+
+Thành phần \textit{elementFit} đo mức độ hồ sơ học sinh tương đồng với cấu trúc yêu cầu cốt lõi của nghề. Phép tính được thực hiện riêng cho từng loại element. Gọi $E_t^c$ là tập element cốt lõi thuộc loại $t$ của nghề, $S_t(e)$ là điểm của học sinh tại element $e$, và $C_t(e)$ là mức độ quan trọng của element đó đối với nghề. Cả hai vector được biểu diễn trên cùng không gian $E_t^c$:
+
+\begin{equation}
+	S_t = \left(S_t(e)\right)_{e \in E_t^c},
+	\qquad
+	C_t = \left(C_t(e)\right)_{e \in E_t^c}.
+\end{equation}
+
+Hệ thống sử dụng cosine similarity để đo sự tương đồng về hướng và cấu trúc phân bố giữa hai vector:
+
+\begin{equation}
+	\text{cosine}_t
+	=
+	\frac{
+		\sum\limits_{e \in E_t^c} S_t(e)C_t(e)
+	}{
+		\sqrt{\sum\limits_{e \in E_t^c}S_t(e)^2}
+		\sqrt{\sum\limits_{e \in E_t^c}C_t(e)^2}
+	}.
+\end{equation}
+
+Cosine similarity có ưu điểm là nhận biết hai vector có cấu trúc tương tự, nhưng có thể cho điểm cao khi hai vector cùng hướng dù mức điểm tuyệt đối của học sinh còn thấp. Vì vậy, hệ thống kết hợp thêm weighted Jaccard:
+
+\begin{equation}
+	\text{weightedJaccard}_t
+	=
+	\frac{
+		\sum\limits_{e \in E_t^c}
+		\min\left(S_t(e),C_t(e)\right)
+	}{
+		\sum\limits_{e \in E_t^c}
+		\max\left(S_t(e),C_t(e)\right)
+	}.
+\end{equation}
+
+Weighted Jaccard phản ánh cả phần giao nhau và độ chênh lệch về cường độ giữa hai vector. Điểm phù hợp của từng loại element được tính như sau:
+
+\begin{equation}
+	\text{typeFit}_t
+	=
+	0.65 \times \text{cosine}_t
+	0.35 \times \text{weightedJaccard}_t.
+\end{equation}
+
+Việc đặt trọng số cosine cao hơn giúp duy trì khả năng nhận biết cấu trúc năng lực phù hợp, trong khi weighted Jaccard đóng vai trò điều chỉnh để những hồ sơ có mức điểm quá thấp so với yêu cầu nghề không nhận điểm cao chỉ vì có cùng hướng vector.
+
+Trọng số cơ sở của năm loại element lần lượt là:
+
+\begin{equation}
+	\alpha_{ability}=0.30,\quad
+	\alpha_{workstyle}=0.30,\quad
+	\alpha_{transferable\_skill}=0.15,\quad
+	\alpha_{essential\_skill}=0.15,\quad
+	\alpha_{knowledge}=0.10.
+\end{equation}
+
+Hai nhóm \texttt{ability} và \texttt{workstyle} được ưu tiên vì chúng phản ánh tương đối trực tiếp năng lực và cách thức học sinh thực hiện công việc. Các nhóm kỹ năng và kiến thức vẫn được sử dụng, nhưng có trọng số thấp hơn vì đây là những thành phần có thể tiếp tục được đào tạo và phát triển.
+
+Không phải nghề nào cũng có dữ liệu ở đầy đủ năm nhóm. Nếu gán điểm 0 cho một nhóm nghề không có dữ liệu, nghề đó sẽ bị giảm điểm vì thiếu dữ liệu chứ không phải vì không phù hợp. Do đó, hệ thống chỉ tổng hợp trên tập $T_c$ gồm các loại element thực sự xuất hiện trong nghề và chuẩn hóa lại tổng trọng số:
+
+\begin{equation}
+	\text{elementFit}
+	=
+	\frac{
+		\sum\limits_{t \in T_c}
+		\alpha_t \text{typeFit}_t
+	}{
+		\sum\limits_{t \in T_c}\alpha_t
+	}.
+\end{equation}
+
+Cơ chế này giúp điểm số thích ứng với mức độ đầy đủ của dữ liệu nghề và tránh coi dữ liệu bị thiếu là bằng chứng không phù hợp.
+
+\subsubsection{Điểm nghề tận dụng các đặc điểm học sinh đã thể hiện}
+
+Nếu \textit{elementFit} trả lời câu hỏi ``hồ sơ học sinh tương đồng với các yêu cầu cốt lõi của nghề đến đâu'', thì \textit{studentToCareerFit} trả lời theo chiều ngược lại: ``nghề này sử dụng những đặc điểm nổi bật mà học sinh đã thể hiện đến mức nào''.
+
+Gọi $E_s$ là tập element xuất hiện trong hồ sơ học sinh, $E_c$ là tập element cốt lõi của nghề, $S(e)$ là điểm element của học sinh và $C(e)$ là mức độ quan trọng của element đó trong nghề. Do Core Quiz thường tạo ra nhiều element có điểm thấp, trong khi AI Discovery tạo ra ít element hơn nhưng đã được học sinh xác nhận với mức điểm cao hơn, hệ thống sử dụng $S(e)^2$ làm trọng số bằng chứng:
+
+\begin{equation}
+	\text{studentToCareerFit}
+	=
+	\frac{
+		\sum\limits_{e \in E_s \cap E_c}
+		S(e)^2 C(e)
+	}{
+		\sum\limits_{e \in E_s \cap E_c}S(e)^2
+		+
+		\lambda
+		\sum\limits_{e \in E_s \setminus E_c}S(e)^2
+	}.
+\end{equation}
+
+Trong phiên bản hiện tại, hệ thống sử dụng:
+
+\begin{equation}
+	\lambda=0.3.
+\end{equation}
+
+Phép bình phương không thay đổi thứ tự điểm nhưng làm nổi bật các bằng chứng mạnh. Chẳng hạn, điểm $0.9$ có trọng số $0.81$, trong khi điểm $0.3$ chỉ có trọng số $0.09$. Nhờ đó, một số lượng lớn element có điểm thấp từ Core Quiz không lấn át các element có điểm cao đã được học sinh thể hiện hoặc xác nhận rõ ràng.
+
+Hệ số $\lambda$ điều chỉnh mức phạt đối với các element học sinh có nhưng nghề không sử dụng. Nếu $\lambda=1$, các element ngoài nghề bị tính đầy đủ vào mẫu số; điều này có thể gây bất lợi cho học sinh có hồ sơ đa dạng. Nếu $\lambda=0$, các element ngoài nghề hoàn toàn không ảnh hưởng, nhưng một nghề chỉ trùng với rất ít điểm mạnh cũng có thể nhận điểm quá cao. Giá trị $\lambda=0.3$ là phương án trung gian: điểm mạnh ngoài nghề chỉ làm giảm điểm ở mức nhẹ, trong khi nghề sử dụng được nhiều bằng chứng mạnh của học sinh vẫn được ưu tiên.
+
+Công thức này phù hợp với mục tiêu của MVP là gợi ý nghề dựa trên những gì học sinh đã thể hiện, thay vì khẳng định rằng hệ thống đã đánh giá đầy đủ mọi năng lực cần thiết cho nghề.
+
+\subsubsection{Điểm tương thích sở thích RIASEC}
+
+Thành phần \textit{riasecFit} đo mức tương thích giữa mã RIASEC của học sinh và mã RIASEC của nghề. Các chữ cái được gán trọng số giảm dần theo vị trí trong mã. Với mã có độ dài $n$, trọng số của chữ cái tại vị trí $k$ được tính bởi:
+
+\begin{equation}
+	w_k=\frac{n-k+1}{n}.
+\end{equation}
+
+Gọi $w_s(r)$ và $w_c(r)$ lần lượt là trọng số của chữ cái $r$ trong mã RIASEC của học sinh và nghề. Điểm RIASEC được tính bằng weighted Jaccard:
+
+\begin{equation}
+	\text{riasecFit}
+	=
+	\frac{
+		\sum\limits_{r \in R_s \cup R_c}
+		\min\left(w_s(r),w_c(r)\right)
+	}{
+		\sum\limits_{r \in R_s \cup R_c}
+		\max\left(w_s(r),w_c(r)\right)
+	}.
+\end{equation}
+
+Cách tính này cho phép ghi nhận mức tương thích một phần giữa hai mã, đồng thời ưu tiên trường hợp các chữ cái nổi trội xuất hiện ở vị trí cao trong cả hai mã.
+
+Nếu học sinh hoặc nghề chưa có dữ liệu RIASEC, hệ thống không đặt \textit{riasecFit} bằng 0 vì điều đó sẽ đồng nhất ``thiếu dữ liệu'' với ``không phù hợp''. Thay vào đó, thành phần RIASEC được loại khỏi phép tính và các trọng số còn lại được chuẩn hóa.
+
+\subsubsection{Tổng hợp và xếp hạng nghề}
+
+Khi cả học sinh và nghề đều có dữ liệu RIASEC, điểm phù hợp thô được tính bởi:
+
+\begin{equation}
+	\text{rawScore}
+	=
+	0.40 \times \text{elementFit}
+	+
+	0.40 \times \text{studentToCareerFit}
+	+
+	0.20 \times \text{riasecFit}.
+\end{equation}
+
+\textit{elementFit} và \textit{studentToCareerFit} được đặt trọng số bằng nhau vì chúng biểu diễn hai hướng bổ sung của bài toán: mức học sinh khớp với yêu cầu nghề và mức nghề tận dụng các đặc điểm học sinh đã thể hiện. RIASEC giữ vai trò điều chỉnh theo sở thích nghề nghiệp, nhưng không được đặt trọng số quá cao vì sở thích không đồng nghĩa hoàn toàn với năng lực thực hiện nghề.
+
+Trong trường hợp thiếu RIASEC ở một trong hai phía, tổng trọng số khả dụng chỉ còn $0.8$. Hệ thống chuẩn hóa lại như sau:
+
+\begin{equation}
+	\text{rawScore}
+	=
+	\frac{
+		0.40 \times \text{elementFit}
+		+
+		0.40 \times \text{studentToCareerFit}
+	}{
+		0.40+0.40
+	}
+	=
+	0.50 \times \text{elementFit}
+	+
+	0.50 \times \text{studentToCareerFit}.
+\end{equation}
+
+Nhờ vậy, một nghề không bị giảm điểm chỉ vì chưa được bổ sung mã RIASEC.
+
+Sau khi tính điểm, hệ thống loại bỏ các nghề không có element nào giao với hồ sơ học sinh. Các nghề còn lại được sắp xếp lần lượt theo \textit{rawScore} giảm dần, độ bao phủ yêu cầu nghề giảm dần và tên nghề theo thứ tự chữ cái. Hệ thống trả về tối đa 25 nghề.
+
+Ngoài điểm tổng, hệ thống lưu các thành phần phân rã gồm \textit{elementFit}, \textit{studentToCareerFit}, \textit{riasecFit}, điểm theo từng loại element, các element phù hợp nổi bật và các vùng cần phát triển. Các thông tin này giúp kết quả có khả năng giải thích thay vì chỉ cung cấp một danh sách xếp hạng.
+
+\subsubsection{Điểm hiển thị}
+
+\textit{rawScore} được sử dụng để xếp hạng nội bộ. Để giao diện dễ tiếp cận hơn khi hồ sơ học sinh còn hạn chế, hệ thống quy đổi thứ hạng thành \texttt{displayMatchScore} dựa trên percentile:
+
+\begin{equation}
+	\text{displayMatchScore}
+	=
+	55
+40 \times \text{percentile}^{0.75}.
+\end{equation}
+
+Điểm hiển thị nằm trong khoảng từ 55 đến 95 và giữ nguyên thứ tự của danh sách. Tuy nhiên, đây là điểm tương đối trong tập nghề được đề xuất, không phải xác suất học sinh thành công với nghề và cũng không nên được diễn giải là tỷ lệ phù hợp tuyệt đối.
+
+\subsubsection{Nhận xét và hạn chế}
+
+Giải pháp có ưu điểm là đơn giản, minh bạch, không cần dữ liệu huấn luyện và phù hợp với phạm vi của một sản phẩm MVP. Việc kết hợp hai chiều so khớp giúp hệ thống vừa xét yêu cầu nghề, vừa ưu tiên những nghề sử dụng được các đặc điểm học sinh đã thể hiện. Phép bình phương điểm hồ sơ và hệ số $\lambda$ giúp thuật toán thích ứng tốt hơn với sự khác biệt giữa Core Quiz có độ phủ rộng và AI Discovery có số lượng element ít nhưng bằng chứng mạnh. Cơ chế chuẩn hóa trọng số cũng tránh việc dữ liệu nghề hoặc RIASEC bị thiếu làm giảm điểm một cách máy móc.
+
+Tuy vậy, thuật toán vẫn còn một số hạn chế. Thứ nhất, các trọng số $0.40$, $0.40$, $0.20$, hệ số $\lambda=0.3$, tỷ lệ kết hợp cosine--weighted Jaccard và giới hạn số element cốt lõi hiện được lựa chọn theo phân tích thiết kế và thử nghiệm kỹ thuật, chưa được tối ưu bằng dữ liệu sử dụng thực tế hoặc đánh giá của chuyên gia hướng nghiệp. Thứ hai, trường \texttt{importance} của nghề đang được sử dụng như trọng số so khớp, trong khi mức độ quan trọng và mức năng lực tối thiểu nghề yêu cầu là hai khái niệm khác nhau. Thứ ba, element không xuất hiện trong hồ sơ có thể mang nghĩa chưa được đánh giá, chứ không nhất thiết học sinh không có năng lực đó; mô hình hiện tại chưa biểu diễn riêng độ tin cậy và trạng thái chưa quan sát. Thứ tư, phép chọn top-$K$ có thể loại bỏ một số element có giá trị nằm ngay dưới ngưỡng. Cuối cùng, điểm hiển thị được hiệu chỉnh theo thứ hạng nên chỉ có ý nghĩa so sánh tương đối trong cùng một lần gợi ý.
+
+Những hạn chế trên là chấp nhận được trong giai đoạn MVP, khi mục tiêu chính là kiểm chứng quy trình khám phá và gợi ý nghề nghiệp có khả năng giải thích. Trong các phiên bản tiếp theo, hệ thống có thể thu thập phản hồi của học sinh và chuyên gia, tách riêng \texttt{importance} với mức năng lực yêu cầu, lưu độ tin cậy của từng element và tối ưu các trọng số bằng dữ liệu thực nghiệm.

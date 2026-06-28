@@ -4,7 +4,7 @@ const {
   MAX_RECOMMENDATION_LIMIT,
 } = require("../constants/recommendations");
 
-const RECOMMENDATION_ALGORITHM_VERSION = 4;
+const RECOMMENDATION_ALGORITHM_VERSION = 7;
 const TOP_MATCHED_ELEMENT_LIMIT = 5;
 const TOP_GROWTH_ELEMENT_LIMIT = 8;
 const GROWTH_PROFILE_SCORE_MAX = 0.58;
@@ -12,9 +12,10 @@ const GROWTH_CAREER_IMPORTANCE_MIN = 0.55;
 const GROWTH_GAP_MIN = 0.18;
 const TYPE_FIT_COSINE_WEIGHT = 0.65;
 const TYPE_FIT_WEIGHTED_JACCARD_WEIGHT = 0.35;
-const ELEMENT_FIT_WEIGHT = 0.45;
-const RIASEC_FIT_WEIGHT = 0.25;
-const STUDENT_TO_CAREER_FIT_WEIGHT = 0.3;
+const ELEMENT_FIT_WEIGHT = 0.4;
+const RIASEC_FIT_WEIGHT = 0.2;
+const STUDENT_TO_CAREER_FIT_WEIGHT = 0.4;
+const OUT_OF_CAREER_ELEMENT_PENALTY = 0.3;
 const DISPLAY_SCORE_MIN = 55;
 const DISPLAY_SCORE_SPREAD = 40;
 const DISPLAY_SCORE_EXPONENT = 0.75;
@@ -187,22 +188,36 @@ function calculateElementFit(profileWeights, careerCoreElements) {
   const careerMapsByType = toCareerWeightMapsByType(careerCoreElements);
   const typeFits = {};
 
-  const elementFit = Object.entries(ELEMENT_FIT_WEIGHT_BY_TYPE).reduce(
-    (sum, [type, typeWeight]) => {
+  const { weightedFit, activeTypeWeight } = Object.entries(
+    ELEMENT_FIT_WEIGHT_BY_TYPE
+  ).reduce(
+    (result, [type, typeWeight]) => {
       const careerWeights = careerMapsByType.get(type) || new Map();
       const fit = calculateTypeFit(profileWeights, careerWeights);
+      const hasCareerData = careerWeights.size > 0;
 
       typeFits[type] = {
         typeFit: roundScore(fit.typeFit),
         cosine: roundScore(fit.cosine),
         weightedJaccard: roundScore(fit.weightedJaccard),
         careerCoreElementCount: careerWeights.size,
+        hasCareerData,
       };
 
-      return sum + fit.typeFit * typeWeight;
+      if (hasCareerData) {
+        result.weightedFit += fit.typeFit * typeWeight;
+        result.activeTypeWeight += typeWeight;
+      }
+
+      return result;
     },
-    0
+    {
+      weightedFit: 0,
+      activeTypeWeight: 0,
+    }
   );
+  const elementFit =
+    activeTypeWeight > 0 ? weightedFit / activeTypeWeight : 0;
 
   return {
     elementFit,
@@ -212,14 +227,26 @@ function calculateElementFit(profileWeights, careerCoreElements) {
 
 function calculateStudentToCareerFit(profileWeights, careerCoreWeights) {
   let weightedUse = 0;
-  let totalProfileWeight = 0;
+  let matchedProfileWeight = 0;
+  let unmatchedProfileWeight = 0;
 
   profileWeights.forEach((profileWeight, code) => {
-    totalProfileWeight += profileWeight;
-    weightedUse += profileWeight * (careerCoreWeights.get(code) || 0);
+    const evidenceWeight = profileWeight ** 2;
+    const careerWeight = careerCoreWeights.get(code) || 0;
+
+    if (careerWeight > 0) {
+      matchedProfileWeight += evidenceWeight;
+      weightedUse += evidenceWeight * careerWeight;
+    } else {
+      unmatchedProfileWeight += evidenceWeight;
+    }
   });
 
-  return totalProfileWeight > 0 ? weightedUse / totalProfileWeight : 0;
+  const denominator =
+    matchedProfileWeight +
+    OUT_OF_CAREER_ELEMENT_PENALTY * unmatchedProfileWeight;
+
+  return denominator > 0 ? weightedUse / denominator : 0;
 }
 
 function normalizeRiasecCode(code) {
@@ -362,16 +389,26 @@ function calculateSimilarity(profileWeights, careerElements, profile = {}) {
     matchedElements,
     careerCoreElements
   );
-  const rawScoreV3 =
+  const hasRiasecData =
+    normalizeRiasecCode(profile.riasecCode).length > 0 &&
+    normalizeRiasecCode(profile.careerRiasecCode).length > 0;
+  const activeWeightTotal =
+    ELEMENT_FIT_WEIGHT +
+    STUDENT_TO_CAREER_FIT_WEIGHT +
+    (hasRiasecData ? RIASEC_FIT_WEIGHT : 0);
+  const weightedScore =
     elementFit * ELEMENT_FIT_WEIGHT +
-    riasecFit * RIASEC_FIT_WEIGHT +
-    studentToCareerFit * STUDENT_TO_CAREER_FIT_WEIGHT;
+    studentToCareerFit * STUDENT_TO_CAREER_FIT_WEIGHT +
+    (hasRiasecData ? riasecFit * RIASEC_FIT_WEIGHT : 0);
+  const rawScoreV3 =
+    activeWeightTotal > 0 ? weightedScore / activeWeightTotal : 0;
 
   return {
     score: roundScore(rawScoreV3),
     rawScoreV3: roundScore(rawScoreV3),
     elementFit: roundScore(elementFit),
     riasecFit: roundScore(riasecFit),
+    hasRiasecData,
     studentToCareerFit: roundScore(studentToCareerFit),
     careerCoverage: roundScore(careerCoverage),
     matchedElementCount: matchedElements.length,
@@ -397,6 +434,7 @@ function toRecommendation(career, profileWeights, profile) {
     similarityBreakdown: {
       elementFit: similarity.elementFit,
       riasecFit: similarity.riasecFit,
+      hasRiasecData: similarity.hasRiasecData,
       studentToCareerFit: similarity.studentToCareerFit,
       careerCoverage: similarity.careerCoverage,
       typeFits: similarity.typeFits,
