@@ -1,36 +1,44 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import api from "../api/axios";
 import { DEFAULT_RECOMMENDATION_LIMIT } from "../constants/recommendations";
 import { normalizeCareerClusters } from "../utils/careerCluster";
 
-const NODE_LAYOUT = [
-  { top: 16, left: 43, size: "lg", placement: "down" },
-  { top: 27, left: 57, size: "lg", placement: "down" },
-  { top: 42, left: 45, size: "lg", placement: "down" },
-  { top: 53, left: 58, size: "lg", placement: "up" },
-  { top: 34, left: 33, size: "lg", placement: "down" },
-  { top: 18, left: 24, size: "md", placement: "down" },
-  { top: 19, left: 72, size: "md", placement: "down-left" },
-  { top: 34, left: 16, size: "md", placement: "down" },
-  { top: 36, left: 82, size: "md", placement: "down-left" },
-  { top: 52, left: 23, size: "md", placement: "up" },
-  { top: 51, left: 76, size: "md", placement: "up-left" },
-  { top: 68, left: 35, size: "md", placement: "up" },
-  { top: 69, left: 63, size: "md", placement: "up" },
-  { top: 81, left: 47, size: "md", placement: "up" },
-  { top: 82, left: 75, size: "md", placement: "up-left" },
-  { top: 12, left: 9, size: "sm", placement: "down" },
-  { top: 10, left: 91, size: "sm", placement: "down-left" },
-  { top: 27, left: 7, size: "sm", placement: "down" },
-  { top: 28, left: 93, size: "sm", placement: "down-left" },
-  { top: 47, left: 8, size: "sm", placement: "up" },
-  { top: 47, left: 93, size: "sm", placement: "up-left" },
-  { top: 66, left: 10, size: "sm", placement: "up" },
-  { top: 66, left: 90, size: "sm", placement: "up-left" },
-  { top: 86, left: 15, size: "sm", placement: "up" },
-  { top: 89, left: 88, size: "sm", placement: "up-left" },
+const MAP_WIDTH = 1200;
+const MAP_HEIGHT = 720;
+const NODE_ANCHORS = [
+  { top: 45, left: 50, size: "hero", placement: "down" },
+  { top: 23, left: 34, size: "lg", placement: "down" },
+  { top: 24, left: 66, size: "lg", placement: "down-left" },
+  { top: 62, left: 32, size: "lg", placement: "up" },
+  { top: 62, left: 68, size: "lg", placement: "up-left" },
+  { top: 38, left: 18, size: "md", placement: "down" },
+  { top: 38, left: 82, size: "md", placement: "down-left" },
+  { top: 15, left: 50, size: "md", placement: "down" },
+  { top: 78, left: 50, size: "md", placement: "up" },
+  { top: 74, left: 17, size: "md", placement: "up" },
+  { top: 74, left: 83, size: "md", placement: "up-left" },
+  { top: 14, left: 15, size: "sm", placement: "down" },
+  { top: 14, left: 85, size: "sm", placement: "down-left" },
+  { top: 86, left: 31, size: "sm", placement: "up" },
+  { top: 86, left: 69, size: "sm", placement: "up-left" },
+  { top: 52, left: 8, size: "sm", placement: "up" },
+  { top: 52, left: 92, size: "sm", placement: "up-left" },
+  { top: 28, left: 8, size: "sm", placement: "down" },
+  { top: 28, left: 92, size: "sm", placement: "down-left" },
+  { top: 88, left: 9, size: "sm", placement: "up" },
+  { top: 88, left: 91, size: "sm", placement: "up-left" },
+  { top: 8, left: 31, size: "sm", placement: "down" },
+  { top: 8, left: 69, size: "sm", placement: "down-left" },
+  { top: 93, left: 43, size: "sm", placement: "up" },
+  { top: 93, left: 57, size: "sm", placement: "up-left" },
 ];
+const NODE_BOUNDS = {
+  hero: { width: 235, height: 82 },
+  lg: { width: 190, height: 58 },
+  md: { width: 158, height: 50 },
+  sm: { width: 118, height: 42 },
+};
 const INITIAL_RANK_TABLE_LIMIT = 15;
 
 function formatElementCode(code) {
@@ -80,22 +88,180 @@ function getTier(index) {
   return "tier-explore";
 }
 
-function RecommendationNode({ career, index }) {
-  const title = career.title_vi || career.title_en;
+function getCareerTitle(career) {
+  return career.title_vi || career.title_en || "Career";
+}
+
+function getCompactCareerTitle(title, size) {
+  const firstPhrase = String(title || "").split(/[,(]/)[0].trim();
+  const preferredTitle =
+    firstPhrase.length >= 10 && firstPhrase.length <= 34 ? firstPhrase : title;
+  const maxLength = size === "hero" ? 42 : size === "lg" ? 34 : 28;
+  const normalizedTitle = String(preferredTitle || "").replace(/\s+/g, " ").trim();
+
+  if (normalizedTitle.length <= maxLength) {
+    return normalizedTitle;
+  }
+
+  return `${normalizedTitle.slice(0, maxLength - 1).trim()}...`;
+}
+
+function clamp(value, min, max) {
+  return Math.min(Math.max(value, min), max);
+}
+
+function getNodeRadius(size) {
+  const bounds = NODE_BOUNDS[size] || NODE_BOUNDS.md;
+
+  return Math.max(bounds.width, bounds.height) / 2;
+}
+
+function getCareerClusters(career) {
+  return normalizeCareerClusters(career.careerCluster);
+}
+
+function doClustersOverlap(firstClusters, secondClusters) {
+  return firstClusters.some((cluster) => secondClusters.includes(cluster));
+}
+
+function buildRecommendationMapNodes(recommendations) {
+  const nodes = recommendations.map((career, index) => {
+    const anchor = NODE_ANCHORS[index] || NODE_ANCHORS[NODE_ANCHORS.length - 1];
+
+    return {
+      career,
+      clusters: getCareerClusters(career),
+      index,
+      placement: anchor.placement,
+      size: anchor.size,
+      x: (anchor.left / 100) * MAP_WIDTH,
+      y: (anchor.top / 100) * MAP_HEIGHT,
+    };
+  });
+
+  for (let iteration = 0; iteration < 10; iteration += 1) {
+    for (let currentIndex = 0; currentIndex < nodes.length; currentIndex += 1) {
+      for (let nextIndex = currentIndex + 1; nextIndex < nodes.length; nextIndex += 1) {
+        const current = nodes[currentIndex];
+        const next = nodes[nextIndex];
+        let deltaX = next.x - current.x;
+        let deltaY = next.y - current.y;
+        let distance = Math.hypot(deltaX, deltaY);
+
+        if (distance === 0) {
+          deltaX = 1;
+          deltaY = 1;
+          distance = Math.hypot(deltaX, deltaY);
+        }
+
+        const minimumDistance =
+          getNodeRadius(current.size) + getNodeRadius(next.size) + 36;
+
+        if (distance >= minimumDistance) {
+          continue;
+        }
+
+        const force = (minimumDistance - distance) / distance / 2;
+        const offsetX = deltaX * force;
+        const offsetY = deltaY * force;
+
+        if (current.index !== 0) {
+          current.x -= offsetX;
+          current.y -= offsetY;
+        }
+
+        if (next.index !== 0) {
+          next.x += offsetX;
+          next.y += offsetY;
+        }
+      }
+    }
+
+    nodes.forEach((node) => {
+      const bounds = NODE_BOUNDS[node.size] || NODE_BOUNDS.md;
+
+      node.x = clamp(
+        node.x,
+        bounds.width / 2 + 14,
+        MAP_WIDTH - bounds.width / 2 - 14
+      );
+      node.y = clamp(
+        node.y,
+        bounds.height / 2 + 18,
+        MAP_HEIGHT - bounds.height / 2 - 18
+      );
+    });
+  }
+
+  return nodes.map((node) => ({
+    ...node,
+    left: (node.x / MAP_WIDTH) * 100,
+    top: (node.y / MAP_HEIGHT) * 100,
+  }));
+}
+
+function buildRecommendationConnections(nodes) {
+  const connections = [];
+
+  nodes.slice(1, 14).forEach((node) => {
+    if (!node.clusters.length) {
+      return;
+    }
+
+    const relatedNode = nodes
+      .slice(0, node.index)
+      .find((candidate) =>
+        candidate.clusters.length &&
+        doClustersOverlap(candidate.clusters, node.clusters)
+      );
+
+    if (!relatedNode) {
+      return;
+    }
+
+    const curveOffset = Math.min(68, Math.abs(node.x - relatedNode.x) * 0.18 + 22);
+    const midX = (relatedNode.x + node.x) / 2;
+    const midY = (relatedNode.y + node.y) / 2 - curveOffset;
+
+    connections.push({
+      d: `M ${relatedNode.x.toFixed(1)} ${relatedNode.y.toFixed(1)} Q ${midX.toFixed(1)} ${midY.toFixed(1)} ${node.x.toFixed(1)} ${node.y.toFixed(1)}`,
+      id: `${relatedNode.index}-${node.index}`,
+      isPrimary: relatedNode.index === 0,
+    });
+  });
+
+  return connections.slice(0, 8);
+}
+
+function RecommendationNode({ node }) {
+  const { career, index, placement, size } = node;
+  const title = getCareerTitle(career);
+  const compactTitle = getCompactCareerTitle(title, size);
   const clusters = normalizeCareerClusters(career.careerCluster).slice(0, 2);
   const matchedElements = career.topMatchedElements?.slice(0, 3) || [];
-  const layout = NODE_LAYOUT[index] || NODE_LAYOUT[NODE_LAYOUT.length - 1];
   const tier = getTier(index);
+  const matchScore = getMatchScore(career);
 
   return (
     <article
-      className={`recommendation-node ${tier} node-${layout.size} popover-${layout.placement}`}
-      style={{ "--node-left": `${layout.left}%`, "--node-top": `${layout.top}%` }}
+      className={`recommendation-node ${tier} node-${size} popover-${placement}`}
+      style={{ "--node-left": `${node.left}%`, "--node-top": `${node.top}%` }}
     >
-      <Link className="recommendation-node-link" to={`/careers/${career._id}`}>
+      <Link
+        aria-label={title}
+        className="recommendation-node-link"
+        title={title}
+        to={`/careers/${career._id}`}
+      >
+        <span className="recommendation-node-rank">
+          {String(index + 1).padStart(2, "0")}
+        </span>
         <span className="recommendation-node-dot" aria-hidden="true" />
         <span className="recommendation-node-copy">
-          <span className="recommendation-title">{title}</span>
+          <span className="recommendation-title">{compactTitle}</span>
+          {matchScore !== null && (
+            <span className="recommendation-score">{matchScore}%</span>
+          )}
         </span>
       </Link>
 
@@ -311,6 +477,19 @@ function CareerRecommendations() {
     };
   }, [token]);
 
+  const visibleMapRecommendations = useMemo(
+    () => recommendations.slice(0, DEFAULT_RECOMMENDATION_LIMIT),
+    [recommendations]
+  );
+  const recommendationMapNodes = useMemo(
+    () => buildRecommendationMapNodes(visibleMapRecommendations),
+    [visibleMapRecommendations]
+  );
+  const recommendationConnections = useMemo(
+    () => buildRecommendationConnections(recommendationMapNodes),
+    [recommendationMapNodes]
+  );
+
   if (!token) {
     return (
       <section className="recommendation-empty card">
@@ -406,18 +585,22 @@ function CareerRecommendations() {
             <RecommendationRankTable recommendations={recommendations} />
           ) : (
             <section className="recommendation-map" aria-label="Bản đồ nghề nghiệp gợi ý">
-              <svg
-                className="recommendation-map-contours"
-                aria-hidden="true"
-                viewBox="0 0 1200 720"
-                preserveAspectRatio="none"
-              >
-                <path d="M-40 126C118 76 244 92 372 146C526 211 642 201 774 141C916 76 1049 80 1240 154" />
-                <path d="M-28 295C126 242 269 255 424 321C569 383 712 374 856 314C1002 253 1114 263 1232 337" />
-                <path d="M-42 472C102 427 236 430 386 486C542 544 677 541 828 482C988 419 1112 426 1242 494" />
-                <path d="M92 694C225 610 365 601 511 647C654 692 780 678 914 618C1040 562 1134 572 1234 642" />
-                <path d="M292 18C361 85 386 152 360 221C329 304 360 372 441 425C537 488 561 559 511 722" />
-              </svg>
+              {recommendationConnections.length > 0 && (
+                <svg
+                  className="recommendation-map-connections"
+                  aria-hidden="true"
+                  viewBox={`0 0 ${MAP_WIDTH} ${MAP_HEIGHT}`}
+                  preserveAspectRatio="none"
+                >
+                  {recommendationConnections.map((connection) => (
+                    <path
+                      className={connection.isPrimary ? "is-primary" : ""}
+                      d={connection.d}
+                      key={connection.id}
+                    />
+                  ))}
+                </svg>
+              )}
 
               <div className="recommendation-map-legend" aria-label="Phân tầng gợi ý">
                 <span><i className="tier-best" /> Phù hợp nhất</span>
@@ -425,8 +608,11 @@ function CareerRecommendations() {
                 <span><i className="tier-explore" /> Khám phá thêm</span>
               </div>
 
-              {recommendations.slice(0, DEFAULT_RECOMMENDATION_LIMIT).map((career, index) => (
-                <RecommendationNode career={career} index={index} key={career._id} />
+              {recommendationMapNodes.map((node) => (
+                <RecommendationNode
+                  key={node.career._id || `${node.career.onetCode}-${node.index}`}
+                  node={node}
+                />
               ))}
             </section>
           )}
