@@ -5046,6 +5046,7 @@ button.danger:hover:not(:disabled),
 .admin-pagination {
   align-items: center;
   display: flex;
+  gap: 10px;
   justify-content: flex-end;
   padding-top: 16px;
 }
@@ -5053,6 +5054,22 @@ button.danger:hover:not(:disabled),
 .admin-pagination-actions {
   @apply flex flex-wrap items-center;
   gap: 8px;
+}
+
+.admin-pagination-actions label {
+  align-items: center;
+  display: inline-flex;
+  flex: 0 0 auto;
+  gap: 8px;
+  margin: 0;
+  min-height: 44px;
+}
+
+.admin-pagination-actions select {
+  flex: 0 0 auto;
+  min-height: 44px;
+  padding: 9px 36px 9px 14px;
+  width: auto;
 }
 
 .admin-pagination-actions span {
