@@ -7,6 +7,7 @@ const api = axios.create({
   baseURL: API_BASE_URL,
 });
 
+// include the token in the request headers if it exists in localStorage
 api.interceptors.request.use((config) => {
   const token = localStorage.getItem("token");
 
@@ -17,6 +18,7 @@ api.interceptors.request.use((config) => {
   return config;
 });
 
+// handle 401 errors and refresh the token if possible
 api.interceptors.response.use(
   (response) => response,
   async (error) => {

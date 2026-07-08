@@ -198,8 +198,7 @@ function AdminDashboard() {
         <h1>Bảng điều khiển quản trị</h1>
         <p>
           Khu vực quản trị tập trung vào quản lý dữ liệu, tài khoản và cấu hình
-          khảo sát. Các chức năng trải nghiệm của học sinh vẫn tồn tại ở hệ
-          thống chính, nhưng không đặt trong menu admin.
+          khảo sát. 
         </p>
       </div>
 

@@ -381,7 +381,6 @@ function CoreQuizPage() {
 
     try {
       clearDiscoveryDraft(draftKey);
-      await api.delete("/profile/core-quiz/result");
       const res = await api.get("/profile/core-quiz/questions");
 
       setQuestions(shuffleQuestionAnswers(res.data));
@@ -389,7 +388,6 @@ function CoreQuizPage() {
       setCurrentIndex(0);
       setResult(null);
       setHasStarted(false);
-      window.dispatchEvent(new Event(DISCOVERY_PROGRESS_UPDATED));
     } catch (err) {
       setError(
         err.response?.data?.message ||
@@ -423,8 +421,7 @@ function CoreQuizPage() {
           <p className="core-quiz-eyebrow">Self-discovery Core Quiz</p>
           <h1>Kết quả khám phá sơ bộ</h1>
           <p>
-            Đây là các yếu tố nổi bật từ câu trả lời của bạn. Tên hiển thị hiện
-            dùng mã element cho đến khi hệ thống map đầy đủ tên tiếng Việt.
+            Đây là các yếu tố nổi bật từ câu trả lời của bạn. 
           </p>
         </section>
 
