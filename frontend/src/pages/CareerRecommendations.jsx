@@ -616,6 +616,15 @@ function CareerRecommendations() {
               ))}
             </section>
           )}
+
+          <section className="recommendation-disclaimer" aria-label="Luu y ve ket qua goi y">
+            <strong>Lưu ý:</strong>{" "}
+            <span>
+              Kết quả gợi ý chỉ mang tính chất tham khảo, được xây dựng dựa trên
+              hồ sơ hiện tại của học sinh và dữ liệu nghề nghiệp. Hệ thống không
+              thay thế tư vấn của giáo viên, phụ huynh hoặc chuyên gia hướng nghiệp.
+            </span>
+          </section>
         </>
       )}
     </div>

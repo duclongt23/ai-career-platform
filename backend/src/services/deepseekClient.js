@@ -24,7 +24,6 @@ async function callDeepSeek(messages) {
   const completion = await getDeepSeekClient().chat.completions.create({
     model: process.env.DEEPSEEK_MODEL || "deepseek-v4-pro",
     messages,
-    // DeepSeek yêu cầu truyền thinking qua extra_body khi dùng OpenAI SDK.
     extra_body: {
       thinking: { type: "enabled" },
     },
