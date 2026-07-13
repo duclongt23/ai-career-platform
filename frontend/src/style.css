@@ -1549,6 +1549,68 @@ button.danger:hover:not(:disabled),
   margin-top: 4px;
 }
 
+.recommendation-score-header {
+  align-items: center;
+  display: inline-flex;
+  gap: 6px;
+  position: relative;
+}
+
+.recommendation-score-info {
+  align-items: center;
+  background: var(--surface);
+  border: 1px solid rgba(15, 118, 110, 0.28);
+  border-radius: 50%;
+  color: var(--primary);
+  display: inline-flex;
+  flex: 0 0 auto;
+  font-size: 11px;
+  font-weight: 900;
+  height: 18px;
+  justify-content: center;
+  min-height: 18px;
+  padding: 0;
+  position: relative;
+  width: 18px;
+}
+
+.recommendation-score-info:hover,
+.recommendation-score-info:focus-visible {
+  background: var(--primary);
+  color: #ffffff;
+  transform: none;
+}
+
+.recommendation-score-info span {
+  background: var(--ink);
+  border-radius: 8px;
+  box-shadow: var(--shadow-card);
+  color: #ffffff;
+  font-size: 12px;
+  font-weight: 700;
+  left: 50%;
+  line-height: 1.45;
+  opacity: 0;
+  padding: 10px 12px;
+  pointer-events: none;
+  position: absolute;
+  text-transform: none;
+  top: calc(100% + 10px);
+  transform: translateX(-50%) translateY(-4px);
+  transition: opacity 0.18s ease, transform 0.18s ease;
+  visibility: hidden;
+  white-space: normal;
+  width: min(280px, 72vw);
+  z-index: 20;
+}
+
+.recommendation-score-info:hover span,
+.recommendation-score-info:focus-visible span {
+  opacity: 1;
+  transform: translateX(-50%) translateY(0);
+  visibility: visible;
+}
+
 .recommendation-table-tags,
 .recommendation-tag-row {
   @apply flex flex-wrap;

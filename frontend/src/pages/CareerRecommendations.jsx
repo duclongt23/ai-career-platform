@@ -343,7 +343,23 @@ function RecommendationRankTable({ recommendations = [] }) {
               <th>Rank</th>
               <th>Nghề gợi ý</th>
               <th>Nhóm nghề</th>
-              <th>Điểm phù hợp</th>
+              <th>
+                <span className="recommendation-score-header">
+                  Điểm phù hợp
+                  <button
+                    type="button"
+                    className="recommendation-score-info"
+                    aria-label="Giải thích điểm phù hợp"
+                  >
+                    !
+                    <span role="tooltip">
+                      Mức độ phù hợp chỉ mang tính tham khảo tương đối, giúp học
+                      sinh có thêm góc nhìn khi định hướng nghề nghiệp. Con số
+                      này không đồng nghĩa với xác suất thành công trong nghề.
+                    </span>
+                  </button>
+                </span>
+              </th>
               <th />
             </tr>
           </thead>
