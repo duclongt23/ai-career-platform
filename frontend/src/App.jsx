@@ -12,6 +12,7 @@ import {
 import LandingPage from "./pages/LandingPage";
 import Profile from "./pages/Profile";
 import ProfileSetup from "./pages/ProfileSetup";
+import Careers from "./pages/Careers";
 import CareerDetail from "./pages/CareerDetail";
 import AdminCareers from "./pages/AdminCareers";
 import AdminCoreQuiz from "./pages/AdminCoreQuiz";
@@ -318,6 +319,7 @@ function App() {
           </Link>
 
           <div className="nav-links">
+            {token && !isAdmin && <Link to="/careers">Danh sách nghề</Link>}
             {token && !isAdmin && <Link to="/discovery">Hành trình khám phá</Link>}
             {token && !isAdmin && <Link to="/career-explore-chats">Hội thoại nghề</Link>}
 
@@ -370,7 +372,7 @@ function App() {
               </BasicProfileGate>
             }
           />
-          <Route path="/careers" element={<Navigate to="/" replace />} />
+          <Route path="/careers" element={<Careers />} />
           <Route path="/favorites" element={<Navigate to="/favorite-careers" replace />} />
           <Route path="/career-recommendations" element={<Navigate to="/discovery/recommendations" replace />} />
           <Route path="/riasec-info" element={<RiasecInfo />} />
